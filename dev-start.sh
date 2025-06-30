@@ -10,6 +10,10 @@ if [ ! -f "PROJECT_STATE_WORKING.md" ]; then
     exit 1
 fi
 
+# Kill any existing process on port 3003
+echo "🧹 Cleaning up existing processes on port 3003..."
+lsof -ti:3003 | xargs kill -9 2>/dev/null || true
+
 # Start frontend development server
 echo "🌐 Starting frontend development server..."
 cd frontend
@@ -21,7 +25,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Start dev server
-echo "🚀 Starting Vite dev server..."
+echo "🚀 Starting Vite dev server on http://localhost:3003..."
 npm run dev
 
-echo "✅ Frontend running on http://localhost:3003 (or next available port)"
+echo "✅ Frontend running on http://localhost:3003"

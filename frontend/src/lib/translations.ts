@@ -9,6 +9,56 @@ export const translations = {
     // Dashboard
     dashboard: 'Dashboard',
     welcomeToSystem: 'Welcome to TSH ERP System',
+    tshErpDashboard: 'TSH ERP Dashboard',
+    lastUpdated: 'Last updated',
+    refresh: 'Refresh',
+    loadingDashboardData: 'Loading dashboard data...',
+    someDataOutdated: 'Some data may be outdated',
+    
+    // Financial Overview
+    financialOverview: 'Financial Overview',
+    totalReceivables: 'Total Receivables',
+    totalPayables: 'Total Payables',
+    stockValueCost: 'Stock Value (Cost)',
+    amountOwedToUs: 'Amount owed to us',
+    amountWeOwe: 'Amount we owe',
+    currentInventoryCost: 'Current inventory cost',
+    
+    // Inventory
+    inventorySummary: 'Inventory Summary',
+    positiveItemsInWarehouse: 'Positive Items in Warehouse',
+    totalPiecesAvailable: 'Total Pieces Available',
+    
+    // Staff
+    staffSummary: 'Staff Summary',
+    partnerSalesmen: 'Partner Salesmen',
+    travelSalespersons: 'Travel Salespersons',
+    
+    // Money Boxes
+    moneyBoxes: 'Money Boxes',
+    mainMoneyBox: 'Main Money Box',
+    fratAwsatVector: 'Frat Awsat Vector',
+    firstSouthVector: 'First South Vector',
+    northVector: 'North Vector',
+    westVector: 'West Vector',
+    daylaMoneyBox: 'Dayla Money Box',
+    baghdadMoneyBox: 'Baghdad Money Box',
+    totalCash: 'Total Cash',
+    primaryCashFlow: 'Primary cash flow',
+    centralRegion: 'Central region',
+    southernRegion: 'Southern region',
+    northernRegion: 'Northern region',
+    westernRegion: 'Western region',
+    daylaOperations: 'Dayla operations',
+    baghdadOperations: 'Baghdad operations',
+    allMoneyBoxes: 'All money boxes',
+    
+    // Quick Actions
+    quickActions: 'Quick Actions',
+    viewReports: 'View Reports',
+    addTransaction: 'Add Transaction',
+    checkInventory: 'Check Inventory',
+    manageStaff: 'Manage Staff',
     
     // Stats
     totalUsers: 'Total Users',
@@ -90,9 +140,31 @@ export const translations = {
     expenseReports: 'Expense Reports',
     models: 'Models',
     
+    // Module Descriptions
+    hrModuleWorking: 'HR module is working! This will contain employee management, payroll, and more.',
+    salesModuleWorking: 'Sales module is working! This will contain customers, orders, invoices, and more.',
+    
     // Common
     comingSoon: 'Coming Soon',
     logout: 'Logout',
+    loading: 'Loading...',
+    error: 'Error',
+    success: 'Success',
+    warning: 'Warning',
+    info: 'Info',
+    cancel: 'Cancel',
+    save: 'Save',
+    edit: 'Edit',
+    delete: 'Delete',
+    add: 'Add',
+    create: 'Create',
+    update: 'Update',
+    view: 'View',
+    close: 'Close',
+    open: 'Open',
+    yes: 'Yes',
+    no: 'No',
+    ok: 'OK',
   },
   ar: {
     // Header
@@ -104,6 +176,56 @@ export const translations = {
     // Dashboard
     dashboard: 'لوحة التحكم',
     welcomeToSystem: 'مرحباً بك في نظام TSH ERP',
+    tshErpDashboard: 'لوحة تحكم TSH ERP',
+    lastUpdated: 'آخر تحديث',
+    refresh: 'تحديث',
+    loadingDashboardData: 'جاري تحميل بيانات لوحة التحكم...',
+    someDataOutdated: 'بعض البيانات قد تكون قديمة',
+    
+    // Financial Overview
+    financialOverview: 'النظرة المالية العامة',
+    totalReceivables: 'إجمالي المدينين',
+    totalPayables: 'إجمالي الدائنين',
+    stockValueCost: 'قيمة المخزون (التكلفة)',
+    amountOwedToUs: 'المبلغ المستحق لنا',
+    amountWeOwe: 'المبلغ الذي ندين به',
+    currentInventoryCost: 'تكلفة المخزون الحالي',
+    
+    // Inventory
+    inventorySummary: 'ملخص المخزون',
+    positiveItemsInWarehouse: 'العناصر الموجبة في المستودع',
+    totalPiecesAvailable: 'إجمالي القطع المتاحة',
+    
+    // Staff
+    staffSummary: 'ملخص الموظفين',
+    partnerSalesmen: 'مندوبي المبيعات الشركاء',
+    travelSalespersons: 'مندوبي المبيعات المتنقلين',
+    
+    // Money Boxes
+    moneyBoxes: 'صناديق النقد',
+    mainMoneyBox: 'صندوق النقد الرئيسي',
+    fratAwsatVector: 'ناقل فرات أوسط',
+    firstSouthVector: 'ناقل الجنوب الأول',
+    northVector: 'ناقل الشمال',
+    westVector: 'ناقل الغرب',
+    daylaMoneyBox: 'صندوق نقد ديالى',
+    baghdadMoneyBox: 'صندوق نقد بغداد',
+    totalCash: 'إجمالي النقد',
+    primaryCashFlow: 'التدفق النقدي الأساسي',
+    centralRegion: 'المنطقة الوسطى',
+    southernRegion: 'المنطقة الجنوبية',
+    northernRegion: 'المنطقة الشمالية',
+    westernRegion: 'المنطقة الغربية',
+    daylaOperations: 'عمليات ديالى',
+    baghdadOperations: 'عمليات بغداد',
+    allMoneyBoxes: 'جميع صناديق النقد',
+    
+    // Quick Actions
+    quickActions: 'الإجراءات السريعة',
+    viewReports: 'عرض التقارير',
+    addTransaction: 'إضافة معاملة',
+    checkInventory: 'فحص المخزون',
+    manageStaff: 'إدارة الموظفين',
     
     // Stats
     totalUsers: 'إجمالي المستخدمين',
@@ -185,9 +307,31 @@ export const translations = {
     expenseReports: 'تقارير المصروفات',
     models: 'النماذج',
     
+    // Module Descriptions
+    hrModuleWorking: 'وحدة الموارد البشرية تعمل! ستحتوي على إدارة الموظفين والرواتب والمزيد.',
+    salesModuleWorking: 'وحدة المبيعات تعمل! ستحتوي على العملاء والطلبات والفواتير والمزيد.',
+    
     // Common
     comingSoon: 'قريباً',
     logout: 'تسجيل الخروج',
+    loading: 'جاري التحميل...',
+    error: 'خطأ',
+    success: 'نجح',
+    warning: 'تحذير',
+    info: 'معلومات',
+    cancel: 'إلغاء',
+    save: 'حفظ',
+    edit: 'تعديل',
+    delete: 'حذف',
+    add: 'إضافة',
+    create: 'إنشاء',
+    update: 'تحديث',
+    view: 'عرض',
+    close: 'إغلاق',
+    open: 'فتح',
+    yes: 'نعم',
+    no: 'لا',
+    ok: 'موافق',
   },
 } as const
 

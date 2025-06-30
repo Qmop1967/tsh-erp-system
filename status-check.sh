@@ -15,8 +15,9 @@ echo ""
 echo "🌐 Development Server Status:"
 if lsof -Pi :3003 -sTCP:LISTEN -t >/dev/null ; then
     echo "✅ Frontend dev server is running on port 3003"
+    echo "🌐 URL: http://localhost:3003"
 else
-    echo "❌ Frontend dev server is not running"
+    echo "❌ Frontend dev server is not running on port 3003"
     echo "💡 Run './dev-start.sh' to start it"
 fi
 

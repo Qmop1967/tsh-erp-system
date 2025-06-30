@@ -16,6 +16,9 @@ import {
   Home
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useLanguageStore } from '@/stores/languageStore'
+import { useTranslations } from '@/lib/translations'
+import { LanguageSwitcher } from '../LanguageSwitcher'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -105,6 +108,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [expandedItems, setExpandedItems] = useState<string[]>(['dashboard'])
   const location = useLocation()
   const { logout, user } = useAuthStore()
+  const { language } = useLanguageStore()
+  const t = useTranslations(language)
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
@@ -245,14 +250,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-gray-800">
-                {location.pathname === '/dashboard' ? 'Dashboard' : 
+                {location.pathname === '/dashboard' ? t.dashboard : 
                  location.pathname.split('/').pop()?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Page'}
               </h2>
               <p className="text-sm text-gray-600 mt-1">
-                Welcome back to TSH ERP System
+                {t.welcomeToSystem}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-700">{user?.name || 'User'}</p>
                 <p className="text-xs text-gray-500">{new Date().toLocaleDateString()}</p>

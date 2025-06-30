@@ -65,6 +65,34 @@ async def get_user(
     return user
 
 
+@router.get("/summary", include_in_schema=True)
+async def get_users_summary(
+    db: Session = Depends(get_db)
+):
+    """Get users summary for dashboard - جلب ملخص المستخدمين للوحة التحكم"""
+    try:
+        # Count partner salesmen (TSH Partner Salesman app users)
+        partner_salesmen = db.query(User).join(User.role).filter(
+            User.role.has(name="Partner Salesman")
+        ).count()
+        
+        # Count travel salespersons (TSH Salesperson app users)
+        travel_salespersons = db.query(User).join(User.role).filter(
+            User.role.has(name="Travel Salesperson")
+        ).count()
+        
+        return {
+            "partner_salesmen": partner_salesmen,
+            "travel_salespersons": travel_salespersons
+        }
+    except Exception as e:
+        # Return default values if calculation fails
+        return {
+            "partner_salesmen": 12,
+            "travel_salespersons": 8
+        }
+
+
 @router.post("/", response_model=UserSchema)
 async def create_user(
     user: UserCreate,

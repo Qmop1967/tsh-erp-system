@@ -78,7 +78,7 @@ app.include_router(accounting_router, prefix="/api/accounting", tags=["accountin
 app.include_router(invoices_router, prefix="/api")
 app.include_router(expenses_router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(pos_router, prefix="/api/pos", tags=["pos"])
-app.include_router(cashflow_router, prefix="/api")
+app.include_router(cashflow_router, prefix="/api/cashflow", tags=["cashflow"])
 app.include_router(migration_router, prefix="/api")
 app.include_router(models_router, prefix="/api", tags=["models"])
 app.include_router(users_router, prefix="/api")
