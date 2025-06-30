@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TSH ERP - Direct Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        input, button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; }
+        button { background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #dcfce7; border: 1px solid #16a34a; color: #166534; }
+        .error { background: #fef2f2; border: 1px solid #dc2626; color: #991b1b; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        pre { background: #f3f4f6; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 TSH ERP - Direct Login Test</h1>
+        
+        <form id="loginForm">
+            <h2>Login Credentials</h2>
+            <input type="email" id="email" placeholder="Email" value="admin@tsh-erp.com">
+            <input type="password" id="password" placeholder="Password" value="admin123">
+            <button type="submit">🚀 Test Login</button>
+        </form>
+        
+        <div id="results"></div>
+        
+        <h2>Quick Actions</h2>
+        <button onclick="clearStorage()">🗑️ Clear Browser Storage</button>
+        <button onclick="testBackend()">🔗 Test Backend Connection</button>
+        <button onclick="loginWithDefaultCredentials()">⚡ Quick Login (Default Credentials)</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('✅ Browser storage cleared', 'success');
+        }
+        
+        async function testBackend() {
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                if (response.ok) {
+                    log('✅ Backend is running and accessible', 'success');
+                } else {
+                    log(`❌ Backend responded with status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Cannot connect to backend: ${error.message}`, 'error');
+            }
+        }
+        
+        async function performLogin(email, password) {
+            try {
+                log(`🔄 Attempting login with: ${email}`, 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const responseText = await response.text();
+                log(`📥 Raw response (${response.status}): ${responseText.substring(0, 200)}...`, 'info');
+                
+                if (response.ok) {
+                    const data = JSON.parse(responseText);
+                    log(`✅ Login successful!<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    
+                    // Store in localStorage to simulate real frontend behavior
+                    localStorage.setItem('tsh-erp-auth', JSON.stringify({
+                        state: {
+                            user: data.user,
+                            token: data.access_token
+                        }
+                    }));
+                    
+                    log('💾 Stored credentials in localStorage', 'success');
+                    log('🌐 Now you can try accessing the frontend: <a href="http://localhost:3003" target="_blank">http://localhost:3003</a>', 'success');
+                    
+                    return data;
+                } else {
+                    log(`❌ Login failed (${response.status}): ${responseText}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            await performLogin(email, password);
+        });
+        
+        async function loginWithDefaultCredentials() {
+            await performLogin('admin@tsh-erp.com', 'admin123');
+        }
+        
+        // Auto-clear and show status
+        clearStorage();
+        testBackend();
+        log('🎯 Ready! Use the form above to test login or click "Quick Login"', 'info');
+    </script>
+</body>
+</html>

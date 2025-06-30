@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TSH ERP - Refresh Permissions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; }
+        button { background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #dcfce7; border: 1px solid #16a34a; color: #166534; }
+        .error { background: #fef2f2; border: 1px solid #dc2626; color: #991b1b; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        pre { background: #f3f4f6; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 TSH ERP - Refresh Admin Permissions</h1>
+        <p>This tool will logout and re-login to get the updated admin permissions that include access to all navigation menus.</p>
+        
+        <div id="results"></div>
+        
+        <h2>Actions</h2>
+        <button onclick="refreshPermissions()">🚀 Refresh Admin Permissions</button>
+        <button onclick="checkCurrentPermissions()">🔍 Check Current Permissions</button>
+        <button onclick="clearStorage()">🗑️ Clear Storage (Force Logout)</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('✅ Storage cleared - user logged out', 'success');
+        }
+        
+        function checkCurrentPermissions() {
+            const authData = localStorage.getItem('tsh-erp-auth');
+            if (authData) {
+                try {
+                    const data = JSON.parse(authData);
+                    const user = data.state?.user;
+                    if (user) {
+                        log(`👤 Current User: ${user.name} (${user.email})`, 'info');
+                        log(`🎭 Role: ${user.role}`, 'info');
+                        if (user.permissions && user.permissions.length > 0) {
+                            log(`✅ Permissions (${user.permissions.length}): <pre>${JSON.stringify(user.permissions, null, 2)}</pre>`, 'success');
+                        } else {
+                            log(`❌ No permissions found! This is why menus are hidden.`, 'error');
+                        }
+                    } else {
+                        log(`❌ No user data found`, 'error');
+                    }
+                } catch (e) {
+                    log(`❌ Error parsing auth data: ${e.message}`, 'error');
+                }
+            } else {
+                log(`❌ No authentication data found`, 'error');
+            }
+        }
+        
+        async function refreshPermissions() {
+            try {
+                log('🔄 Starting permission refresh...', 'info');
+                
+                // Step 1: Clear current session
+                clearStorage();
+                
+                // Step 2: Login with admin credentials to get new permissions
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@tsh-erp.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log('✅ Login successful with updated permissions!', 'success');
+                
+                // Step 3: Store the new auth data
+                localStorage.setItem('tsh-erp-auth', JSON.stringify({
+                    state: {
+                        user: data.user,
+                        token: data.access_token
+                    }
+                }));
+                
+                log('💾 New authentication data stored', 'success');
+                
+                // Step 4: Display the permissions
+                if (data.user.permissions) {
+                    log(`🎉 Admin now has ${data.user.permissions.length} permissions:<pre>${JSON.stringify(data.user.permissions, null, 2)}</pre>`, 'success');
+                    log('🌐 <strong>Now go to the frontend and refresh the page to see all navigation menus!</strong>', 'success');
+                    log('📱 Frontend URL: <a href="http://localhost:3003" target="_blank">http://localhost:3003</a>', 'info');
+                } else {
+                    log('❌ Still no permissions in response', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error refreshing permissions: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-check current permissions on load
+        log('🚀 Checking current permission status...', 'info');
+        checkCurrentPermissions();
+    </script>
+</body>
+</html>

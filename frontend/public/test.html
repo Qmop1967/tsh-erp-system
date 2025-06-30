@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSH ERP - Direct HTML Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .success {
+            color: #22c55e;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 TSH ERP System - Direct HTML Test</h1>
+        <p>If you can see this, the server is working.</p>
+        <p class="success">✅ HTML rendering confirmed!</p>
+        <div id="react-test"></div>
+    </div>
+    
+    <script>
+        console.log('HTML loaded successfully');
+        document.getElementById('react-test').innerHTML = '<p>JavaScript is also working!</p>';
+    </script>
+</body>
+</html>

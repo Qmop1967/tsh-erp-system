@@ -1,0 +1,944 @@
+import { useState, useEffect } from 'react'
+import { Plus, Search, Download, Upload, Filter, Users, Building, Phone, Mail, MapPin, CreditCard, Globe, Edit, Trash2, X } from 'lucide-react'
+
+interface Customer {
+  id: string | number
+  code: string
+  name: string
+  name_ar?: string
+  company_name?: string
+  email?: string
+  phone?: string
+  mobile?: string
+  address?: string
+  city?: string
+  country?: string
+  currency?: string
+  portal_language?: string
+  salesperson_id?: number
+  salesperson_name?: string
+  credit_limit?: number
+  outstanding_receivable?: number
+  payment_terms?: number
+  discount_percentage?: number
+  is_active: boolean
+  zoho_customer_id?: string
+  created_at?: string
+  updated_at?: string
+  source: 'regular' | 'zoho'
+}
+
+interface CustomerFormData {
+  customer_code: string
+  name: string
+  company_name?: string
+  email?: string
+  phone?: string
+  address?: string
+  city?: string
+  country?: string
+  tax_number?: string
+  credit_limit?: number
+  payment_terms?: number
+  discount_percentage?: number
+  currency: string
+  portal_language: string
+  salesperson_id?: number
+  is_active: boolean
+  notes?: string
+}
+
+interface CustomersResponse {
+  customers: Customer[]
+  total_regular: number
+  total_migrated: number
+  total: number
+}
+
+export function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterSource, setFilterSource] = useState<'all' | 'regular' | 'zoho'>('all')
+  const [stats, setStats] = useState({
+    total: 0,
+    regular: 0,
+    migrated: 0
+  })
+  
+  // Modal states
+  const [showModal, setShowModal] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [formData, setFormData] = useState<CustomerFormData>({
+    customer_code: '',
+    name: '',
+    company_name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    country: '',
+    tax_number: '',
+    credit_limit: 0,
+    payment_terms: 30,
+    discount_percentage: 0,
+    currency: 'IQD',
+    portal_language: 'en',
+    salesperson_id: undefined,
+    is_active: true,
+    notes: ''
+  })
+  
+  // Options for dropdowns
+  const [salespersons, setSalespersons] = useState<Array<{id: number, name: string, employee_code: string}>>([])
+  
+  const currencies = [
+    { code: 'IQD', name: 'Iraqi Dinar (IQD)' },
+    { code: 'USD', name: 'US Dollar (USD)' },
+    { code: 'EUR', name: 'Euro (EUR)' },
+    { code: 'GBP', name: 'British Pound (GBP)' },
+    { code: 'SAR', name: 'Saudi Riyal (SAR)' },
+    { code: 'AED', name: 'UAE Dirham (AED)' },
+    { code: 'KWD', name: 'Kuwaiti Dinar (KWD)' }
+  ]
+  
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'ar', name: 'العربية (Arabic)' },
+    { code: 'ku', name: 'کوردی (Kurdish)' }
+  ]
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Get auth token
+      const authData = localStorage.getItem('tsh-erp-auth')
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      
+      if (authData) {
+        try {
+          const { state } = JSON.parse(authData)
+          if (state?.token) {
+            headers['Authorization'] = `Bearer ${state.token}`
+          }
+        } catch (error) {
+          console.error('Error parsing auth data:', error)
+        }
+      }
+      
+      const response = await fetch('http://localhost:8000/api/customers/all/combined', { headers })
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers')
+      }
+      
+      const data: CustomersResponse = await response.json()
+      setCustomers(data.customers)
+      setStats({
+        total: data.total,
+        regular: data.total_regular,
+        migrated: data.total_migrated
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load customers')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddCustomer = () => {
+    setEditingCustomer(null)
+    setFormData({
+      customer_code: '',
+      name: '',
+      company_name: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      country: '',
+      tax_number: '',
+      credit_limit: 0,
+      payment_terms: 30,
+      discount_percentage: 0,
+      currency: 'IQD',
+      portal_language: 'en',
+      salesperson_id: undefined,
+      is_active: true,
+      notes: ''
+    })
+    setShowModal(true)
+  }
+
+  const handleEditCustomer = (customer: Customer) => {
+    if (customer.source === 'zoho') {
+      alert('Zoho customers cannot be edited directly. Please edit them in Zoho.')
+      return
+    }
+    
+    setEditingCustomer(customer)
+    setFormData({
+      customer_code: customer.code,
+      name: customer.name,
+      company_name: customer.company_name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      address: customer.address || '',
+      city: customer.city || '',
+      country: customer.country || '',
+      tax_number: '',
+      credit_limit: customer.credit_limit || 0,
+      payment_terms: customer.payment_terms || 30,
+      discount_percentage: customer.discount_percentage || 0,
+      currency: customer.currency || 'IQD',
+      portal_language: customer.portal_language || 'en',
+      salesperson_id: customer.salesperson_id,
+      is_active: customer.is_active,
+      notes: ''
+    })
+    setShowModal(true)
+  }
+
+  const handleDeleteCustomer = async (customer: Customer) => {
+    if (customer.source === 'zoho') {
+      alert('Zoho customers cannot be deleted from here.')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to delete customer "${customer.name}"?`)) {
+      return
+    }
+
+    try {
+      const authData = localStorage.getItem('tsh-erp-auth')
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      
+      if (authData) {
+        const { state } = JSON.parse(authData)
+        if (state?.token) {
+          headers['Authorization'] = `Bearer ${state.token}`
+        }
+      }
+
+      const response = await fetch(`http://localhost:8000/api/customers/${customer.id}`, {
+        method: 'DELETE',
+        headers
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete customer')
+      }
+
+      await fetchCustomers()
+      alert('Customer deleted successfully')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete customer')
+    }
+  }
+
+  const handleSubmitCustomer = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      const authData = localStorage.getItem('tsh-erp-auth')
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      
+      if (authData) {
+        const { state } = JSON.parse(authData)
+        if (state?.token) {
+          headers['Authorization'] = `Bearer ${state.token}`
+        }
+      }
+
+      const url = editingCustomer 
+        ? `http://localhost:8000/api/customers/${editingCustomer.id}`
+        : 'http://localhost:8000/api/customers'
+      
+      const method = editingCustomer ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to save customer')
+      }
+
+      await fetchCustomers()
+      setShowModal(false)
+      alert(editingCustomer ? 'Customer updated successfully' : 'Customer created successfully')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save customer')
+    }
+  }
+
+  useEffect(() => {
+    fetchCustomers()
+    fetchSalespersons()
+  }, [])
+
+  const fetchSalespersons = async () => {
+    try {
+      const authData = localStorage.getItem('tsh-erp-auth')
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      
+      if (authData) {
+        try {
+          const { state } = JSON.parse(authData)
+          if (state?.token) {
+            headers['Authorization'] = `Bearer ${state.token}`
+          }
+        } catch (error) {
+          console.error('Error parsing auth data:', error)
+        }
+      }
+      
+      const response = await fetch('http://localhost:8000/api/customers/salespersons', { headers })
+      if (response.ok) {
+        const data = await response.json()
+        setSalespersons(data)
+      }
+    } catch (error) {
+      console.error('Error fetching salespersons:', error)
+    }
+  }
+
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = !searchQuery || 
+      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    
+    const matchesFilter = filterSource === 'all' || customer.source === filterSource
+    
+    return matchesSearch && matchesFilter
+  })
+
+  const handleImportFromZoho = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/migration/import-customers-from-zoho', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to import customers from Zoho')
+      }
+      
+      const result = await response.json()
+      
+      // Show success message
+      alert(`Import successful! 
+        
+Summary:
+- Extracted: ${result.summary.total_extracted} customers
+- Imported: ${result.summary.total_imported} new customers  
+- Updated: ${result.summary.total_updated} existing customers
+- Errors: ${result.summary.total_errors}
+- Total Processed: ${result.summary.total_processed}`)
+      
+      // Refresh the customers list
+      await fetchCustomers()
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to import customers from Zoho'
+      setError(errorMessage)
+      alert(`Import failed: ${errorMessage}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExportCustomers = () => {
+    // Placeholder for export functionality
+    alert('Export functionality will be implemented soon!')
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customers</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Manage customer information and relationships
+          </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600 dark:text-gray-400">Loading customers...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customers</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Manage customer information and relationships
+          </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-center py-12">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Error loading customers:</p>
+            <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
+            <button 
+              onClick={fetchCustomers}
+              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customers</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Manage customer information and relationships
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleImportFromZoho}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            <span>Import from Zoho</span>
+          </button>
+          <button
+            onClick={handleExportCustomers}
+            className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export</span>
+          </button>
+          <button 
+            onClick={handleAddCustomer}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Customer</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Users className="h-8 w-8 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Customers</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Building className="h-8 w-8 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Regular Customers</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.regular}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Globe className="h-8 w-8 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Zoho Customers</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.migrated}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search customers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+          <div className="flex items-center space-x-3">
+            <Filter className="h-4 w-4 text-gray-400" />
+            <select
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value as 'all' | 'regular' | 'zoho')}
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Sources</option>
+              <option value="regular">Regular Customers</option>
+              <option value="zoho">Zoho Customers</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Customers Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            Customers ({filteredCustomers.length})
+          </h3>
+        </div>
+        
+        {filteredCustomers.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No customers found</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {searchQuery ? 'Try adjusting your search terms' : 'Get started by adding your first customer'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Credit Info
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Salesperson
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Source
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredCustomers.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                            <span className="text-sm font-medium text-white">
+                              {customer.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {customer.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {customer.code}
+                            {customer.name_ar && (
+                              <span className="mr-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                                {customer.name_ar}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {customer.email && (
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                            <span>{customer.email}</span>
+                          </div>
+                        )}
+                        {customer.phone && (
+                          <div className="flex items-center mt-1">
+                            <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                            <span>{customer.phone}</span>
+                          </div>
+                        )}
+                        {customer.mobile && customer.mobile !== customer.phone && (
+                          <div className="flex items-center mt-1">
+                            <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                            <span>{customer.mobile}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {customer.city && (
+                          <div className="flex items-center">
+                            <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                            <span>{customer.city}</span>
+                          </div>
+                        )}
+                        {customer.country && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {customer.country}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {customer.credit_limit && customer.credit_limit > 0 && (
+                          <div className="flex items-center">
+                            <CreditCard className="h-4 w-4 text-gray-400 mr-2" />
+                            <span>{customer.credit_limit.toLocaleString()} {customer.currency || 'IQD'}</span>
+                          </div>
+                        )}
+                        {customer.outstanding_receivable && customer.outstanding_receivable > 0 && (
+                          <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            Outstanding: {customer.outstanding_receivable.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {customer.salesperson_name ? (
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 text-gray-400 mr-2" />
+                            <span>{customer.salesperson_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not assigned</span>
+                        )}
+                        {customer.portal_language && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Language: {customer.portal_language.toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        customer.source === 'zoho' 
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                          : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      }`}>
+                        {customer.source === 'zoho' ? 'Zoho' : 'Regular'}
+                      </span>
+                      {customer.zoho_customer_id && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          ID: {customer.zoho_customer_id}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        customer.is_active 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      }`}>
+                        {customer.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      {customer.source === 'regular' ? (
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleEditCustomer(customer)}
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            title="Edit Customer"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCustomer(customer)}
+                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            title="Delete Customer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Zoho customer</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Customer Form Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitCustomer} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Customer Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customer_code}
+                    onChange={(e) => setFormData({...formData, customer_code: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Customer Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({...formData, company_name: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.country}
+                    onChange={(e) => setFormData({...formData, country: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Credit Limit
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.credit_limit}
+                    onChange={(e) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Payment Terms (days)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.payment_terms}
+                    onChange={(e) => setFormData({...formData, payment_terms: parseInt(e.target.value) || 30})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Discount Percentage
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={formData.discount_percentage}
+                    onChange={(e) => setFormData({...formData, discount_percentage: parseFloat(e.target.value) || 0})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Currency *
+                  </label>
+                  <select
+                    value={formData.currency}
+                    onChange={(e) => setFormData({...formData, currency: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {currencies.map((currency) => (
+                      <option key={currency.code} value={currency.code}>
+                        {currency.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Portal Language
+                  </label>
+                  <select
+                    value={formData.portal_language}
+                    onChange={(e) => setFormData({...formData, portal_language: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {languages.map((language) => (
+                      <option key={language.code} value={language.code}>
+                        {language.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Assigned Salesperson
+                  </label>
+                  <select
+                    value={formData.salesperson_id || ''}
+                    onChange={(e) => setFormData({...formData, salesperson_id: e.target.value ? parseInt(e.target.value) : undefined})}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="">No Salesperson Assigned</option>
+                    {salespersons.map((salesperson) => (
+                      <option key={salesperson.id} value={salesperson.id}>
+                        {salesperson.name} {salesperson.employee_code && `(${salesperson.employee_code})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Address
+                </label>
+                <textarea
+                  rows={2}
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                ></textarea>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                  Active
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-6 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  {editingCustomer ? 'Update Customer' : 'Create Customer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

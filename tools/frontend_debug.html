@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TSH ERP - Clear Cache & Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        button { padding: 10px 20px; margin: 10px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #dcfce7; border: 1px solid #16a34a; color: #166534; }
+        .error { background: #fef2f2; border: 1px solid #dc2626; color: #991b1b; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        pre { background: #f3f4f6; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>TSH ERP System - Frontend Debug Tool</h1>
+    
+    <h2>Actions</h2>
+    <button onclick="clearCache()">Clear Authentication Cache</button>
+    <button onclick="testBackendConnection()">Test Backend Connection</button>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testUsersAPI()">Test Users API</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function clearCache() {
+            localStorage.removeItem('tsh-erp-auth');
+            sessionStorage.clear();
+            log('✅ Authentication cache cleared', 'success');
+        }
+        
+        async function testBackendConnection() {
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Backend connection successful: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    log(`❌ Backend connection failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Backend connection error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@tsh-erp.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Login successful:<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    
+                    // Store token for next test
+                    window.testToken = data.access_token;
+                } else {
+                    const errorData = await response.text();
+                    log(`❌ Login failed (${response.status}): ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testUsersAPI() {
+            if (!window.testToken) {
+                log('❌ No token available. Please test login first.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/users/`, {
+                    headers: {
+                        'Authorization': `Bearer ${window.testToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    log(`✅ Users API successful. Found ${users.length} users:<pre>${JSON.stringify(users.slice(0, 2), null, 2)}...</pre>`, 'success');
+                } else {
+                    const errorData = await response.text();
+                    log(`❌ Users API failed (${response.status}): ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Users API error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-clear cache on load
+        clearCache();
+        log('🚀 Ready to test! Click buttons above to run tests.', 'info');
+    </script>
+</body>
+</html>

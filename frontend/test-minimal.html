@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSH ERP - Minimal Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .success { color: #22c55e; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 TSH ERP System - Minimal Test</h1>
+        <div id="status">Loading...</div>
+        <div id="react-test"></div>
+    </div>
+    
+    <script>
+        document.getElementById('status').innerHTML = '<span class="success">✅ HTML + JavaScript working!</span>';
+        console.log('Basic HTML/JS test successful');
+        
+        // Test if we can reach the Vite server
+        fetch('/src/main.tsx')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('react-test').innerHTML = '<p class="success">✅ Vite server is serving files correctly</p>';
+                } else {
+                    document.getElementById('react-test').innerHTML = '<p class="error">❌ Issue with file serving: ' + response.status + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('react-test').innerHTML = '<p class="error">❌ Network error: ' + error.message + '</p>';
+            });
+    </script>
+</body>
+</html>
