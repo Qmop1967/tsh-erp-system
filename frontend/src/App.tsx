@@ -5,6 +5,11 @@ import { useDashboardData } from './hooks/useDashboardData'
 import { useLanguageStore } from './stores/languageStore'
 import { useTranslations } from './lib/translations'
 
+// Import accounting pages
+import ChartOfAccountsPage from './pages/accounting/ChartOfAccountsPage'
+import JournalEntriesPage from './pages/accounting/JournalEntriesPage'
+import FinancialReportsPage from './pages/accounting/FinancialReportsPage'
+
 // Simple test components
 function TestDashboard() {
   const { data, loading, error, refetch } = useDashboardData()
@@ -230,6 +235,20 @@ function TestSales() {
   )
 }
 
+function TestAccounting() {
+  return (
+    <Routes>
+      <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
+      <Route path="/journal-entries" element={<JournalEntriesPage />} />
+      <Route path="/trial-balance" element={<FinancialReportsPage />} />
+      <Route path="/balance-sheet" element={<FinancialReportsPage />} />
+      <Route path="/profit-loss" element={<FinancialReportsPage />} />
+      <Route path="/cash-flow" element={<FinancialReportsPage />} />
+      <Route path="/*" element={<ChartOfAccountsPage />} />
+    </Routes>
+  )
+}
+
 function App() {
   console.log('🚀 App component is rendering!')
   
@@ -240,6 +259,7 @@ function App() {
         <Route path="/dashboard" element={<TestDashboard />} />
         <Route path="/hr/*" element={<TestHR />} />
         <Route path="/sales/*" element={<TestSales />} />
+        <Route path="/accounting/*" element={<TestAccounting />} />
         <Route path="*" element={<TestDashboard />} />
       </Routes>
     </NewLayout>

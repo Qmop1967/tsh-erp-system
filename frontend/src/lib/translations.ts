@@ -9,7 +9,44 @@ export const translations = {
     // Dashboard
     dashboard: 'Dashboard',
     welcomeToSystem: 'Welcome to TSH ERP System',
-    tshErpDashboard: 'TSH ERP Dashboard',
+    tshE    // Navigation
+    mainMenu: 'القائمة الرئيسية',
+    humanResources: 'الموارد البشرية',
+    organization: 'المنظمة',
+    inventory: 'المخزون',
+    sales: 'المبيعات',
+    purchasing: 'المشتريات',
+    accounting: 'المحاسبة',
+    
+    // Accounting Module
+    chartOfAccounts: 'دليل الحسابات',
+    journalEntries: 'قيود اليومية',
+    trialBalance: 'ميزان المراجعة',
+    balanceSheet: 'الميزانية العمومية',
+    profitAndLoss: 'قائمة الأرباح والخسائر',
+    cashFlowStatement: 'قائمة التدفق النقدي',
+    financialReports: 'التقارير المالية',
+    currencies: 'العملات',
+    exchangeRates: 'أسعار الصرف',
+    fiscalYears: 'السنوات المالية',
+    accountingPeriods: 'الفترات المحاسبية',
+    
+    // Account Types
+    assets: 'الأصول',
+    liabilities: 'الخصوم',
+    equity: 'حقوق الملكية',
+    revenueAccount: 'الإيرادات',
+    expensesAccount: 'المصروفات',
+    
+    // Accounting Actions
+    addAccount: 'إضافة حساب',
+    editAccount: 'تعديل الحساب',
+    deleteAccount: 'حذف الحساب',
+    viewAccount: 'عرض الحساب',
+    addJournalEntry: 'إضافة قيد يومية',
+    generateReport: 'إنشاء تقرير',
+    postEntry: 'ترحيل القيد',
+    unpostEntry: 'إلغاء ترحيل القيد',ard: 'TSH ERP Dashboard',
     lastUpdated: 'Last updated',
     refresh: 'Refresh',
     loadingDashboardData: 'Loading dashboard data...',
@@ -98,6 +135,36 @@ export const translations = {
     sales: 'Sales',
     purchasing: 'Purchasing',
     accounting: 'Accounting',
+    
+    // Accounting Module
+    chartOfAccounts: 'Chart of Accounts',
+    journalEntries: 'Journal Entries',
+    trialBalance: 'Trial Balance',
+    balanceSheet: 'Balance Sheet',
+    profitAndLoss: 'Profit & Loss',
+    cashFlow: 'Cash Flow',
+    financialReports: 'Financial Reports',
+    currencies: 'Currencies',
+    exchangeRates: 'Exchange Rates',
+    fiscalYears: 'Fiscal Years',
+    accountingPeriods: 'Accounting Periods',
+    
+    // Account Types
+    assets: 'Assets',
+    liabilities: 'Liabilities',
+    equity: 'Equity',
+    revenue: 'Revenue',
+    expenses: 'Expenses',
+    
+    // Accounting Actions
+    addAccount: 'Add Account',
+    editAccount: 'Edit Account',
+    deleteAccount: 'Delete Account',
+    viewAccount: 'View Account',
+    addJournalEntry: 'Add Journal Entry',
+    generateReport: 'Generate Report',
+    postEntry: 'Post Entry',
+    unpostEntry: 'Unpost Entry',
     pointOfSale: 'Point of Sale',
     cashFlow: 'Cash Flow',
     expenses: 'Expenses',
