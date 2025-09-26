@@ -25,8 +25,24 @@ class CustomerBase(BaseModel):
     notes: Optional[str] = None
 
 
-class CustomerCreate(CustomerBase):
-    pass
+class CustomerCreate(BaseModel):
+    customer_code: Optional[str] = Field(None, max_length=50, description="Auto-generated if not provided")
+    name: str = Field(..., max_length=200)
+    company_name: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=255)
+    address: Optional[str] = None
+    city: Optional[str] = Field(None, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
+    tax_number: Optional[str] = Field(None, max_length=50)
+    credit_limit: Decimal = Field(0, ge=0)
+    payment_terms: int = Field(0, ge=0)
+    discount_percentage: Decimal = Field(0, ge=0, le=100)
+    currency: str = Field('IQD', max_length=3, description="Customer currency (USD, EUR, IQD, etc.)")
+    portal_language: str = Field('en', max_length=5, description="Portal language (en, ar, etc.)")
+    salesperson_id: Optional[int] = Field(None, description="Assigned salesperson ID")
+    is_active: bool = True
+    notes: Optional[str] = None
 
 
 class CustomerUpdate(BaseModel):

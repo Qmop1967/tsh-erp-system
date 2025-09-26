@@ -1,4 +1,4 @@
-import React from 'react'
+// React is auto-imported by JSX transform
 
 function App() {
   console.log('🚀 App component is rendering!')

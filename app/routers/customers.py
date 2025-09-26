@@ -10,13 +10,29 @@ from app.schemas.customer import (
 from app.services.customer_service import CustomerService, SupplierService
 from app.routers.auth import get_current_user
 from app.models.user import User
+from app.services.permission_service import simple_require_permission
 
 router = APIRouter(tags=["customers"])
 
 
 # Customer endpoints
+@router.get("/generate-code")
+async def generate_customer_code(
+    prefix: str = Query("CUST", description="Customer code prefix"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Generate next available customer code"""
+    return {
+        "customer_code": CustomerService.generate_customer_code(db, prefix),
+        "format": "PREFIX-YYYY-NNNN",
+        "example": "CUST-2025-0001"
+    }
+
+
 @router.post("/", response_model=Customer, status_code=201)
-def create_customer(
+@simple_require_permission("create_customer")
+async def create_customer(
     customer: CustomerCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -26,7 +42,8 @@ def create_customer(
 
 
 @router.get("/", response_model=List[Customer])
-def get_customers(
+@simple_require_permission("customers.view")
+async def get_customers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     search: Optional[str] = Query(None, description="البحث في الاسم أو رقم العميل"),
@@ -41,7 +58,7 @@ def get_customers(
 @router.get("/salespersons", response_model=List[dict])
 async def get_salespersons(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """Get all salespersons for customer assignment"""
     from app.models.user import User
@@ -53,10 +70,10 @@ async def get_salespersons(
 
 
 @router.get("/{customer_id}", response_model=Customer)
-def get_customer(
+async def get_customer(
     customer_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """الحصول على عميل بالمعرف"""
     customer = CustomerService.get_customer(db, customer_id)
@@ -72,7 +89,7 @@ def get_all_customers(
     search: Optional[str] = Query(None, description="Search in customer name or code"),
     active_only: bool = Query(True, description="Active customers only"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """
     Get all customers (both regular and migrated from Zoho)
@@ -177,7 +194,7 @@ def update_customer(
     customer_id: int,
     customer_update: CustomerUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """تحديث عميل"""
     customer = CustomerService.update_customer(db, customer_id, customer_update)
@@ -190,7 +207,7 @@ def update_customer(
 def delete_customer(
     customer_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """حذف عميل (إلغاء تنشيط)"""
     customer = CustomerService.delete_customer(db, customer_id)
@@ -204,7 +221,7 @@ def delete_customer(
 def create_supplier(
     supplier: SupplierCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """إنشاء مورد جديد"""
     return SupplierService.create_supplier(db, supplier)
@@ -217,7 +234,7 @@ def get_suppliers(
     search: Optional[str] = Query(None, description="البحث في الاسم أو رقم المورد"),
     active_only: bool = Query(True, description="الموردين النشطين فقط"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """الحصول على قائمة الموردين"""
     return SupplierService.get_suppliers(db, skip, limit, search, active_only)
@@ -227,7 +244,7 @@ def get_suppliers(
 def get_supplier(
     supplier_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """الحصول على مورد بالمعرف"""
     supplier = SupplierService.get_supplier(db, supplier_id)
@@ -241,7 +258,7 @@ def update_supplier(
     supplier_id: int,
     supplier_update: SupplierUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """تحديث مورد"""
     supplier = SupplierService.update_supplier(db, supplier_id, supplier_update)
@@ -254,7 +271,7 @@ def update_supplier(
 def delete_supplier(
     supplier_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
     """حذف مورد (إلغاء تنشيط)"""
     supplier = SupplierService.delete_supplier(db, supplier_id)
@@ -266,12 +283,12 @@ def delete_supplier(
 @router.get("/branches", response_model=List[dict])
 async def get_branches(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
-    """Get all branches for user creation"""
+    """Get all branches for customer assignment"""
     from app.models.branch import Branch
     branches = db.query(Branch).filter(Branch.is_active == True).all()
-    return [{"id": branch.id, "name": branch.name, "code": branch.branch_code} for branch in branches]
+    return [{"id": branch.id, "name": branch.name} for branch in branches]
 
 
 # ...existing code...

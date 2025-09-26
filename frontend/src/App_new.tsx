@@ -4,26 +4,26 @@ import { Toaster } from 'react-hot-toast'
 import { QueryClient, QueryClientProvider } from 'react-query'
 
 // Layout Components
-import Layout from '@/components/Layout/NewLayout'
+import Layout from '@/components/layout/NewLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
-import DashboardPage from '@/pages/Dashboard/NewDashboardPage'
+import DashboardPage from '@/pages/dashboard/NewDashboardPage'
 
 // HR Module Pages
 import { EmployeesPage } from '@/pages/hr/EmployeesPage'
-import TravelSalespersonPage from '@/pages/HR/TravelSalespersonPage'
-import PartnerSalesmanPage from '@/pages/HR/PartnerSalesmanPage'
-import RetailermanPage from '@/pages/HR/RetailermanPage'
+import TravelSalespersonPage from '@/pages/hr/TravelSalespersonPage'
+import PartnerSalesmanPage from '@/pages/hr/PartnerSalesmanPage'
+import RetailermanPage from '@/pages/hr/RetailermanPage'
 
 // Sales Module Pages
-import CustomersPage from '@/pages/Sales/CustomersPage'
-import ClientsPage from '@/pages/Sales/ClientsPage'
-import ConsumersPage from '@/pages/Sales/ConsumersPage'
-import QuotationsPage from '@/pages/Sales/QuotationsPage'
-import SaleOrdersPage from '@/pages/Sales/SaleOrdersPage'
-import InvoicesPage from '@/pages/Sales/InvoicesPage'
-import PaymentReceivedPage from '@/pages/Sales/PaymentReceivedPage'
-import CreditNotePage from '@/pages/Sales/CreditNotePage'
-import RefundPage from '@/pages/Sales/RefundPage'
+import CustomersPage from '@/pages/sales/CustomersPage'
+import ClientsPage from '@/pages/sales/ClientsPage'
+import ConsumersPage from '@/pages/sales/ConsumersPage'
+import QuotationsPage from '@/pages/sales/QuotationsPage'
+import SaleOrdersPage from '@/pages/sales/SaleOrdersPage'
+import InvoicesPage from '@/pages/sales/InvoicesPage'
+import PaymentReceivedPage from '@/pages/sales/PaymentReceivedPage'
+import CreditNotePage from '@/pages/sales/CreditNotePage'
+import RefundPage from '@/pages/sales/RefundPage'
 
 // Stores
 import { useAuthStore } from '@/stores/authStore'

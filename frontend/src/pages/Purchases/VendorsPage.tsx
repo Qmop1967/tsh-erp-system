@@ -1,5 +1,5 @@
 import React from 'react'
-import { PageTemplate } from '../Sales/index'
+import { PageTemplate } from '../sales/index'
 
 const VendorsPage: React.FC = () => (
   <PageTemplate 

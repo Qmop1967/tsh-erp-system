@@ -1,0 +1,445 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/inventory_models.dart';
+
+class InventoryService {
+  static const String baseUrl = 'http://localhost:8000/api/inventory';
+  static const Map<String, String> headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  // ===============================================
+  // Phase 1: Core Inventory Structure
+  // ===============================================
+
+  // Items Management
+  Future<List<InventoryItem>> getItems({
+    String? categoryId,
+    String? search,
+    ABCClassification? abcClass,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+      if (categoryId != null) 'category_id': categoryId,
+      if (search != null) 'search': search,
+      if (abcClass != null) 'abc_class': abcClass.name,
+    };
+
+    final uri = Uri.parse('$baseUrl/items').replace(queryParameters: queryParams);
+    
+    try {
+      final response = await http.get(uri, headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return (data['items'] as List)
+            .map((item) => InventoryItem.fromJson(item))
+            .toList();
+      } else {
+        throw Exception('Failed to load items: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Return fallback data for development
+      return _getFallbackItems();
+    }
+  }
+
+  Future<InventoryItem> createItem(InventoryItem item) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/items'),
+      headers: headers,
+      body: json.encode(item.toJson()),
+    );
+
+    if (response.statusCode == 201) {
+      return InventoryItem.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to create item: ${response.statusCode}');
+    }
+  }
+
+  Future<InventoryItem> updateItem(String itemId, InventoryItem item) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/items/$itemId'),
+      headers: headers,
+      body: json.encode(item.toJson()),
+    );
+
+    if (response.statusCode == 200) {
+      return InventoryItem.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to update item: ${response.statusCode}');
+    }
+  }
+
+  Future<void> deleteItem(String itemId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/items/$itemId'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete item: ${response.statusCode}');
+    }
+  }
+
+  // Categories Management
+  Future<List<Category>> getCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/categories'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return (data['categories'] as List)
+            .map((category) => Category.fromJson(category))
+            .toList();
+      } else {
+        throw Exception('Failed to load categories');
+      }
+    } catch (e) {
+      return _getFallbackCategories();
+    }
+  }
+
+  // ===============================================
+  // Phase 2: Warehouse Operations
+  // ===============================================
+
+  Future<List<Warehouse>> getWarehouses() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/warehouses'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return (data['warehouses'] as List)
+            .map((warehouse) => Warehouse.fromJson(warehouse))
+            .toList();
+      } else {
+        throw Exception('Failed to load warehouses');
+      }
+    } catch (e) {
+      return _getFallbackWarehouses();
+    }
+  }
+
+  Future<List<StockMovement>> getStockMovements({
+    String? warehouseId,
+    String? itemId,
+    MovementType? type,
+    MovementStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+      if (warehouseId != null) 'warehouse_id': warehouseId,
+      if (itemId != null) 'item_id': itemId,
+      if (type != null) 'type': type.name,
+      if (status != null) 'status': status.name,
+      if (startDate != null) 'start_date': startDate.toIso8601String(),
+      if (endDate != null) 'end_date': endDate.toIso8601String(),
+    };
+
+    final uri = Uri.parse('$baseUrl/movements').replace(queryParameters: queryParams);
+    
+    try {
+      final response = await http.get(uri, headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return (data['movements'] as List)
+            .map((movement) => StockMovement.fromJson(movement))
+            .toList();
+      } else {
+        throw Exception('Failed to load stock movements');
+      }
+    } catch (e) {
+      return _getFallbackMovements();
+    }
+  }
+
+  Future<StockMovement> createStockMovement(StockMovement movement) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/movements'),
+      headers: headers,
+      body: json.encode(movement.toJson()),
+    );
+
+    if (response.statusCode == 201) {
+      return StockMovement.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to create stock movement');
+    }
+  }
+
+  Future<StockMovement> approveStockMovement(String movementId, String approvedBy) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/movements/$movementId/approve'),
+      headers: headers,
+      body: json.encode({'approved_by': approvedBy}),
+    );
+
+    if (response.statusCode == 200) {
+      return StockMovement.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to approve stock movement');
+    }
+  }
+
+  // ===============================================
+  // Phase 3: Advanced Features
+  // ===============================================
+
+  Future<Map<String, dynamic>> getABCAnalysis() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/abc-analysis'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load ABC analysis');
+      }
+    } catch (e) {
+      return _getFallbackABCAnalysis();
+    }
+  }
+
+  Future<List<StockLevel>> getStockLevels({
+    String? warehouseId,
+    bool? lowStockOnly,
+    bool? outOfStockOnly,
+  }) async {
+    final queryParams = <String, String>{
+      if (warehouseId != null) 'warehouse_id': warehouseId,
+      if (lowStockOnly == true) 'low_stock_only': 'true',
+      if (outOfStockOnly == true) 'out_of_stock_only': 'true',
+    };
+
+    final uri = Uri.parse('$baseUrl/stock-levels').replace(queryParameters: queryParams);
+    
+    try {
+      final response = await http.get(uri, headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return (data['stock_levels'] as List)
+            .map((level) => StockLevel.fromJson(level))
+            .toList();
+      } else {
+        throw Exception('Failed to load stock levels');
+      }
+    } catch (e) {
+      return _getFallbackStockLevels();
+    }
+  }
+
+  // ===============================================
+  // Phase 4: Reporting & Analytics
+  // ===============================================
+
+  Future<Map<String, dynamic>> getDashboardData() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/dashboard'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load dashboard data');
+      }
+    } catch (e) {
+      return _getFallbackDashboardData();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> generateInventoryReport({
+    required String reportType,
+    String? warehouseId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? format, // 'pdf', 'excel', 'csv'
+  }) async {
+    final queryParams = <String, String>{
+      'report_type': reportType,
+      if (warehouseId != null) 'warehouse_id': warehouseId,
+      if (startDate != null) 'start_date': startDate.toIso8601String(),
+      if (endDate != null) 'end_date': endDate.toIso8601String(),
+      if (format != null) 'format': format,
+    };
+
+    final uri = Uri.parse('$baseUrl/reports').replace(queryParameters: queryParams);
+    
+    try {
+      final response = await http.get(uri, headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data['report_data']);
+      } else {
+        throw Exception('Failed to generate report');
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ===============================================
+  // Fallback Data for Development
+  // ===============================================
+
+  List<InventoryItem> _getFallbackItems() {
+    return [
+      InventoryItem(
+        id: '1',
+        sku: 'KB-LOG-001',
+        barcode: '1234567890123',
+        nameEn: 'Logitech Wireless Keyboard',
+        nameAr: 'لوحة مفاتيح لوجيتك لاسلكية',
+        categoryId: 'cat1',
+        brand: 'Logitech',
+        unitOfMeasure: 'pieces',
+        abcClass: ABCClassification.A,
+        purchaseCosts: {'USD': 25.0, 'IQD': 32500.0, 'CNY': 180.0},
+        salesPriceLists: [35.0, 40.0],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      InventoryItem(
+        id: '2',
+        sku: 'MS-HP-002',
+        barcode: '1234567890124',
+        nameEn: 'HP Wireless Mouse',
+        nameAr: 'فأرة اتش بي لاسلكية',
+        categoryId: 'cat1',
+        brand: 'HP',
+        unitOfMeasure: 'pieces',
+        abcClass: ABCClassification.B,
+        purchaseCosts: {'USD': 15.0, 'IQD': 19500.0, 'CNY': 108.0},
+        salesPriceLists: [20.0, 25.0],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    ];
+  }
+
+  List<Category> _getFallbackCategories() {
+    return [
+      Category(
+        id: 'cat1',
+        nameEn: 'Computer Accessories',
+        nameAr: 'إكسسوارات الحاسوب',
+        iconName: 'computer',
+        itemCount: 245,
+      ),
+      Category(
+        id: 'cat2',
+        nameEn: 'Mobile Accessories',
+        nameAr: 'إكسسوارات الهاتف',
+        iconName: 'phone',
+        itemCount: 189,
+      ),
+    ];
+  }
+
+  List<Warehouse> _getFallbackWarehouses() {
+    return [
+      Warehouse(
+        id: 'wh1',
+        name: 'Main Warehouse',
+        nameAr: 'المستودع الرئيسي',
+        address: 'Baghdad, Iraq',
+        capacity: 10000,
+        currentUsage: 8500,
+        type: WarehouseType.main,
+      ),
+      Warehouse(
+        id: 'wh2',
+        name: 'Retail Shop',
+        nameAr: 'المتجر',
+        address: 'Retail Location',
+        capacity: 2000,
+        currentUsage: 300,
+        type: WarehouseType.retail,
+      ),
+    ];
+  }
+
+  List<StockMovement> _getFallbackMovements() {
+    return [
+      StockMovement(
+        id: 'mov1',
+        itemId: '1',
+        warehouseFromId: 'wh1',
+        warehouseToId: 'wh2',
+        type: MovementType.transfer,
+        quantity: 25,
+        unitCost: 25.0,
+        referenceNumber: 'TRF-2025-001',
+        status: MovementStatus.pending,
+        createdBy: 'inventory_manager',
+        createdAt: DateTime.now(),
+      ),
+    ];
+  }
+
+  List<StockLevel> _getFallbackStockLevels() {
+    return [
+      StockLevel(
+        itemId: '1',
+        warehouseId: 'wh1',
+        currentStock: 150,
+        reorderPoint: 20,
+        maxStock: 300,
+        lastUpdated: DateTime.now(),
+      ),
+    ];
+  }
+
+  Map<String, dynamic> _getFallbackABCAnalysis() {
+    return {
+      'classification_summary': {
+        'A': {'count': 125, 'percentage': 20, 'value_percentage': 80},
+        'B': {'count': 189, 'percentage': 30, 'value_percentage': 15},
+        'C': {'count': 312, 'percentage': 50, 'value_percentage': 5},
+      },
+      'recommendations': [
+        'Focus on Class A items for inventory optimization',
+        'Review Class C items for potential discontinuation',
+      ],
+    };
+  }
+
+  Map<String, dynamic> _getFallbackDashboardData() {
+    return {
+      'total_items': 3247,
+      'total_stock_value': 456890000,
+      'low_stock_alerts': 23,
+      'out_of_stock': 7,
+      'total_warehouses': 8,
+      'recent_movements': [],
+      'abc_distribution': {
+        'A': 20,
+        'B': 30,
+        'C': 50,
+      },
+    };
+  }
+}

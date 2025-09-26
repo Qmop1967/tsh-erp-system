@@ -11,8 +11,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3003,
-    strictPort: true, // Don't try other ports if 3003 is busy
+    port: 5173,
+    strictPort: true, // Don't try other ports if 5173 is busy
     host: true, // Allow external connections
     proxy: {
       '/api': {

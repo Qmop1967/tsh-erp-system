@@ -11,11 +11,13 @@ from app.models.migration import MigrationItem
 from app.models.user import User
 from app.schemas.migration import Item, ItemCreate, ItemUpdate
 from app.routers.auth import get_current_user
+from app.services.permission_service import simple_require_permission
 
 router = APIRouter(prefix="/items", tags=["inventory"])
 
 
 @router.get("/", response_model=List[Item])
+@simple_require_permission("items.view")
 async def get_items(
     skip: int = 0,
     limit: int = 100,

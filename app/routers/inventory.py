@@ -1,17 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.db.database import get_db
 from app.schemas.inventory import (
     InventoryItem, StockMovementCreate, StockMovement, 
     InventoryReport, StockAdjustment
 )
+from app.schemas.product import ProductSummary
 from app.services.inventory_service import InventoryService
+from app.models.inventory import InventoryItem as InventoryItemModel
+from app.models.product import Product, Category
 
 router = APIRouter(tags=["inventory"])
 
 
-@router.get("/items", response_model=List[InventoryItem])
+@router.get("/items", response_model=List[dict])
 def get_inventory_items(
     warehouse_id: Optional[int] = Query(None, description="معرف المستودع"),
     product_id: Optional[int] = Query(None, description="معرف المنتج"),
@@ -20,7 +23,52 @@ def get_inventory_items(
     db: Session = Depends(get_db)
 ):
     """الحصول على عناصر المخزون"""
-    return InventoryService.get_inventory_items(db, warehouse_id, product_id, skip, limit)
+    query = db.query(InventoryItemModel).options(
+        joinedload(InventoryItemModel.product).joinedload(Product.category)
+    )
+    
+    if warehouse_id:
+        query = query.filter(InventoryItemModel.warehouse_id == warehouse_id)
+    
+    if product_id:
+        query = query.filter(InventoryItemModel.product_id == product_id)
+    
+    inventory_items = query.offset(skip).limit(limit).all()
+    
+    # Convert to dictionary format to avoid validation issues
+    result = []
+    for item in inventory_items:
+        product = item.product
+        category = product.category if product else None
+        
+        item_dict = {
+            "id": item.id,
+            "product_id": item.product_id,
+            "warehouse_id": item.warehouse_id,
+            "quantity_on_hand": float(item.quantity_on_hand),
+            "quantity_reserved": float(item.quantity_reserved),
+            "quantity_ordered": float(item.quantity_ordered),
+            "last_cost": float(item.last_cost) if item.last_cost else None,
+            "average_cost": float(item.average_cost) if item.average_cost else None,
+            "available_quantity": float(item.quantity_on_hand - item.quantity_reserved),
+            "created_at": item.created_at,
+            "updated_at": item.updated_at,
+            "product": {
+                "id": product.id if product else 0,
+                "sku": product.sku if product else "",
+                "name": product.name if product else "",
+                "name_ar": product.name_ar if product else None,
+                "unit_price": float(product.unit_price) if product else 0,
+                "unit_of_measure": product.unit_of_measure if product else "",
+                "is_active": product.is_active if product else False,
+                "category_name": category.name if category else "Unknown",
+                "category_name_ar": category.name_ar if category else None,
+                "image_url": product.image_url if product else None
+            }
+        }
+        result.append(item_dict)
+    
+    return result
 
 
 @router.get("/report", response_model=List[InventoryReport])

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Numeric
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Numeric, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
@@ -10,7 +10,9 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, index=True)
+    name_ar = Column(String(100), nullable=True)  # Arabic name
     description = Column(Text, nullable=True)
+    description_ar = Column(Text, nullable=True)  # Arabic description
     parent_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -28,8 +30,10 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     sku = Column(String(50), unique=True, nullable=False, index=True)  # رمز المنتج
-    name = Column(String(200), nullable=False, index=True)
-    description = Column(Text, nullable=True)
+    name = Column(String(200), nullable=False, index=True)  # English name
+    name_ar = Column(String(200), nullable=True, index=True)  # Arabic name
+    description = Column(Text, nullable=True)  # English description
+    description_ar = Column(Text, nullable=True)  # Arabic description
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)
     cost_price = Column(Numeric(10, 2), nullable=True)  # سعر التكلفة
@@ -38,8 +42,30 @@ class Product(Base):
     max_stock_level = Column(Integer, nullable=True)  # الحد الأقصى للمخزون
     reorder_point = Column(Integer, default=0)  # نقطة إعادة الطلب
     barcode = Column(String(100), unique=True, nullable=True)
+    
+    # Media fields
+    image_url = Column(String(500), nullable=True)  # Primary image
+    images = Column(JSON, nullable=True, default=list)  # Multiple images
+    videos = Column(JSON, nullable=True, default=list)  # Video URLs
+    
+    # Additional fields
+    weight = Column(Numeric(10, 3), nullable=True)  # Weight in kg
+    dimensions = Column(JSON, nullable=True)  # {"length": 10, "width": 5, "height": 3}
+    color = Column(String(50), nullable=True)
+    size = Column(String(50), nullable=True)
+    brand = Column(String(100), nullable=True)
+    model = Column(String(100), nullable=True)
+    
     is_active = Column(Boolean, default=True)
     is_trackable = Column(Boolean, default=True)  # هل يتم تتبع المخزون
+    is_digital = Column(Boolean, default=False)  # منتج رقمي
+    is_featured = Column(Boolean, default=False)  # منتج مميز
+    
+    # SEO fields
+    meta_title = Column(String(200), nullable=True)
+    meta_description = Column(Text, nullable=True)
+    tags = Column(JSON, nullable=True, default=list)  # Search tags
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

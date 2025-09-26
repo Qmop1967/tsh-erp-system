@@ -1,20 +1,76 @@
-import React from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from 'react-query'
 import NewLayout from './components/layout/NewLayout'
 import { useDashboardData } from './hooks/useDashboardData'
 import { useLanguageStore } from './stores/languageStore'
-import { useTranslations } from './lib/translations'
+import { useDynamicTranslations } from './lib/dynamicTranslations'
+import { useAuthStore } from './stores/authStore'
+
+// Import auth pages
+import { LoginPage } from './pages/auth/LoginPage'
+// import { SimpleTest } from './components/SimpleTest'
+// import { InventorySidebar } from './components/inventory/InventorySidebar'
+// import InventoryButton from './components/inventory/InventoryButton'
+// import { NavigationTest } from './components/NavigationTest'
+
+// Import branches page
+import { BranchesPage } from './pages/branches/BranchesPage'
+
+// Import warehouse, vendor, purchase and security pages
+import { WarehousesPage } from './pages/warehouses/WarehousesPage'
+import { VendorsPage } from './pages/vendors/VendorsPage'
+import { PurchaseOrdersPage } from './pages/purchase/PurchaseOrdersPage'
+import { SecurityManagementPage } from './pages/security/SecurityManagementPage'
 
 // Import accounting pages
 import ChartOfAccountsPage from './pages/accounting/ChartOfAccountsPage'
 import JournalEntriesPage from './pages/accounting/JournalEntriesPage'
 import FinancialReportsPage from './pages/accounting/FinancialReportsPage'
 
+// Import sales pages
+import { CustomersPage } from './pages/customers/CustomersPage'
+import { SalesOrdersPage } from './pages/sales/SalesOrdersPage'
+import InvoicesPage from './pages/sales/InvoicesPage'
+import QuotationsPage from './pages/sales/QuotationsPage'
+import PaymentReceivedPage from './pages/sales/PaymentReceivedPage'
+import CreditNotePage from './pages/sales/CreditNotePage'
+import RefundPage from './pages/sales/RefundPage'
+
+// Import HR pages
+import { EmployeesPage } from './pages/hr/EmployeesPage'
+import { UsersPage } from './pages/users/UsersPage'
+import { PermissionsPage } from './pages/permissions/PermissionsPage'
+
+// Import Inventory pages
+import ItemsPage from './pages/inventory/ItemsPage'
+import InventoryAdjustmentPage from './pages/inventory/InventoryAdjustmentPage'
+
+// Import Settings pages
+import DynamicTranslationManagementPage from './pages/settings/DynamicTranslationManagementPage'
+import SettingsPageMinimal from './pages/settings/SettingsPageMinimal'
+
+// Import Money Transfer pages
+import MoneyTransferDashboard from './pages/money-transfer/MoneyTransferDashboard'
+
+// Import Financial Management pages
+import FinancialDashboard from './pages/financial/FinancialDashboard'
+import CashBoxesPage from './pages/financial/CashBoxesPage'
+import BankAccountsPage from './pages/financial/BankAccountsPage'
+import DigitalAccountsPage from './pages/financial/DigitalAccountsPage'
+import TransferTrackingPage from './pages/financial/TransferTrackingPage'
+import SalespersonBoxesPage from './pages/financial/SalespersonBoxesPage'
+
+// Import POS pages
+import POSInterface from './pages/pos/POSInterface'
+
+// Import Admin Dashboard
+import { AdminDashboard } from './pages/dashboard/AdminDashboard'
+
 // Simple test components
 function TestDashboard() {
   const { data, loading, error, refetch } = useDashboardData()
   const { language } = useLanguageStore()
-  const t = useTranslations(language)
+  const { t } = useDynamicTranslations(language)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -62,144 +118,50 @@ function TestDashboard() {
         </div>
       </div>
 
-      {/* Financial Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">💰 {t.totalReceivables}</h3>
-              <p className="text-3xl font-bold">{formatCurrency(data.financials.totalReceivables)}</p>
-              <p className="text-blue-100 text-sm mt-1">{t.amountOwedToUs}</p>
-            </div>
-            <div className="text-4xl opacity-80">📈</div>
-          </div>
+      {/* Key Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">💰 {t.totalRevenue}</h3>
+          <p className="text-2xl font-bold text-green-600">{formatCurrency(data.totalRevenue)}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {data.totalTransactions} {t.transactions}
+          </p>
         </div>
         
-        <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-lg shadow-lg text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">💸 {t.totalPayables}</h3>
-              <p className="text-3xl font-bold">{formatCurrency(data.financials.totalPayables)}</p>
-              <p className="text-red-100 text-sm mt-1">{t.amountWeOwe}</p>
-            </div>
-            <div className="text-4xl opacity-80">📉</div>
-          </div>
+        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">👥 {t.activeCustomers}</h3>
+          <p className="text-2xl font-bold text-blue-600">{formatNumber(data.activeCustomers)}</p>
+          <p className="text-sm text-gray-500 mt-1">{t.thisMonth}</p>
         </div>
         
-        <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-lg shadow-lg text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">📦 {t.stockValueCost}</h3>
-              <p className="text-3xl font-bold">{formatCurrency(data.financials.stockValue)}</p>
-              <p className="text-green-100 text-sm mt-1">{t.currentInventoryCost}</p>
-            </div>
-            <div className="text-4xl opacity-80">📊</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Inventory Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-xl font-semibold text-purple-600 mb-4">📋 {t.inventorySummary}</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">{t.positiveItemsInWarehouse}:</span>
-              <span className="text-2xl font-bold text-purple-600">{formatNumber(data.inventory.positiveItems)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">{t.totalPiecesAvailable}:</span>
-              <span className="text-2xl font-bold text-purple-600">{formatNumber(data.inventory.totalPieces)}</span>
-            </div>
-          </div>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">📦 {t.inventoryValue}</h3>
+          <p className="text-2xl font-bold text-purple-600">{formatCurrency(data.inventoryValue)}</p>
+          <p className="text-sm text-gray-500 mt-1">{data.totalProducts} {t.products}</p>
         </div>
-
-        {/* Staff Summary */}
+        
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-xl font-semibold text-indigo-600 mb-4">👥 {t.staffSummary}</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">{t.partnerSalesmen}:</span>
-              <span className="text-2xl font-bold text-indigo-600">{formatNumber(data.staff.partnerSalesmen)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">{t.travelSalespersons}:</span>
-              <span className="text-2xl font-bold text-indigo-600">{formatNumber(data.staff.travelSalespersons)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Money Boxes */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">💼 {t.moneyBoxes}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">🏦 {t.mainMoneyBox}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(data.moneyBoxes.mainBox)}</p>
-            <p className="text-yellow-100 text-sm">{t.primaryCashFlow}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-orange-400 to-orange-500 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">🌅 {t.fratAwsatVector}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(data.moneyBoxes.fratAwsatVector)}</p>
-            <p className="text-orange-100 text-sm">{t.centralRegion}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-teal-400 to-teal-500 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">🌄 {t.firstSouthVector}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(data.moneyBoxes.firstSouthVector)}</p>
-            <p className="text-teal-100 text-sm">{t.southernRegion}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">❄️ {t.northVector}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(data.moneyBoxes.northVector)}</p>
-            <p className="text-blue-100 text-sm">{t.northernRegion}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">🌅 {t.westVector}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(data.moneyBoxes.westVector)}</p>
-            <p className="text-purple-100 text-sm">{t.westernRegion}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">🌸 {t.daylaMoneyBox}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(data.moneyBoxes.daylaBox)}</p>
-            <p className="text-pink-100 text-sm">{t.daylaOperations}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-green-400 to-green-500 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">🏛️ {t.baghdadMoneyBox}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(data.moneyBoxes.baghdadBox)}</p>
-            <p className="text-green-100 text-sm">{t.baghdadOperations}</p>
-          </div>
-          
-          {/* Total Money Boxes */}
-          <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-4 rounded-lg shadow-md text-white">
-            <h4 className="font-semibold mb-2">💵 {t.totalCash}</h4>
-            <p className="text-2xl font-bold">{formatCurrency(totalCash)}</p>
-            <p className="text-gray-300 text-sm">{t.allMoneyBoxes}</p>
-          </div>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">📊 {t.pendingOrders}</h3>
+          <p className="text-2xl font-bold text-orange-600">{formatNumber(data.pendingOrders)}</p>
+          <p className="text-sm text-gray-500 mt-1">{t.awaitingProcessing}</p>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">⚡ {t.quickActions}</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">⚡ Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <button className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg transition-colors">
-            📊 {t.viewReports}
+            📊 View Reports
           </button>
           <button className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg transition-colors">
-            💰 {t.addTransaction}
+            💰 Add Transaction
           </button>
           <button className="bg-purple-500 hover:bg-purple-600 text-white p-3 rounded-lg transition-colors">
-            📦 {t.checkInventory}
+            📦 Check Inventory
           </button>
           <button className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-lg transition-colors">
-            👥 {t.manageStaff}
+            👥 Manage Staff
           </button>
         </div>
       </div>
@@ -208,30 +170,34 @@ function TestDashboard() {
 }
 
 function TestHR() {
-  const { language } = useLanguageStore()
-  const t = useTranslations(language)
-
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">👥 {t.humanResources}</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <p className="text-gray-600">{t.hrModuleWorking}</p>
-      </div>
-    </div>
+    <Routes>
+      <Route path="users" element={<UsersPage />} />
+      <Route path="employees" element={<EmployeesPage />} />
+      <Route path="payroll" element={<EmployeesPage />} />
+      <Route path="attendance" element={<EmployeesPage />} />
+      <Route path="performance" element={<EmployeesPage />} />
+      <Route path="achievements" element={<EmployeesPage />} />
+      <Route path="challenges" element={<EmployeesPage />} />
+      <Route path="*" element={<UsersPage />} />
+    </Routes>
   )
 }
 
 function TestSales() {
-  const { language } = useLanguageStore()
-  const t = useTranslations(language)
-
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">💰 {t.sales}</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <p className="text-gray-600">{t.salesModuleWorking}</p>
-      </div>
-    </div>
+    <Routes>
+      <Route path="/customers" element={<CustomersPage />} />
+      <Route path="/clients" element={<CustomersPage />} />
+      <Route path="/consumers" element={<CustomersPage />} />
+      <Route path="/quotations" element={<QuotationsPage />} />
+      <Route path="/orders" element={<SalesOrdersPage />} />
+      <Route path="/invoices" element={<InvoicesPage />} />
+      <Route path="/payment-received" element={<PaymentReceivedPage />} />
+      <Route path="/credit-notes" element={<CreditNotePage />} />
+      <Route path="/refund" element={<RefundPage />} />
+      <Route path="/*" element={<CustomersPage />} />
+    </Routes>
   )
 }
 
@@ -249,20 +215,167 @@ function TestAccounting() {
   )
 }
 
+function TestInventory() {
+  return (
+    <Routes>
+      <Route path="/items" element={<ItemsPage />} />
+      <Route path="/price-lists" element={<ItemsPage />} />
+      <Route path="/adjustments" element={<InventoryAdjustmentPage />} />
+      <Route path="/movements" element={<ItemsPage />} />
+      <Route path="/*" element={<ItemsPage />} />
+    </Routes>
+  )
+}
+
+function TestPurchase() {
+  return (
+    <Routes>
+      <Route path="/orders" element={<PurchaseOrdersPage />} />
+      <Route path="/invoices" element={<PurchaseOrdersPage />} />
+      <Route path="/payments" element={<PurchaseOrdersPage />} />
+      <Route path="/debit-notes" element={<PurchaseOrdersPage />} />
+      <Route path="/*" element={<PurchaseOrdersPage />} />
+    </Routes>
+  )
+}
+
+function TestSecurity() {
+  return (
+    <Routes>
+      <Route path="/" element={<SecurityManagementPage />} />
+      <Route path="/permissions" element={<SecurityManagementPage />} />
+      <Route path="/roles" element={<SecurityManagementPage />} />
+      <Route path="/audit" element={<SecurityManagementPage />} />
+      <Route path="/*" element={<SecurityManagementPage />} />
+    </Routes>
+  )
+}
+
+function TestSettings() {
+  return (
+    <Routes>
+      <Route path="/" element={<SettingsPageMinimal />} />
+      <Route path="/translations" element={<DynamicTranslationManagementPage />} />
+      <Route path="/*" element={<SettingsPageMinimal />} />
+    </Routes>
+  )
+}
+
+// Create QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
+
 function App() {
-  console.log('🚀 App component is rendering!')
+  const { checkAuthentication } = useAuthStore()
+  const isAuthenticated = checkAuthentication()
+  
+  // If not authenticated, show login page
+  if (!isAuthenticated) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<LoginPage />} />
+        </Routes>
+      </QueryClientProvider>
+    )
+  }
   
   return (
-    <NewLayout>
-      <Routes>
-        <Route path="/" element={<TestDashboard />} />
-        <Route path="/dashboard" element={<TestDashboard />} />
-        <Route path="/hr/*" element={<TestHR />} />
-        <Route path="/sales/*" element={<TestSales />} />
-        <Route path="/accounting/*" element={<TestAccounting />} />
-        <Route path="*" element={<TestDashboard />} />
-      </Routes>
-    </NewLayout>
+    <QueryClientProvider client={queryClient}>
+    <>
+      <div className="font-optimized">
+        <NewLayout>
+        <Routes>
+          <Route path="/" element={<TestDashboard />} />
+          <Route path="/dashboard" element={<TestDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          
+          {/* Users Management */}
+          <Route path="/users" element={<UsersPage />} />
+          <Route path="/permissions" element={<PermissionsPage />} />
+          
+          {/* HR Module */}
+          <Route path="/hr/*" element={<TestHR />} />
+          
+          {/* Sales Module */}
+          <Route path="/sales/*" element={<TestSales />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          
+          {/* Inventory Module - This is the key addition */}
+          <Route path="/inventory/*" element={<TestInventory />} />
+          <Route path="/items" element={<ItemsPage />} />
+          <Route path="/inventory/adjustments" element={<InventoryAdjustmentPage />} />
+          <Route path="/inventory/price-lists" element={<TestDashboard />} />
+          <Route path="/inventory/movements" element={<TestDashboard />} />
+          
+          {/* Accounting Module */}
+          <Route path="/accounting/*" element={<TestAccounting />} />
+          
+          {/* Purchase Module */}
+          <Route path="/purchase/*" element={<TestPurchase />} />
+          <Route path="/vendors" element={<VendorsPage />} />
+          <Route path="/purchase/orders" element={<PurchaseOrdersPage />} />
+          
+          {/* Organization */}
+          <Route path="/branches" element={<BranchesPage />} />
+          <Route path="/warehouses" element={<WarehousesPage />} />
+          
+          {/* Vendors */}
+          <Route path="/vendors" element={<VendorsPage />} />
+          
+          {/* Security */}
+          <Route path="/security/*" element={<TestSecurity />} />
+          
+          {/* Settings */}
+          <Route path="/settings/*" element={<TestSettings />} />
+          
+          {/* Money Transfer */}
+          <Route path="/money-transfer/dashboard" element={<MoneyTransferDashboard />} />
+          <Route path="/money-transfer/alerts" element={<MoneyTransferDashboard />} />
+          
+          {/* Financial Management */}
+          <Route path="/financial/dashboard" element={<FinancialDashboard />} />
+          <Route path="/financial/cash-boxes" element={<CashBoxesPage />} />
+          <Route path="/financial/bank-accounts" element={<BankAccountsPage />} />
+          <Route path="/financial/digital-accounts" element={<DigitalAccountsPage />} />
+          <Route path="/financial/money-transfers" element={<MoneyTransferDashboard />} />
+          <Route path="/financial/transfer-tracking" element={<TransferTrackingPage />} />
+          <Route path="/financial/salesperson-boxes" element={<SalespersonBoxesPage />} />
+          
+          {/* POS */}
+          <Route path="/pos" element={<POSInterface />} />
+          <Route path="/pos/terminals" element={<POSInterface />} />
+          <Route path="/pos/sessions" element={<POSInterface />} />
+          <Route path="/pos/transactions" element={<POSInterface />} />
+          
+          {/* Migration and Models */}
+          <Route path="/migration" element={<TestDashboard />} />
+          <Route path="/models" element={<TestDashboard />} />
+          
+          {/* Expenses */}
+          <Route path="/expenses" element={<TestDashboard />} />
+          <Route path="/expenses/categories" element={<TestDashboard />} />
+          <Route path="/expenses/reports" element={<TestDashboard />} />
+          
+          {/* Cashflow */}
+          <Route path="/cashflow/cash-boxes" element={<TestDashboard />} />
+          <Route path="/cashflow/transactions" element={<TestDashboard />} />
+          <Route path="/cashflow/transfers" element={<TestDashboard />} />
+          
+          <Route path="*" element={<TestDashboard />} />
+        </Routes>
+      </NewLayout>
+    </div>
+    </>
+    </QueryClientProvider>
   )
 }
 

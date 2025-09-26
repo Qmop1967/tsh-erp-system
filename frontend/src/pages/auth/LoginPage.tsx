@@ -24,6 +24,7 @@ export function LoginPage() {
       await login({ email, password })
       navigate('/dashboard')
     } catch (err: any) {
+      console.error('Login error:', err)
       setError(err.message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
@@ -103,12 +104,6 @@ export function LoginPage() {
                 'Sign in to Dashboard'
               )}
             </Button>
-            
-            <div className="text-center text-sm text-gray-500 mt-6">
-              <p>Demo credentials:</p>
-              <p><strong>Email:</strong> admin@tsh-erp.com</p>
-              <p><strong>Password:</strong> admin123</p>
-            </div>
           </form>
         </CardContent>
       </Card>

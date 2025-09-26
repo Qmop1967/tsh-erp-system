@@ -1,5 +1,11 @@
 library tsh_core_package;
 
+// TSH Design System - New comprehensive theme
+export 'design_system/tsh_theme.dart';
+
+// TSH Localization - Arabic/English with RTL support  
+export 'localization/tsh_localizations.dart';
+
 // Models
 export 'src/models/user.dart';
 export 'src/models/product.dart';
@@ -21,8 +27,8 @@ export 'src/widgets/app_card.dart';
 // Utils
 export 'src/utils/app_colors.dart';
 
-// Theme
+// Legacy Theme (deprecated - use TSHTheme instead)
 export 'src/theme/app_theme.dart';
 
-// Localization
+// Legacy Localization (deprecated - use TSHLocalizations instead)
 export 'src/localization/app_localizations.dart';

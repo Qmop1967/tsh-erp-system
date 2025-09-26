@@ -14,7 +14,9 @@ import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.services.config_service import SecureConfigService, ZohoCredentials
+import pytest
 
+@pytest.mark.asyncio
 async def test_token_refresh():
     """Test token refresh functionality"""
     print("🔄 Testing Zoho Token Refresh...")
@@ -81,6 +83,7 @@ async def test_token_refresh():
     except Exception as e:
         print(f"❌ Token refresh error: {str(e)}")
 
+@pytest.mark.asyncio
 async def test_api_with_token(access_token: str, org_id: str):
     """Test API calls with the new token"""
     headers = {

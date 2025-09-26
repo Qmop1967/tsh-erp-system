@@ -9,6 +9,19 @@ export default {
   ],
   prefix: "",
   theme: {
+    fontFamily: {
+      sans: [
+        'Inter',
+        'system-ui',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Roboto',
+        'Helvetica Neue',
+        'Arial',
+        'sans-serif'
+      ]
+    },
     container: {
       center: true,
       padding: "2rem",
@@ -17,6 +30,26 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: [
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif'
+        ],
+        arabic: [
+          'Noto Sans Arabic',
+          'Arabic UI Text',
+          'Geeza Pro',
+          'Traditional Arabic',
+          'serif'
+        ]
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

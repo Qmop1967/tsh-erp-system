@@ -21,7 +21,7 @@ def test_customer_stability():
     
     if login_response.status_code != 200:
         print(f"❌ Login failed: {login_response.text}")
-        return False
+        assert False, f"Login failed: {login_response.text}"
     
     token = login_response.json()['access_token']
     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
@@ -138,13 +138,13 @@ def test_customer_stability():
         print("   ✅ System stable under rapid requests")
     except Exception as e:
         print(f"   ❌ System error under load: {e}")
-        return False
+        assert False, f"System error under load: {e}"
     
     print("\\n" + "=" * 50)
     print("🎉 ALL TESTS PASSED - CUSTOMER MANAGEMENT SYSTEM IS STABLE")
     print("=" * 50)
     
-    return True
+    assert True  # Test passed
 
 if __name__ == "__main__":
     success = test_customer_stability()

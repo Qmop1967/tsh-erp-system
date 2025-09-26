@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tsh_core_package/tsh_core_package.dart';
 import '../blocs/profile_bloc.dart';
 import '../../../../widgets/language_switcher.dart';
+import '../../../../localization/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -30,69 +31,75 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: BlocListener<ProfileBloc, ProfileState>(
-        listener: (context, state) {
-          if (state is ProfileError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          } else if (state is PasswordChangeSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Password changed successfully')),
-            );
-            context.read<ProfileBloc>().add(LoadProfile());
-          } else if (state is LogoutSuccess) {
-            context.go('/login');
-          }
-        },
-        child: BlocBuilder<ProfileBloc, ProfileState>(
-          builder: (context, state) {
-            if (state is ProfileLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is ProfileError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: AppColors.error,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      state.message,
-                      style: Theme.of(context).textTheme.titleMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    AppButton(
-                      text: 'Retry',
-                      onPressed: () => context.read<ProfileBloc>().add(LoadProfile()),
-                    ),
-                  ],
-                ),
+    final localizations = AppLocalizations.of(context)!;
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: BlocListener<ProfileBloc, ProfileState>(
+          listener: (context, state) {
+            if (state is ProfileError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
               );
-            } else if (state is ProfileLoaded) {
-              return CustomScrollView(
-                slivers: [
-                  _buildAppBar(state),
-                  _buildTabBar(),
-                  _buildTabBarView(state),
-                ],
+            } else if (state is PasswordChangeSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Password changed successfully')),
               );
+              context.read<ProfileBloc>().add(LoadProfile());
+            } else if (state is LogoutSuccess) {
+              context.go('/login');
             }
-
-            return const SizedBox.shrink();
           },
+          child: BlocBuilder<ProfileBloc, ProfileState>(
+            builder: (context, state) {
+              if (state is ProfileLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is ProfileError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        state.message,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      AppButton(
+                        text: 'Retry',
+                        onPressed: () => context.read<ProfileBloc>().add(LoadProfile()),
+                      ),
+                    ],
+                  ),
+                );
+              } else if (state is ProfileLoaded) {
+                return CustomScrollView(
+                  slivers: [
+                    _buildAppBar(state, isArabic),
+                    _buildTabBar(),
+                    _buildTabBarView(state, isArabic),
+                  ],
+                );
+              }
+
+              return const SizedBox.shrink();
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildAppBar(ProfileLoaded state) {
+  Widget _buildAppBar(ProfileLoaded state, bool isArabic) {
     return SliverAppBar(
       expandedHeight: 280,
       pinned: true,
@@ -184,20 +191,20 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildTabBarView(ProfileLoaded state) {
+  Widget _buildTabBarView(ProfileLoaded state, bool isArabic) {
     return SliverFillRemaining(
       child: TabBarView(
         controller: _tabController,
         children: [
-          _buildStatsTab(state.stats),
-          _buildSettingsTab(state.settings),
-          _buildAccountTab(state.user),
+          _buildStatsTab(state.stats, isArabic),
+          _buildSettingsTab(state.settings, isArabic),
+          _buildAccountTab(state.user, isArabic),
         ],
       ),
     );
   }
 
-  Widget _buildStatsTab(ProfileStats stats) {
+  Widget _buildStatsTab(ProfileStats stats, bool isArabic) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -206,19 +213,19 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             children: [
               Expanded(
                 child: _buildStatCard(
-                  title: 'Total Sales',
-                  value: stats.totalSales.toString(),
-                  icon: Icons.shopping_cart,
-                  color: AppColors.primary,
+                  isArabic ? 'التحويلات اليوم' : 'Today\'s Transfers',
+                  stats.totalTransfers.toString(),
+                  Icons.swap_horiz,
+                  Colors.blue,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  title: 'Revenue',
-                  value: '\$${stats.totalRevenue.toStringAsFixed(0)}',
-                  icon: Icons.attach_money,
-                  color: AppColors.success,
+                  isArabic ? 'المبلغ الإجمالي' : 'Total Amount',
+                  '\$${stats.totalAmount.toStringAsFixed(0)}',
+                  Icons.attach_money,
+                  Colors.green,
                 ),
               ),
             ],
@@ -228,41 +235,19 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             children: [
               Expanded(
                 child: _buildStatCard(
-                  title: 'Active Customers',
-                  value: stats.activeCustomers.toString(),
-                  icon: Icons.people,
-                  color: AppColors.info,
+                  isArabic ? 'العمولة' : 'Commission',
+                  '\$${stats.totalCommission.toStringAsFixed(0)}',
+                  Icons.account_balance_wallet,
+                  Colors.orange,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  title: 'Orders This Month',
-                  value: stats.ordersThisMonth.toString(),
-                  icon: Icons.calendar_today,
-                  color: AppColors.warning,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  title: 'Avg Order Value',
-                  value: '\$${stats.averageOrderValue.toStringAsFixed(0)}',
-                  icon: Icons.trending_up,
-                  color: AppColors.secondary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  title: 'Days Active',
-                  value: stats.daysActive.toString(),
-                  icon: Icons.star,
-                  color: AppColors.accent,
+                  isArabic ? 'العمولة' : 'Commission',
+                  '\$${stats.averageCommission.toStringAsFixed(0)}',
+                  Icons.trending_up,
+                  Colors.secondary,
                 ),
               ),
             ],
@@ -275,28 +260,28 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Performance Overview',
+                    isArabic ? 'ملخص الأداء' : 'Performance Overview',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 16),
                   _buildPerformanceItem(
-                    'Sales Target Achievement',
+                    isArabic ? 'الهدف الشهري' : 'Monthly Goal',
                     '87%',
                     0.87,
                     AppColors.success,
                   ),
                   const SizedBox(height: 12),
                   _buildPerformanceItem(
-                    'Customer Satisfaction',
+                    isArabic ? 'مستوى الإرضاء' : 'Customer Satisfaction',
                     '94%',
                     0.94,
                     AppColors.primary,
                   ),
                   const SizedBox(height: 12),
                   _buildPerformanceItem(
-                    'Monthly Growth',
+                    isArabic ? 'النمو الشهري' : 'Monthly Growth',
                     '12%',
                     0.12,
                     AppColors.warning,
@@ -310,12 +295,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -384,7 +364,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
   
-  Widget _buildSettingsTab(ProfileSettings settings) {
+  Widget _buildSettingsTab(ProfileSettings settings, bool isArabic) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -397,51 +377,43 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             child: Column(
               children: [
                 _buildSettingsTile(
-                  title: 'Notifications',
-                  subtitle: 'Receive push notifications',
-                  trailing: Switch(
-                    value: settings.notifications,
-                    onChanged: (value) {
-                      final updatedSettings = settings.copyWith(notifications: value);
-                      context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
-                    },
-                  ),
+                  isArabic ? 'الإشعارات' : 'Notifications',
+                  isArabic ? 'مفعل' : 'Enabled',
+                  settings.notifications,
+                  (value) {
+                    final updatedSettings = settings.copyWith(notifications: value);
+                    context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
+                  },
                 ),
                 const Divider(),
                 _buildSettingsTile(
-                  title: 'Dark Mode',
-                  subtitle: 'Use dark theme',
-                  trailing: Switch(
-                    value: settings.darkMode,
-                    onChanged: (value) {
-                      final updatedSettings = settings.copyWith(darkMode: value);
-                      context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
-                    },
-                  ),
+                  isArabic ? 'الوضع الليلي' : 'Dark Mode',
+                  isArabic ? 'استخدام الوضع الليلي' : 'Use dark theme',
+                  settings.darkMode,
+                  (value) {
+                    final updatedSettings = settings.copyWith(darkMode: value);
+                    context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
+                  },
                 ),
                 const Divider(),
                 _buildSettingsTile(
-                  title: 'Location Tracking',
-                  subtitle: 'Track location for delivery',
-                  trailing: Switch(
-                    value: settings.locationTracking,
-                    onChanged: (value) {
-                      final updatedSettings = settings.copyWith(locationTracking: value);
-                      context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
-                    },
-                  ),
+                  isArabic ? 'خدمات الموقع' : 'Location Services',
+                  isArabic ? 'مفعل' : 'Enabled',
+                  settings.locationTracking,
+                  (value) {
+                    final updatedSettings = settings.copyWith(locationTracking: value);
+                    context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
+                  },
                 ),
                 const Divider(),
                 _buildSettingsTile(
-                  title: 'Offline Sync',
-                  subtitle: 'Sync data when offline',
-                  trailing: Switch(
-                    value: settings.offlineSync,
-                    onChanged: (value) {
-                      final updatedSettings = settings.copyWith(offlineSync: value);
-                      context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
-                    },
-                  ),
+                  isArabic ? 'التحميل المفرد' : 'Offline Sync',
+                  isArabic ? 'مفعل' : 'Enabled',
+                  settings.offlineSync,
+                  (value) {
+                    final updatedSettings = settings.copyWith(offlineSync: value);
+                    context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
+                  },
                 ),
               ],
             ),
@@ -451,17 +423,21 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             child: Column(
               children: [
                 _buildSettingsTile(
-                  title: 'Language',
-                  subtitle: settings.language,
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _showLanguageDialog(settings),
+                  isArabic ? 'اللغة' : 'Language',
+                  settings.language,
+                  settings.language,
+                  (value) {
+                    // Show language picker
+                  },
                 ),
                 const Divider(),
                 _buildSettingsTile(
-                  title: 'Currency',
-                  subtitle: settings.currency,
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _showCurrencyDialog(settings),
+                  isArabic ? 'العملة' : 'Currency',
+                  settings.currency,
+                  settings.currency,
+                  (value) {
+                    // Show currency picker
+                  },
                 ),
               ],
             ),
@@ -471,7 +447,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildAccountTab(User user) {
+  Widget _buildAccountTab(User user, bool isArabic) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -480,35 +456,35 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             child: Column(
               children: [
                 _buildSettingsTile(
-                  title: 'Change Password',
-                  subtitle: 'Update your password',
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: _showChangePasswordDialog,
+                  isArabic ? 'تغيير كلمة المرور' : 'Change Password',
+                  isArabic ? 'تحديث كلمة المرور' : 'Update your password',
+                  '',
+                  _showChangePasswordDialog,
                 ),
                 const Divider(),
                 _buildSettingsTile(
-                  title: 'Privacy Policy',
-                  subtitle: 'Read our privacy policy',
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
+                  isArabic ? 'سياسة الخصوصية' : 'Privacy Policy',
+                  isArabic ? 'قراءة سياسة الخصوصية' : 'Read our privacy policy',
+                  '',
+                  () {
                     // Navigate to privacy policy
                   },
                 ),
                 const Divider(),
                 _buildSettingsTile(
-                  title: 'Terms of Service',
-                  subtitle: 'Read our terms of service',
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
+                  isArabic ? 'شروط الخدمة' : 'Terms of Service',
+                  isArabic ? 'قراءة شروط الخدمة' : 'Read our terms of service',
+                  '',
+                  () {
                     // Navigate to terms of service
                   },
                 ),
                 const Divider(),
                 _buildSettingsTile(
-                  title: 'Help & Support',
-                  subtitle: 'Get help or contact support',
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
+                  isArabic ? 'مساعدة ودعم' : 'Help & Support',
+                  isArabic ? 'الحصول على مساعدة أو الاتصال بدعم الخدمة' : 'Get help or contact support',
+                  '',
+                  () {
                     // Navigate to help & support
                   },
                 ),
@@ -517,9 +493,9 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
           ),
           const SizedBox(height: 24),
           AppButton(
-            text: 'Logout',
+            text: isArabic ? 'تسجيل الخروج' : 'Logout',
             customColor: AppColors.error,
-            onPressed: () => _showLogoutConfirmation(),
+            onPressed: () => _showLogoutConfirmation(isArabic),
           ),
           const SizedBox(height: 16),
           Text(
@@ -533,16 +509,16 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildSettingsTile({
-    required String title,
-    required String subtitle,
-    required Widget trailing,
-    VoidCallback? onTap,
-  }) {
+  Widget _buildSettingsTile(String title, String subtitle, bool value, VoidCallback onTap) {
     return ListTile(
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: trailing,
+      trailing: Switch(
+        value: value,
+        onChanged: (value) {
+          onTap();
+        },
+      ),
       onTap: onTap,
     );
   }
@@ -658,75 +634,23 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  void _showLanguageDialog(ProfileSettings settings) {
-    final languages = ['English', 'Arabic', 'Hindi', 'Urdu'];
-    
+  void _showLogoutConfirmation(bool isArabic) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: languages.map((language) {
-            return RadioListTile<String>(
-              title: Text(language),
-              value: language,
-              groupValue: settings.language,
-              onChanged: (value) {
-                if (value != null) {
-                  final updatedSettings = settings.copyWith(language: value);
-                  context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
-                  Navigator.of(context).pop();
-                }
-              },
-            );
-          }).toList(),
+        title: Text(isArabic ? 'تسجيل الخروج' : 'Logout'),
+        content: Text(
+          isArabic 
+              ? 'هل أنت متأكد من رغبتك في تسجيل الخروج؟'
+              : 'Are you sure you want to logout?',
         ),
-      ),
-    );
-  }
-
-  void _showCurrencyDialog(ProfileSettings settings) {
-    final currencies = ['AED', 'USD', 'EUR', 'GBP'];
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Currency'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: currencies.map((currency) {
-            return RadioListTile<String>(
-              title: Text(currency),
-              value: currency,
-              groupValue: settings.currency,
-              onChanged: (value) {
-                if (value != null) {
-                  final updatedSettings = settings.copyWith(currency: value);
-                  context.read<ProfileBloc>().add(UpdateSettings(updatedSettings));
-                  Navigator.of(context).pop();
-                }
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _showLogoutConfirmation() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(isArabic ? 'إلغاء' : 'Cancel'),
           ),
           AppButton(
-            text: 'Logout',
+            text: isArabic ? 'تسجيل الخروج' : 'Logout',
             customColor: AppColors.error,
             onPressed: () {
               Navigator.of(context).pop();

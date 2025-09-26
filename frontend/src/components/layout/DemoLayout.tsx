@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard,
   Users,
   ShoppingCart,
   Package,
@@ -15,6 +14,8 @@ import {
   LogOut,
   Home
 } from 'lucide-react'
+import { useLanguageStore } from '../../stores/languageStore'
+import { useTranslations } from '../../lib/translations'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -22,87 +23,18 @@ interface LayoutProps {
 
 interface MenuItem {
   id: string
-  label: string
+  labelKey: string
   icon: React.ReactNode
   path?: string
   children?: MenuItem[]
 }
 
-const menuItems: MenuItem[] = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: <LayoutDashboard className="w-5 h-5" />,
-    path: '/dashboard'
-  },
-  {
-    id: 'hr',
-    label: 'HR Model',
-    icon: <Users className="w-5 h-5" />,
-    children: [
-      { id: 'employees', label: 'All Employees', icon: <Users className="w-4 h-4" />, path: '/hr/employees' },
-      { id: 'travel-salesperson', label: 'Travel Salesperson', icon: <Users className="w-4 h-4" />, path: '/hr/travel-salesperson' },
-      { id: 'partner-salesman', label: 'Partner Salesman', icon: <Users className="w-4 h-4" />, path: '/hr/partner-salesman' },
-      { id: 'retailerman', label: 'Retailerman', icon: <Users className="w-4 h-4" />, path: '/hr/retailerman' }
-    ]
-  },
-  {
-    id: 'sales',
-    label: 'Sales Model',
-    icon: <ShoppingCart className="w-5 h-5" />,
-    children: [
-      { id: 'customers', label: 'All Customers', icon: <Users className="w-4 h-4" />, path: '/sales/customers' },
-      { id: 'clients', label: 'Clients', icon: <Users className="w-4 h-4" />, path: '/sales/clients' },
-      { id: 'consumers', label: 'Consumers', icon: <Users className="w-4 h-4" />, path: '/sales/consumers' },
-      { id: 'quotations', label: 'Quotations', icon: <Receipt className="w-4 h-4" />, path: '/sales/quotations' },
-      { id: 'sale-orders', label: 'Sale Orders', icon: <ShoppingCart className="w-4 h-4" />, path: '/sales/orders' },
-      { id: 'invoices', label: 'Invoices', icon: <Receipt className="w-4 h-4" />, path: '/sales/invoices' },
-      { id: 'payment-received', label: 'Payment Received', icon: <Receipt className="w-4 h-4" />, path: '/sales/payment-received' },
-      { id: 'credit-note', label: 'Credit Note', icon: <Receipt className="w-4 h-4" />, path: '/sales/credit-note' },
-      { id: 'refund', label: 'Refund', icon: <Receipt className="w-4 h-4" />, path: '/sales/refund' }
-    ]
-  },
-  {
-    id: 'purchases',
-    label: 'Purchases Model',
-    icon: <Package className="w-5 h-5" />,
-    children: [
-      { id: 'vendors', label: 'Vendors', icon: <Users className="w-4 h-4" />, path: '/purchases/vendors' },
-      { id: 'purchase-orders', label: 'Purchase Orders', icon: <Package className="w-4 h-4" />, path: '/purchases/orders' },
-      { id: 'bills', label: 'Bills', icon: <Receipt className="w-4 h-4" />, path: '/purchases/bills' },
-      { id: 'payment-made', label: 'Payment Made', icon: <Receipt className="w-4 h-4" />, path: '/purchases/payment-made' },
-      { id: 'debit-note', label: 'Debit Note', icon: <Receipt className="w-4 h-4" />, path: '/purchases/debit-note' }
-    ]
-  },
-  {
-    id: 'accounting',
-    label: 'Accounting Model',
-    icon: <Calculator className="w-5 h-5" />,
-    children: [
-      { id: 'chart-of-accounts', label: 'Chart of Accounts', icon: <Calculator className="w-4 h-4" />, path: '/accounting/chart-of-accounts' },
-      { id: 'journal-entries', label: 'Journal Entries', icon: <Receipt className="w-4 h-4" />, path: '/accounting/journal-entries' },
-      { id: 'trial-balance', label: 'Trial Balance', icon: <Calculator className="w-4 h-4" />, path: '/accounting/trial-balance' },
-      { id: 'profit-loss', label: 'Profit & Loss', icon: <Calculator className="w-4 h-4" />, path: '/accounting/profit-loss' },
-      { id: 'balance-sheet', label: 'Balance Sheet', icon: <Calculator className="w-4 h-4" />, path: '/accounting/balance-sheet' },
-      { id: 'cash-flow', label: 'Cash Flow', icon: <Calculator className="w-4 h-4" />, path: '/accounting/cash-flow' }
-    ]
-  },
-  {
-    id: 'expenses',
-    label: 'Expenses Model',
-    icon: <Receipt className="w-5 h-5" />,
-    children: [
-      { id: 'expenses-list', label: 'Expenses', icon: <Receipt className="w-4 h-4" />, path: '/expenses/list' },
-      { id: 'expense-categories', label: 'Categories', icon: <Receipt className="w-4 h-4" />, path: '/expenses/categories' },
-      { id: 'expense-reports', label: 'Reports', icon: <Receipt className="w-4 h-4" />, path: '/expenses/reports' }
-    ]
-  }
-]
-
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [expandedItems, setExpandedItems] = useState<string[]>(['dashboard'])
   const location = useLocation()
+  const { language } = useLanguageStore()
+  const t = useTranslations(language)
   
   // Demo user for testing
   const user = { name: 'Demo User', role: 'Admin' }
@@ -127,6 +59,72 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return children.some(child => child.path && isActiveRoute(child.path))
   }
 
+  const menuItems: MenuItem[] = [
+    {
+      id: 'dashboard',
+      labelKey: 'dashboard',
+      icon: <Home className="w-5 h-5" />,
+      path: '/dashboard'
+    },
+    {
+      id: 'hr',
+      labelKey: 'humanResources',
+      icon: <Users className="w-5 h-5" />,
+      children: [
+        { id: 'users', labelKey: 'users', icon: <Users className="w-4 h-4" />, path: '/hr/users' },
+        { id: 'employees', labelKey: 'employees', icon: <Users className="w-4 h-4" />, path: '/hr/employees' }
+      ]
+    },
+    {
+      id: 'sales',
+      labelKey: 'salesModel',
+      icon: <ShoppingCart className="w-5 h-5" />,
+      children: [
+        { id: 'customers', labelKey: 'customers', icon: <Users className="w-4 h-4" />, path: '/sales/customers' },
+        { id: 'sale-orders', labelKey: 'saleOrders', icon: <ShoppingCart className="w-4 h-4" />, path: '/sales/orders' },
+        { id: 'invoices', labelKey: 'invoices', icon: <Receipt className="w-4 h-4" />, path: '/sales/invoices' },
+        { id: 'payment-received', labelKey: 'paymentReceived', icon: <Receipt className="w-4 h-4" />, path: '/sales/payments' },
+        { id: 'credit-note', labelKey: 'creditNotes', icon: <Receipt className="w-4 h-4" />, path: '/sales/credit-notes' },
+        { id: 'refund', labelKey: 'refund', icon: <Receipt className="w-4 h-4" />, path: '/sales/refunds' }
+      ]
+    },
+    {
+      id: 'purchases',
+      labelKey: 'purchasesModel',
+      icon: <Package className="w-5 h-5" />,
+      children: [
+        { id: 'vendors', labelKey: 'vendors', icon: <Users className="w-4 h-4" />, path: '/purchases/vendors' },
+        { id: 'purchase-orders', labelKey: 'purchaseOrders', icon: <ShoppingCart className="w-4 h-4" />, path: '/purchases/orders' },
+        { id: 'bills', labelKey: 'bills', icon: <Receipt className="w-4 h-4" />, path: '/purchases/bills' },
+        { id: 'payment-made', labelKey: 'paymentMade', icon: <Receipt className="w-4 h-4" />, path: '/purchases/payment-made' },
+        { id: 'debit-note', labelKey: 'debitNotes', icon: <Receipt className="w-4 h-4" />, path: '/purchases/debit-notes' }
+      ]
+    },
+    {
+      id: 'accounting',
+      labelKey: 'accountingModel',
+      icon: <Calculator className="w-5 h-5" />,
+      children: [
+        { id: 'chart-of-accounts', labelKey: 'chartOfAccounts', icon: <Calculator className="w-4 h-4" />, path: '/accounting/chart-of-accounts' },
+        { id: 'journal-entries', labelKey: 'journalEntries', icon: <Receipt className="w-4 h-4" />, path: '/accounting/journal-entries' },
+        { id: 'trial-balance', labelKey: 'trialBalance', icon: <Calculator className="w-4 h-4" />, path: '/accounting/trial-balance' },
+        { id: 'profit-loss', labelKey: 'profitAndLoss', icon: <Calculator className="w-4 h-4" />, path: '/accounting/profit-loss' },
+        { id: 'balance-sheet', labelKey: 'balanceSheet', icon: <Calculator className="w-4 h-4" />, path: '/accounting/balance-sheet' },
+        { id: 'cash-flow', labelKey: 'cashFlow', icon: <Calculator className="w-4 h-4" />, path: '/accounting/cash-flow' }
+      ]
+    },
+    {
+      id: 'expenses',
+      labelKey: 'expensesModel',
+      icon: <Receipt className="w-5 h-5" />,
+      children: [
+        { id: 'expenses-list', labelKey: 'expensesList', icon: <Receipt className="w-4 h-4" />, path: '/expenses/list' },
+        { id: 'expense-categories', labelKey: 'expenseCategories', icon: <Receipt className="w-4 h-4" />, path: '/expenses/categories' },
+        { id: 'expense-reports', labelKey: 'expenseReports', icon: <Receipt className="w-4 h-4" />, path: '/expenses/reports' }
+      ]
+    }
+  ]
+
   const renderMenuItem = (item: MenuItem, level = 0) => {
     const hasChildren = item.children && item.children.length > 0
     const isExpanded = expandedItems.includes(item.id)
@@ -145,7 +143,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <div className="flex items-center">
               {item.icon}
-              {sidebarOpen && <span className="ml-3 font-medium">{item.label}</span>}
+              {sidebarOpen && <span className="ml-3 font-medium">{t[item.labelKey as keyof typeof t]}</span>}
             </div>
             {sidebarOpen && (
               isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
@@ -171,7 +169,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         } ${level > 0 ? 'text-sm' : ''}`}
       >
         {item.icon}
-        {sidebarOpen && <span className="ml-3">{item.label}</span>}
+        {sidebarOpen && <span className="ml-3">{t[item.labelKey as keyof typeof t]}</span>}
       </Link>
     )
   }
@@ -224,15 +222,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
           
           <div className="space-y-1">
-            <button className={`w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${!sidebarOpen && 'justify-center'}`}>
-              <Settings className="w-5 h-5" />
-              {sidebarOpen && <span className="ml-3">Settings</span>}
-            </button>
-            <button
-              className={`w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!sidebarOpen && 'justify-center'}`}
+            <Link 
+              to="/settings/translations"
+              className={`w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${!sidebarOpen && 'justify-center'}`}
             >
+              <Settings className="w-5 h-5" />
+              {sidebarOpen && <span className="ml-3">{t.settings}</span>}
+            </Link>
+            <button className={`w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!sidebarOpen && 'justify-center'}`}>
               <LogOut className="w-5 h-5" />
-              {sidebarOpen && <span className="ml-3">Logout</span>}
+              {sidebarOpen && <span className="ml-3">{t.logout}</span>}
             </button>
           </div>
         </div>

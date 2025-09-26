@@ -1,5 +1,5 @@
 import React from 'react'
-import { Users, Plus, Search, Filter } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 const ConsumersPage: React.FC = () => {
   return (

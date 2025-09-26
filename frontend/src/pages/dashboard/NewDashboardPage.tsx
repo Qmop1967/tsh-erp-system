@@ -139,6 +139,9 @@ const DashboardPage: React.FC = () => {
     { name: 'Baghdad Money Box', amount: stats.moneyBoxes.baghdad, color: 'bg-gradient-to-r from-pink-500 to-pink-600' }
   ]
 
+  // Note: isLoading would come from useQuery when API is connected
+  const isLoading = false; // Temporary fix for demo
+  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">

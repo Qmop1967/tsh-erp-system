@@ -1,23 +1,65 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from typing import List, Optional
 from app.models.customer import Customer, Supplier
 from app.schemas.customer import CustomerCreate, CustomerUpdate, SupplierCreate, SupplierUpdate
 from fastapi import HTTPException, status
+import re
+from datetime import datetime
 
 
 class CustomerService:
     """خدمة إدارة العملاء"""
 
     @staticmethod
+    def generate_customer_code(db: Session, prefix: str = "CUST") -> str:
+        """
+        Generate next customer code in format: CUST-YYYY-NNNN
+        Examples: CUST-2025-0001, CUST-2025-0002, etc.
+        """
+        current_year = datetime.now().year
+        year_prefix = f"{prefix}-{current_year}-"
+        
+        # Get the latest customer code for current year
+        latest_customer = db.query(Customer).filter(
+            Customer.customer_code.like(f"{year_prefix}%")
+        ).order_by(Customer.customer_code.desc()).first()
+        
+        if latest_customer:
+            # Extract the sequence number from the latest code
+            match = re.search(r'-(\d{4})$', latest_customer.customer_code)
+            if match:
+                last_sequence = int(match.group(1))
+                next_sequence = last_sequence + 1
+            else:
+                next_sequence = 1
+        else:
+            next_sequence = 1
+        
+        # Format: CUST-YYYY-NNNN (4-digit sequence number)
+        return f"{year_prefix}{next_sequence:04d}"
+
+    @staticmethod
+    def validate_customer_code(db: Session, customer_code: str, exclude_id: Optional[int] = None) -> bool:
+        """
+        Validate if customer code is unique
+        """
+        query = db.query(Customer).filter(Customer.customer_code == customer_code)
+        if exclude_id:
+            query = query.filter(Customer.id != exclude_id)
+        
+        existing_customer = query.first()
+        return existing_customer is None
+
+    @staticmethod
     def create_customer(db: Session, customer: CustomerCreate) -> Customer:
         """إنشاء عميل جديد"""
-        # التحقق من عدم تكرار رقم العميل
-        existing_customer = db.query(Customer).filter(
-            Customer.customer_code == customer.customer_code
-        ).first()
+        # Auto-generate customer code if not provided or empty
+        if not customer.customer_code or customer.customer_code.strip() == "":
+            customer.customer_code = CustomerService.generate_customer_code(db)
         
-        if existing_customer:
+        # التحقق من عدم تكرار رقم العميل
+        if not CustomerService.validate_customer_code(db, customer.customer_code):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Customer code already exists"
@@ -67,11 +109,7 @@ class CustomerService:
         
         # التحقق من عدم تكرار رقم العميل إذا تم تغييره
         if customer_update.customer_code and customer_update.customer_code != customer.customer_code:
-            existing_customer = db.query(Customer).filter(
-                Customer.customer_code == customer_update.customer_code
-            ).first()
-            
-            if existing_customer:
+            if not CustomerService.validate_customer_code(db, customer_update.customer_code, exclude_id=customer_id):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Customer code already exists"

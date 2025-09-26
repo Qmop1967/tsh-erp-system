@@ -13,7 +13,9 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.services.config_service import SecureConfigService
+import pytest
 
+@pytest.mark.asyncio
 async def test_inventory_api():
     """Test inventory API with correct domain"""
     print("🔄 Testing Inventory API with working domain pattern...")

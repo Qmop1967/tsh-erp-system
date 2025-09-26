@@ -1,4 +1,4 @@
-import { BrowserRouter } from 'react-router-dom'
+// import { BrowserRouter } from 'react-router-dom' // Not used in this test file
 import { useAuthStore } from '@/stores/authStore'
 import { useLanguageStore } from '@/stores/languageStore'
 
@@ -27,7 +27,7 @@ function App() {
           
           {storeError ? (
             <div className="text-red-600">
-              <strong>❌ Store Error:</strong> {storeError.message}
+              <strong>❌ Store Error:</strong> {storeError instanceof Error ? storeError.message : 'Unknown error'}
             </div>
           ) : (
             <div className="space-y-2">

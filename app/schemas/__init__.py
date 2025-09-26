@@ -27,6 +27,11 @@ from .pos import (
     POSPromotionCreate, POSPromotionUpdate, POSPromotion,
     POSSalesReport, POSSessionReport, POSProductSalesReport
 )
+from .money_transfer import (
+    MoneyTransferCreate, MoneyTransferUpdate, MoneyTransferResponse,
+    MoneyTransferSummary, WeeklyCommissionReport, DashboardStats,
+    FraudAlert, TransferPlatformConfig, TransferStatus, TransferPlatform
+)
 
 __all__ = [
     "UserCreate", "UserResponse", "UserUpdate",
@@ -59,5 +64,9 @@ __all__ = [
     "POSPaymentCreate", "POSPayment",
     "POSDiscountCreate", "POSDiscountUpdate", "POSDiscount",
     "POSPromotionCreate", "POSPromotionUpdate", "POSPromotion",
-    "POSSalesReport", "POSSessionReport", "POSProductSalesReport"
+    "POSSalesReport", "POSSessionReport", "POSProductSalesReport",
+    # Money Transfer schemas (CRITICAL - Fraud Prevention)
+    "MoneyTransferCreate", "MoneyTransferUpdate", "MoneyTransferResponse",
+    "MoneyTransferSummary", "WeeklyCommissionReport", "DashboardStats",
+    "FraudAlert", "TransferPlatformConfig", "TransferStatus", "TransferPlatform"
 ] 

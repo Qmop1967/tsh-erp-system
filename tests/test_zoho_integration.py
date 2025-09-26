@@ -14,7 +14,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.services.zoho_service import ZohoAsyncService
 from app.schemas.migration import ZohoConfigCreate
 from app.services.config_service import SecureConfigService
+import pytest
 
+@pytest.mark.asyncio
 async def test_zoho_integration():
     """Test the Zoho integration"""
     print("🔄 Starting Zoho Integration Test...")

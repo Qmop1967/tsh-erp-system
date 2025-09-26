@@ -12,8 +12,7 @@ import {
   Building, 
   Warehouse,
   AlertTriangle,
-  DollarSign,
-  RefreshCw
+  DollarSign
 } from 'lucide-react'
 
 // Define dashboard stats type

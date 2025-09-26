@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
@@ -10,6 +10,9 @@ class Branch(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, index=True)
     location = Column(String(255), nullable=False)
+    
+    # Multi-tenancy support
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     
     # Enhanced branch information
     name_ar = Column(String(100), nullable=True)
@@ -30,8 +33,9 @@ class Branch(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقات
+    # Enhanced relationships
     warehouses = relationship("Warehouse", back_populates="branch")
     users = relationship("User", back_populates="branch")
+    tenant = relationship("Tenant", back_populates="branches")
     cash_boxes = relationship("CashBox", back_populates="branch")
-    expenses = relationship("Expense", back_populates="branch") 
+    expenses = relationship("Expense", back_populates="branch")

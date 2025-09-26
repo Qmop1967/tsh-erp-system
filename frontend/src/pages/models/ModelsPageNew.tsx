@@ -13,7 +13,6 @@ import {
   Layers,
   Key,
   Link,
-  FileText,
   Settings,
   RefreshCw,
   AlertCircle

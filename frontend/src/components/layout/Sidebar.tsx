@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { useLanguageStore } from '@/stores/languageStore'
-import { useTranslations, TranslationKey } from '@/lib/translations'
+import { useTranslations } from '@/lib/translations'
 import {
   LayoutDashboard,
   Users,
@@ -33,17 +33,18 @@ import {
   UserPlus,
   Award,
   Target,
+  Shield,
 } from 'lucide-react'
 
 interface NavItem {
-  nameKey: TranslationKey
+  nameKey: string
   href: string
   icon: React.ComponentType<{ className?: string }>
   permissions: string[]
 }
 
 interface NavGroup {
-  nameKey: TranslationKey
+  nameKey: string
   icon: React.ComponentType<{ className?: string }>
   permissions: string[]
   items: NavItem[]
@@ -65,12 +66,36 @@ const getNavigationItems = (): (NavGroup | NavItem)[] => [
         nameKey: 'users',
         href: '/users',
         icon: Users,
-        permissions: ['users.view'],
+        permissions: ['users.view', 'hr.view'],
+      },
+      {
+        nameKey: 'permissions',
+        href: '/permissions',
+        icon: Shield,
+        permissions: ['admin', 'permissions.manage'],
       },
       {
         nameKey: 'employees',
         href: '/hr/employees',
         icon: UserPlus,
+        permissions: ['hr.view'],
+      },
+      {
+        nameKey: 'payroll',
+        href: '/hr/payroll',
+        icon: Calculator,
+        permissions: ['hr.view'],
+      },
+      {
+        nameKey: 'attendance',
+        href: '/hr/attendance',
+        icon: Users,
+        permissions: ['hr.view'],
+      },
+      {
+        nameKey: 'performance',
+        href: '/hr/performance',
+        icon: TrendingUp,
         permissions: ['hr.view'],
       },
       {
@@ -109,31 +134,31 @@ const getNavigationItems = (): (NavGroup | NavItem)[] => [
   {
     nameKey: 'inventory',
     icon: Package,
-    permissions: ['items.view'],
+    permissions: ['inventory.view', 'items.view', 'admin'],
     items: [
       {
         nameKey: 'items',
         href: '/items',
         icon: Package,
-        permissions: ['items.view'],
+        permissions: ['items.view', 'admin'],
       },
       {
         nameKey: 'priceLists',
         href: '/inventory/price-lists',
         icon: Tags,
-        permissions: ['products.view'],
+        permissions: ['inventory.view', 'admin'],
       },
       {
         nameKey: 'adjustments',
         href: '/inventory/adjustments',
         icon: ClipboardList,
-        permissions: ['inventory.view'],
+        permissions: ['inventory.view', 'admin'],
       },
       {
         nameKey: 'movements',
         href: '/inventory/movements',
         icon: ArrowRightLeft,
-        permissions: ['inventory.view'],
+        permissions: ['inventory.view', 'admin'],
       },
     ],
   },
@@ -329,6 +354,55 @@ const getNavigationItems = (): (NavGroup | NavItem)[] => [
     ],
   },
   {
+    nameKey: 'financialManagement',
+    icon: Calculator,
+    permissions: ['financial.view', 'admin'],
+    items: [
+      {
+        nameKey: 'financialDashboard',
+        href: '/financial/dashboard',
+        icon: LayoutDashboard,
+        permissions: ['financial.view', 'admin'],
+      },
+      {
+        nameKey: 'cashBoxes',
+        href: '/financial/cash-boxes',
+        icon: Banknote,
+        permissions: ['financial.view', 'admin'],
+      },
+      {
+        nameKey: 'bankAccounts',
+        href: '/financial/bank-accounts',
+        icon: WalletCards,
+        permissions: ['financial.view', 'admin'],
+      },
+      {
+        nameKey: 'digitalAccounts',
+        href: '/financial/digital-accounts',
+        icon: Calculator,
+        permissions: ['financial.view', 'admin'],
+      },
+      {
+        nameKey: 'moneyTransfers',
+        href: '/financial/money-transfers',
+        icon: ArrowRightLeft,
+        permissions: ['financial.view', 'admin'],
+      },
+      {
+        nameKey: 'transferTracking',
+        href: '/financial/transfer-tracking',
+        icon: TrendingUp,
+        permissions: ['financial.view', 'admin'],
+      },
+      {
+        nameKey: 'salespersonBoxes',
+        href: '/financial/salesperson-boxes',
+        icon: Users,
+        permissions: ['financial.view', 'admin'],
+      },
+    ],
+  },
+  {
     nameKey: 'migration',
     href: '/migration',
     icon: ArrowRightLeft,
@@ -344,7 +418,7 @@ const getNavigationItems = (): (NavGroup | NavItem)[] => [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([])
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['inventory', 'purchasing', 'sales'])
   const location = useLocation()
   const { user, logout } = useAuthStore()
   const { language, isRTL } = useLanguageStore()
@@ -353,13 +427,42 @@ export function Sidebar() {
   const navigationItems = getNavigationItems()
 
   const hasPermission = (permissions: string[]) => {
+    // Accept both frontend permission keys (e.g. 'users.view') and backend permission names (e.g. 'read_user')
     if (!user || !user.permissions) return false
-    return permissions.some(permission => 
-      user.permissions?.includes(permission) || user.permissions?.includes('admin')
-    )
+    const userPerms = user.permissions || []
+    // Admin shortcut
+    if (userPerms.includes('admin')) return true
+
+    const permissionAliases: Record<string, string[]> = {
+      'users.view': ['users.view', 'read_user'],
+      'users.manage': ['users.view', 'read_user', 'create_user', 'update_user', 'delete_user'],
+      'permissions.manage': ['admin', 'permissions.manage'],
+      'hr.view': ['hr.view'],
+      'branches.view': ['branches.view', 'read_branch'],
+      'dashboard.view': ['dashboard.view', 'admin'],
+      'inventory.view': ['inventory.view', 'items.view', 'admin'],
+      'items.view': ['items.view', 'admin'],
+      'customers.view': ['customers.view'],
+      'vendors.view': ['vendors.view'],
+      'sales.view': ['sales.view'],
+      'purchase.view': ['purchase.view'],
+      'accounting.view': ['accounting.view'],
+      'pos.view': ['pos.view'],
+      'cashflow.view': ['cashflow.view'],
+      'financial.view': ['financial.view', 'admin'],
+      'warehouses.view': ['warehouses.view'],
+      'expenses.view': ['expenses.view'],
+      'migration.view': ['migration.view', 'admin'],
+      // add more mappings as needed
+    }
+
+    return permissions.some((permission) => {
+      const aliases = permissionAliases[permission] || [permission]
+      return aliases.some(alias => userPerms.includes(alias))
+    })
   }
 
-  const toggleGroup = (groupNameKey: TranslationKey) => {
+  const toggleGroup = (groupNameKey: string) => {
     setExpandedGroups(prev => 
       prev.includes(groupNameKey) 
         ? prev.filter(name => name !== groupNameKey)
@@ -367,7 +470,7 @@ export function Sidebar() {
     )
   }
 
-  const isGroupExpanded = (groupNameKey: TranslationKey) => expandedGroups.includes(groupNameKey)
+  const isGroupExpanded = (groupNameKey: string) => expandedGroups.includes(groupNameKey)
 
   const isGroupActive = (group: NavGroup) => {
     return group.items.some(item => 
@@ -441,7 +544,7 @@ export function Sidebar() {
                         : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover:scale-105 hover:shadow-md",
                       collapsed && "justify-center"
                     )}
-                    title={collapsed ? t[group.nameKey] : undefined}
+                    title={collapsed ? (t as any)[group.nameKey] || group.nameKey : undefined}
                   >
                     <group.icon className={cn(
                       "h-5 w-5 transition-colors", 
@@ -450,7 +553,7 @@ export function Sidebar() {
                     )} />
                     {!collapsed && (
                       <>
-                        <span className="truncate flex-1">{t[group.nameKey]}</span>
+                        <span className="truncate flex-1">{(t as any)[group.nameKey] || group.nameKey}</span>
                         <ChevronDown className={cn(
                           "h-4 w-4 transition-transform",
                           groupExpanded ? "rotate-180" : "",
@@ -481,7 +584,7 @@ export function Sidebar() {
                               )}
                             >
                               <subItem.icon className={`h-4 w-4 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                              <span className="truncate">{t[subItem.nameKey]}</span>
+                              <span className="truncate">{(t as any)[subItem.nameKey] || subItem.nameKey}</span>
                             </NavLink>
                           </li>
                         )
@@ -507,14 +610,14 @@ export function Sidebar() {
                         : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 hover:scale-105 hover:shadow-md",
                       collapsed && "justify-center"
                     )}
-                    title={collapsed ? t[navItem.nameKey] : undefined}
+                    title={collapsed ? (t as any)[navItem.nameKey] || navItem.nameKey : undefined}
                   >
                     <navItem.icon className={cn(
                       "h-5 w-5 transition-colors", 
                       collapsed ? "" : isRTL ? "ml-3" : "mr-3",
                       isActive ? "text-white" : "text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300"
                     )} />
-                    {!collapsed && <span className="truncate">{t[navItem.nameKey]}</span>}
+                    {!collapsed && <span className="truncate">{(t as any)[navItem.nameKey] || navItem.nameKey}</span>}
                     {isActive && !collapsed && (
                       <div className="absolute right-2 w-2 h-2 bg-white rounded-full opacity-75"></div>
                     )}
@@ -553,10 +656,10 @@ export function Sidebar() {
             "group flex items-center w-full px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-xl transition-all duration-200 hover:scale-105",
             collapsed && "justify-center"
           )}
-          title={collapsed ? t.logout : undefined}
+          title={collapsed ? (t as any).logout || 'Logout' : undefined}
         >
           <LogOut className={cn("h-5 w-5 group-hover:rotate-12 transition-transform", collapsed ? "" : isRTL ? "ml-3" : "mr-3")} />
-          {!collapsed && <span>{t.logout}</span>}
+          {!collapsed && <span>{(t as any).logout || 'Logout'}</span>}
         </button>
       </div>
     </div>

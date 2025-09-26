@@ -29,10 +29,11 @@ def test_database_connection():
             print(f"✅ Database connected successfully!")
             print(f"📊 PostgreSQL Version: {version}")
             
+        assert engine is not None, "Database engine should be created"
         return engine
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
-        return None
+        assert False, f"Database connection failed: {e}"
 
 def create_database_tables(engine):
     """Create all database tables"""

@@ -44,10 +44,13 @@ const menuItems: MenuItem[] = [
     label: 'HR Model',
     icon: <Users className="w-5 h-5" />,
     children: [
+      { id: 'users', label: 'User Management', icon: <Users className="w-4 h-4" />, path: '/hr/users' },
       { id: 'employees', label: 'All Employees', icon: <Users className="w-4 h-4" />, path: '/hr/employees' },
-      { id: 'travel-salesperson', label: 'Travel Salesperson', icon: <Users className="w-4 h-4" />, path: '/hr/travel-salesperson' },
-      { id: 'partner-salesman', label: 'Partner Salesman', icon: <Users className="w-4 h-4" />, path: '/hr/partner-salesman' },
-      { id: 'retailerman', label: 'Retailerman', icon: <Users className="w-4 h-4" />, path: '/hr/retailerman' }
+      { id: 'payroll', label: 'Payroll', icon: <Calculator className="w-4 h-4" />, path: '/hr/payroll' },
+      { id: 'attendance', label: 'Attendance', icon: <Users className="w-4 h-4" />, path: '/hr/attendance' },
+      { id: 'performance', label: 'Performance', icon: <Users className="w-4 h-4" />, path: '/hr/performance' },
+      { id: 'achievements', label: 'Achievements', icon: <Users className="w-4 h-4" />, path: '/hr/achievements' },
+      { id: 'challenges', label: 'Challenges', icon: <Users className="w-4 h-4" />, path: '/hr/challenges' }
     ]
   },
   {
@@ -92,6 +95,20 @@ const menuItems: MenuItem[] = [
     ]
   },
   {
+    id: 'financial-management',
+    label: 'Financial Management',
+    icon: <Calculator className="w-5 h-5" />,
+    children: [
+      { id: 'dashboard', label: 'Financial Dashboard', icon: <LayoutDashboard className="w-4 h-4" />, path: '/financial/dashboard' },
+      { id: 'cash-boxes', label: 'Cash Boxes', icon: <Calculator className="w-4 h-4" />, path: '/financial/cash-boxes' },
+      { id: 'bank-accounts', label: 'Bank Accounts', icon: <Calculator className="w-4 h-4" />, path: '/financial/bank-accounts' },
+      { id: 'digital-accounts', label: 'Digital Accounts', icon: <Calculator className="w-4 h-4" />, path: '/financial/digital-accounts' },
+      { id: 'money-transfers', label: 'Money Transfers', icon: <Receipt className="w-4 h-4" />, path: '/financial/money-transfers' },
+      { id: 'transfer-tracking', label: 'Transfer Tracking', icon: <Receipt className="w-4 h-4" />, path: '/financial/transfer-tracking' },
+      { id: 'salesperson-boxes', label: 'Salesperson Boxes', icon: <Users className="w-4 h-4" />, path: '/financial/salesperson-boxes' }
+    ]
+  },
+  {
     id: 'expenses',
     label: 'Expenses Model',
     icon: <Receipt className="w-5 h-5" />,
@@ -99,6 +116,17 @@ const menuItems: MenuItem[] = [
       { id: 'expenses-list', label: 'Expenses', icon: <Receipt className="w-4 h-4" />, path: '/expenses/list' },
       { id: 'expense-categories', label: 'Categories', icon: <Receipt className="w-4 h-4" />, path: '/expenses/categories' },
       { id: 'expense-reports', label: 'Reports', icon: <Receipt className="w-4 h-4" />, path: '/expenses/reports' }
+    ]
+  },
+  {
+    id: 'inventory',
+    label: 'Inventory',
+    icon: <Package className="w-5 h-5" />,
+    children: [
+      { id: 'items', label: 'Items', icon: <Package className="w-4 h-4" />, path: '/items' },
+      { id: 'price-lists', label: 'Price Lists', icon: <Receipt className="w-4 h-4" />, path: '/inventory/price-lists' },
+      { id: 'adjustments', label: 'Adjustments', icon: <Receipt className="w-4 h-4" />, path: '/inventory/adjustments' },
+      { id: 'movements', label: 'Movements', icon: <Receipt className="w-4 h-4" />, path: '/inventory/movements' }
     ]
   }
 ]
@@ -228,10 +256,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
           
           <div className="space-y-1">
-            <button className={`w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${!sidebarOpen && 'justify-center'}`}>
+            <Link 
+              to="/settings" 
+              className={`w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${!sidebarOpen && 'justify-center'}`}
+            >
               <Settings className="w-5 h-5" />
               {sidebarOpen && <span className="ml-3">Settings</span>}
-            </button>
+            </Link>
             <button
               onClick={logout}
               className={`w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!sidebarOpen && 'justify-center'}`}

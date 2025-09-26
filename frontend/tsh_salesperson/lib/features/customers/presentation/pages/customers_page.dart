@@ -1279,26 +1279,29 @@ class _CustomersPageState extends State<CustomersPage> with TickerProviderStateM
               children: [
                 AppTextField(
                   controller: nameController,
-                  hint: 'Customer Name',
+                  hint: 'Customer Name *',
                   prefixIcon: const Icon(Icons.person),
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
                   controller: emailController,
-                  hint: 'Email',
+                  hint: 'Email *',
                   prefixIcon: const Icon(Icons.email),
+                  keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
                   controller: phoneController,
-                  hint: 'Phone',
+                  hint: 'Phone *',
                   prefixIcon: const Icon(Icons.phone),
+                  keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
                   controller: addressController,
-                  hint: 'Address',
+                  hint: 'Address *',
                   prefixIcon: const Icon(Icons.location_on),
+                  maxLines: 2,
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -1356,31 +1359,59 @@ class _CustomersPageState extends State<CustomersPage> with TickerProviderStateM
             AppButton(
               text: customer == null ? 'Add' : 'Update',
               onPressed: () {
-                if (nameController.text.isNotEmpty &&
-                    emailController.text.isNotEmpty &&
-                    phoneController.text.isNotEmpty &&
-                    addressController.text.isNotEmpty) {
-                  final newCustomer = Customer(
-                    id: customer?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: nameController.text,
-                    email: emailController.text,
-                    phone: phoneController.text,
-                    address: addressController.text,
-                    region: selectedRegion,
-                    status: selectedStatus,
-                    totalPurchases: customer?.totalPurchases ?? 0.0,
-                    lastOrderDate: customer?.lastOrderDate ?? DateTime.now(),
-                    notes: notesController.text.isNotEmpty ? notesController.text : null,
-                  );
-
-                  if (customer == null) {
-                    context.read<CustomersBloc>().add(AddCustomer(newCustomer));
-                  } else {
-                    context.read<CustomersBloc>().add(UpdateCustomer(newCustomer));
-                  }
-
-                  Navigator.of(dialogContext).pop();
+                // Validate required fields
+                String? validationError;
+                
+                if (nameController.text.trim().isEmpty) {
+                  validationError = 'Please enter customer name';
+                } else if (emailController.text.trim().isEmpty) {
+                  validationError = 'Please enter email address';
+                } else if (phoneController.text.trim().isEmpty) {
+                  validationError = 'Please enter phone number';
+                } else if (addressController.text.trim().isEmpty) {
+                  validationError = 'Please enter address';
                 }
+                
+                if (validationError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(validationError),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+
+                final newCustomer = Customer(
+                  id: customer?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                  name: nameController.text.trim(),
+                  email: emailController.text.trim(),
+                  phone: phoneController.text.trim(),
+                  address: addressController.text.trim(),
+                  region: selectedRegion,
+                  status: selectedStatus,
+                  totalPurchases: customer?.totalPurchases ?? 0.0,
+                  lastOrderDate: customer?.lastOrderDate ?? DateTime.now(),
+                  notes: notesController.text.trim().isNotEmpty ? notesController.text.trim() : null,
+                );
+
+                if (customer == null) {
+                  context.read<CustomersBloc>().add(AddCustomer(newCustomer));
+                } else {
+                  context.read<CustomersBloc>().add(UpdateCustomer(newCustomer));
+                }
+
+                Navigator.of(dialogContext).pop();
+                
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(customer == null ? 'Customer added successfully!' : 'Customer updated successfully!'),
+                    backgroundColor: Colors.green,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               },
             ),
           ],

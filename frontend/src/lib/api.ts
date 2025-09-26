@@ -79,13 +79,13 @@ export const authApi = {
 // Users API
 export const usersApi = {
   getUsers: (params?: { page?: number; limit?: number; search?: string }): Promise<AxiosResponse<User[]>> =>
-    api.get('/users', { params: { skip: ((params?.page || 1) - 1) * (params?.limit || 10), limit: params?.limit || 10 } }),
+    api.get('/users/', { params: { skip: ((params?.page || 1) - 1) * (params?.limit || 10), limit: params?.limit || 10 } }),
   
   getUser: (id: number): Promise<AxiosResponse<User>> =>
     api.get(`/users/${id}`),
   
   createUser: (data: Partial<User>): Promise<AxiosResponse<User>> =>
-    api.post('/users', data),
+    api.post('/users/', data),
   
   updateUser: (id: number, data: Partial<User>): Promise<AxiosResponse<User>> =>
     api.put(`/users/${id}`, data),
@@ -98,6 +98,27 @@ export const usersApi = {
   
   getBranches: (): Promise<AxiosResponse<{ id: number; name: string; code: string }[]>> =>
     api.get('/users/branches'),
+}
+
+// Permissions API
+export const permissionsApi = {
+  getPermissions: (): Promise<AxiosResponse<any[]>> =>
+    api.get('/permissions'),
+  
+  getRolesWithPermissions: (): Promise<AxiosResponse<any[]>> =>
+    api.get('/permissions/roles'),
+  
+  createRole: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/permissions/roles', data),
+  
+  updateRole: (id: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/permissions/roles/${id}`, data),
+  
+  deleteRole: (id: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/permissions/roles/${id}`),
+  
+  getPermissionCategories: (): Promise<AxiosResponse<string[]>> =>
+    api.get('/permissions/categories'),
 }
 
 // Branches API
@@ -161,6 +182,9 @@ export const customersApi = {
   
   getCustomer: (id: number): Promise<AxiosResponse<Customer>> =>
     api.get(`/customers/${id}`),
+  
+  generateCustomerCode: (prefix?: string): Promise<AxiosResponse<{ customer_code: string; format: string; example: string }>> =>
+    api.get('/customers/generate-code', { params: { prefix: prefix || 'CUST' } }),
   
   createCustomer: (data: Partial<Customer>): Promise<AxiosResponse<Customer>> =>
     api.post('/customers', data),
@@ -405,6 +429,9 @@ export const purchaseInvoicesPaginated = async (params?: {
   };
 };
 
+// Alias function for backward compatibility
+export const getAllPurchaseInvoices = purchaseInvoicesPaginated;
+
 // Dashboard API
 export const dashboardApi = {
   getStats: (params?: { branch_id?: number }): Promise<AxiosResponse<{
@@ -447,6 +474,37 @@ export const expensesApi = {
   
   getStatuses: (): Promise<AxiosResponse<any[]>> =>
     api.get('/expenses/statuses'),
+}
+
+// Admin Dashboard API
+export const adminApi = {
+  // Get comprehensive admin dashboard data
+  getDashboard: (params?: { date_from?: string; date_to?: string }) =>
+    api.get('/admin/dashboard', { params }),
+  
+  // Get GPS tracking data for travel salespersons
+  getGPSTracking: (params?: { user_id?: number; date_from?: string; date_to?: string }) =>
+    api.get('/admin/gps-tracking', { params }),
+  
+  // Get partner salesmen performance metrics
+  getPartnerPerformance: (params?: { limit?: number; time_period?: string }) =>
+    api.get('/admin/partner-salesmen/performance', { params }),
+  
+  // Get system alerts
+  getAlerts: (params?: { priority?: string; alert_type?: string; limit?: number }) =>
+    api.get('/admin/alerts', { params }),
+  
+  // Mark alert as read
+  markAlertAsRead: (alertId: string) =>
+    api.post(`/admin/alerts/${alertId}/mark-read`),
+  
+  // Get system health status
+  getSystemHealth: () =>
+    api.get('/admin/system-health'),
+  
+  // Real-time dashboard refresh
+  refreshDashboard: () =>
+    api.get('/admin/dashboard?_t=' + Date.now()),
 }
 
 export default api

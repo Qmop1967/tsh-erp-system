@@ -1,4 +1,5 @@
-import React from 'react'
+// React is auto-imported by the JSX transform in Vite
+// import React from 'react'
 
 function App() {
   return (

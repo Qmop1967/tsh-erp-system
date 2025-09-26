@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
-import { Plus, Search, Edit, Eye, FolderOpen, FileText, AlertCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Search, Edit, Eye, FolderOpen, FileText, AlertCircle, RefreshCw } from 'lucide-react'
 import { accountingApi } from '@/lib/api'
 import { useBranchAwareApi } from '@/hooks/useBranchAwareApi'
+import { useLanguageStore } from '@/stores/languageStore'
+import { useTranslations } from '@/lib/translations'
 import type { ChartOfAccounts } from '@/types'
 
 const ChartOfAccountsPage: React.FC = () => {
@@ -12,7 +14,9 @@ const ChartOfAccountsPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('all')
   const [showModal, setShowModal] = useState(false)
   const [editingAccount, setEditingAccount] = useState<ChartOfAccounts | null>(null)
-  const { getBranchParams, useBranchChangeEffect, currentBranch } = useBranchAwareApi()
+  const { useBranchChangeEffect } = useBranchAwareApi()
+  const { language } = useLanguageStore()
+  const t = useTranslations(language)
   const [newAccount, setNewAccount] = useState<Partial<ChartOfAccounts>>({
     code: '',
     name_ar: '',
@@ -33,6 +37,85 @@ const ChartOfAccountsPage: React.FC = () => {
     { value: 'EXPENSE', label: 'Expenses - المصروفات', color: 'bg-orange-100 text-orange-800' }
   ]
 
+  // Account type base codes for smart generation
+  const accountTypeBaseCodes = {
+    'ASSET': 1000,
+    'LIABILITY': 2000, 
+    'EQUITY': 3000,
+    'REVENUE': 4000,
+    'EXPENSE': 5000
+  }
+
+  // Generate smart account code based on type and parent
+  const generateAccountCode = (accountType: string, parentId?: number): string => {
+    const baseCode = accountTypeBaseCodes[accountType as keyof typeof accountTypeBaseCodes] || 1000
+
+    if (parentId) {
+      // If parent is selected, find parent account and generate sub-code
+      const parentAccount = chartOfAccounts.find(acc => acc.id === parentId)
+      if (parentAccount) {
+        const parentCode = parentAccount.code
+        // Get all child accounts of this parent
+        const childAccounts = chartOfAccounts.filter(acc => acc.parent_id === parentId)
+        const childCodes = childAccounts.map(acc => parseInt(acc.code)).filter(code => !isNaN(code))
+        
+        // If parent code is like "1100", generate "1101", "1102", etc.
+        if (childCodes.length === 0) {
+          return `${parentCode}1`
+        } else {
+          // Find the next available number
+          const maxChild = Math.max(...childCodes)
+          const nextCode = maxChild + 1
+          return nextCode.toString()
+        }
+      }
+    }
+
+    // For top-level accounts, find next available code in the range
+    const accountsOfType = chartOfAccounts.filter(acc => 
+      acc.account_type === accountType && !acc.parent_id
+    )
+    const codes = accountsOfType.map(acc => parseInt(acc.code)).filter(code => !isNaN(code))
+    
+    if (codes.length === 0) {
+      return baseCode.toString()
+    }
+    
+    // Find the next available code in increments of 100 for main accounts
+    const maxCode = Math.max(...codes)
+    const nextCode = maxCode >= baseCode ? maxCode + 100 : baseCode
+    return nextCode.toString()
+  }
+
+  // Handle account type change with auto-generation
+  const handleAccountTypeChange = (accountType: string) => {
+    const newCode = generateAccountCode(accountType, newAccount.parent_id)
+    setNewAccount({
+      ...newAccount, 
+      account_type: accountType as any,
+      code: newCode
+    })
+  }
+
+  // Handle parent account change with auto-generation
+  const handleParentAccountChange = (parentId: string) => {
+    const parentIdNum = parentId ? parseInt(parentId) : undefined
+    const newCode = generateAccountCode(newAccount.account_type || 'ASSET', parentIdNum)
+    setNewAccount({
+      ...newAccount,
+      parent_id: parentIdNum,
+      code: newCode
+    })
+  }
+
+  // Auto-generate code when modal opens for new account
+  useEffect(() => {
+    if (showModal && !editingAccount) {
+      const newCode = generateAccountCode(newAccount.account_type || 'ASSET', newAccount.parent_id)
+      setNewAccount(prev => ({ ...prev, code: newCode }))
+    }
+  }, [showModal, editingAccount])
+
   // Fetch data when component mounts or branch changes
   useBranchChangeEffect(() => {
     fetchData()
@@ -42,14 +125,14 @@ const ChartOfAccountsPage: React.FC = () => {
     try {
       setLoading(true)
       // Note: Chart of accounts might not be branch-specific, 
-      // but we include branch context for future use
-      const params = getBranchParams()
+      // but we include branch context for future use if needed
+      // const params = getBranchParams()
       const chartResponse = await accountingApi.getChartOfAccounts()
       setChartOfAccounts(chartResponse.data)
       setError(null)
     } catch (err) {
       console.error('Error fetching data:', err)
-      setError('Failed to fetch chart of accounts data')
+              setError(t.failedToFetchChartOfAccounts)
     } finally {
       setLoading(false)
     }
@@ -134,7 +217,7 @@ const ChartOfAccountsPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading chart of accounts...</p>
+          <p className="text-gray-600">{t.loadingChartOfAccounts}</p>
         </div>
       </div>
     )
@@ -145,7 +228,7 @@ const ChartOfAccountsPage: React.FC = () => {
       <div className="p-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Chart of Accounts</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.chartOfAccounts}</h1>
           <p className="text-gray-600">دليل الحسابات - Manage your account structure</p>
         </div>
 
@@ -199,84 +282,64 @@ const ChartOfAccountsPage: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Code & Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Level
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Actions
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Posting
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Code & Name
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {hierarchicalAccounts.map((account) => {
                   const typeInfo = getTypeInfo(account.account_type)
+                  const hasChildren = chartOfAccounts.some(acc => acc.parent_id === account.id)
+                  
                   return (
                     <tr key={account.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center" style={{ paddingLeft: `${account.level * 20}px` }}>
-                          {account.level > 0 && (
-                            <div className="w-4 h-4 mr-2 border-l-2 border-b-2 border-gray-300"></div>
-                          )}
-                          {account.allow_posting ? (
-                            <FileText className="h-4 w-4 text-gray-400 mr-2" />
-                          ) : (
-                            <FolderOpen className="h-4 w-4 text-gray-400 mr-2" />
-                          )}
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{account.code}</div>
-                            <div className="text-sm text-gray-600">{account.name_en}</div>
-                            <div className="text-sm text-gray-500 font-arabic">{account.name_ar}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${typeInfo.color}`}>
-                          {typeInfo.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        Level {account.level + 1}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          account.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {account.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          account.allow_posting ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {account.allow_posting ? 'Posting' : 'Header'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEdit(account)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                            className="text-blue-600 hover:text-blue-900"
                             title="Edit"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
-                            className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50"
-                            title="View Details"
+                            className="text-green-600 hover:text-green-900"
+                            title="View"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          account.allow_posting ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {account.allow_posting ? 'Posting' : 'Non-Posting'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={`flex items-center ${account.level > 0 ? `ml-${account.level * 6}` : ''}`}>
+                          {hasChildren && (
+                            <FolderOpen className="h-4 w-4 text-gray-400 mr-2" />
+                          )}
+                          {!hasChildren && (
+                            <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{account.code}</div>
+                            <div className="text-sm text-gray-600">
+                              {language === 'ar' ? account.name_ar : account.name_en}
+                            </div>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${typeInfo.color} mt-1`}>
+                              {typeInfo.label}
+                            </span>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -310,7 +373,33 @@ const ChartOfAccountsPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Account Type *
+                      </label>
+                      <select
+                        required
+                        value={newAccount.account_type}
+                        onChange={(e) => handleAccountTypeChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        {accountTypes.map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Account Code *
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newCode = generateAccountCode(newAccount.account_type || 'ASSET', newAccount.parent_id)
+                            setNewAccount({...newAccount, code: newCode})
+                          }}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                          title="Auto-generate code"
+                        >
+                          <RefreshCw className="h-3 w-3 inline" />
+                        </button>
                       </label>
                       <input
                         type="text"
@@ -320,22 +409,30 @@ const ChartOfAccountsPage: React.FC = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="e.g., 1001"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Auto-generated based on type and parent. You can edit if needed.
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Account Type *
-                      </label>
-                      <select
-                        required
-                        value={newAccount.account_type}
-                        onChange={(e) => setNewAccount({...newAccount, account_type: e.target.value as any})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        {accountTypes.map(type => (
-                          <option key={type.value} value={type.value}>{type.label}</option>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Parent Account
+                    </label>
+                    <select
+                      value={newAccount.parent_id || ''}
+                      onChange={(e) => handleParentAccountChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">No Parent (Top Level)</option>
+                      {chartOfAccounts
+                        .filter(acc => acc.id !== editingAccount?.id)
+                        .map(account => (
+                          <option key={account.id} value={account.id}>
+                            {account.code} - {account.name_en}
+                          </option>
                         ))}
-                      </select>
-                    </div>
+                    </select>
                   </div>
 
                   <div>
@@ -365,26 +462,6 @@ const ChartOfAccountsPage: React.FC = () => {
                       placeholder="اسم الحساب بالعربية"
                       dir="rtl"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Parent Account
-                    </label>
-                    <select
-                      value={newAccount.parent_id || ''}
-                      onChange={(e) => setNewAccount({...newAccount, parent_id: e.target.value ? parseInt(e.target.value) : undefined})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">No Parent (Top Level)</option>
-                      {chartOfAccounts
-                        .filter(acc => acc.id !== editingAccount?.id)
-                        .map(account => (
-                          <option key={account.id} value={account.id}>
-                            {account.code} - {account.name_en}
-                          </option>
-                        ))}
-                    </select>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

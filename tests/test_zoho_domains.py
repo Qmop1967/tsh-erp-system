@@ -13,7 +13,9 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.services.config_service import SecureConfigService
+import pytest
 
+@pytest.mark.asyncio
 async def test_domains():
     """Test different Zoho API domains"""
     print("🔄 Testing Zoho API Domains...")

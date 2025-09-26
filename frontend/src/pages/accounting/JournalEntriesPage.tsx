@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Search, Edit, Eye, AlertCircle, Calendar, FileText, DollarSign } from 'lucide-react'
 import { accountingApi } from '@/lib/api'
+import { useLanguageStore } from '@/stores/languageStore'
+import { useTranslations } from '@/lib/translations'
 import type { JournalEntry, Journal } from '@/types'
 
 const JournalEntriesPage: React.FC = () => {
@@ -11,6 +13,8 @@ const JournalEntriesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedJournal, setSelectedJournal] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const { language } = useLanguageStore()
+  const t = useTranslations(language)
 
   const statusOptions = [
     { value: 'DRAFT', label: 'Draft - مسودة', color: 'bg-gray-100 text-gray-800' },
@@ -34,7 +38,7 @@ const JournalEntriesPage: React.FC = () => {
       setError(null)
     } catch (err) {
       console.error('Error fetching data:', err)
-      setError('Failed to fetch journal entries data')
+      setError(t.failedToFetchJournalEntries)
     } finally {
       setLoading(false)
     }
@@ -69,7 +73,7 @@ const JournalEntriesPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading journal entries...</p>
+          <p className="text-gray-600">{t.loadingJournalEntries}</p>
         </div>
       </div>
     )
@@ -80,7 +84,7 @@ const JournalEntriesPage: React.FC = () => {
       <div className="p-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Journal Entries</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.journalEntries}</h1>
           <p className="text-gray-600">القيود المحاسبية - Manage accounting journal entries</p>
         </div>
 

@@ -9,7 +9,7 @@ interface AuthStore extends AuthState {
   refreshToken: () => Promise<void>
   setUser: (user: User) => void
   clearError: () => void
-  isAuthenticated: boolean
+  checkAuthentication: () => boolean
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -20,22 +20,22 @@ export const useAuthStore = create<AuthStore>()(
       isLoading: false,
       error: null,
       
-      get isAuthenticated() {
-        return !!get().token && !!get().user
+      checkAuthentication: () => {
+        const state = get()
+        const hasUser = !!state.user
+        const hasToken = !!state.token
+        const result = hasUser && hasToken
+        console.log('🔐 [checkAuthentication]', { hasUser, hasToken, result, user: state.user?.name })
+        return result
       },
 
       login: async (credentials: LoginCredentials) => {
         try {
           set({ isLoading: true, error: null })
           
-          // Debug logging
-          console.log('Attempting login with:', credentials)
-          
           // Use real backend authentication
           const response = await authApi.login(credentials)
           const { user, access_token } = response.data
-          
-          console.log('Login successful:', { user, token: access_token?.substring(0, 20) + '...' })
           
           // Ensure the user object has all needed properties for compatibility
           const enhancedUser = {
@@ -54,6 +54,7 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           })
+          
         } catch (error: any) {
           console.error('Login error:', error)
           const errorMessage = error.response?.data?.detail || error.message || 'Login failed'
@@ -106,10 +107,21 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'tsh-erp-auth',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-      }),
+      partialize: (state) => {
+        const persisted = {
+          user: state.user,
+          token: state.token,
+        }
+        console.log('🔐 [Persist] Saving to localStorage:', persisted)
+        return persisted
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('🔐 [Persist] Rehydration error:', error)
+        } else {
+          console.log('🔐 [Persist] Rehydrated state:', state)
+        }
+      },
     }
   )
 )
