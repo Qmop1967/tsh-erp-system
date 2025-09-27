@@ -110,3 +110,52 @@ test_*.py
 
 # Symbolic links
 tsh_travel_sales_temp
+
+# Additional security and cleanup
+*.enc
+*.secret
+secret_*
+secrets/
+.secrets/
+
+# Database backups and dumps
+*.sql
+*.dump
+backups/*.sql
+backups/*.dump
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+
+# VS Code specific settings (keep workspace settings but ignore user settings)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/extensions.json
+
+# Large files that shouldn't be in git
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.large
+
+# Generated documentation
+docs/_build/
+site/
+
+# npm package lock files (keep package.json but ignore lock files for flexibility)
+package-lock.json
+yarn.lock
+
+# Python virtual environment and compiled files
+*.egg
+*.whl
+.Python
+pip-log.txt
+pip-delete-this-directory.txt

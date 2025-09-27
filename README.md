@@ -1,144 +1,60 @@
 # 🏢 TSH ERP System
 
-<div align="center">
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
+[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev/)
 
-![TSH ERP System](https://img.shields.io/badge/TSH-ERP%20System-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
-![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)
-![License](https://img.shields.io/badge/license-Private-red.svg)
+A comprehensive **Enterprise Resource Planning (ERP)** system designed for trade and services management, featuring multi-platform support with web and mobile applications.
 
-*A comprehensive Enterprise Resource Planning system for trade and services management*
+## 🌟 Features
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#-architecture) • [Documentation](#-documentation) • [Mobile Apps](#-mobile-applications)
+### 🏗️ **Core Modules**
+- **👥 User Management** - Multi-tenant authentication and authorization
+- **🏪 Branch & Warehouse Management** - Multi-location inventory tracking
+- **📦 Inventory Management** - Real-time stock tracking and management
+- **💼 Sales & Purchase Management** - Complete order lifecycle management
+- **💰 Financial Management** - Accounting, invoicing, and financial reporting
+- **🛒 POS System** - Point-of-sale with real-time synchronization
+- **💸 Cash Flow Management** - Cash tracking and transfer management
+- **📊 Reporting & Analytics** - Comprehensive business intelligence
 
-</div>
+### 🌍 **Multi-Platform Support**
+- **🌐 Web Application** - React-based admin dashboard
+- **📱 Mobile Applications** - 17+ Flutter-based mobile apps including:
+  - Admin Dashboard
+  - Salesperson App
+  - Inventory Management
+  - HR Management
+  - Travel Sales
+  - Retail Sales
+  - And more...
 
----
-
-## 📋 Table of Contents
-- [Overview](#-overview)
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Quick Start](#-quick-start)
-- [Mobile Applications](#-mobile-applications)
-- [API Documentation](#-api-documentation)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-
----
-
-## 🎯 Overview
-
-TSH ERP System is a modern, comprehensive Enterprise Resource Planning solution designed for trade and services companies. Built with cutting-edge technologies, it provides a complete business management solution with multi-language support (Arabic/English) and multi-platform accessibility.
-
-### 🏗️ System Architecture
-```
-TSH ERP System/
-├── 🖥️  Backend (FastAPI)          # RESTful API with PostgreSQL
-├── 🌐 Web Frontend (React)        # Modern admin dashboard
-├── 📱 Mobile Apps (Flutter)       # 17+ specialized mobile applications
-├── 🗄️  Database (PostgreSQL)      # Robust data layer with multi-tenancy
-├── 🐳 Docker Configuration        # Containerized deployment
-└── 📚 Comprehensive Documentation # Guides and API docs
-```
-
----
-
-## ✨ Features
-
-### 🎨 **Modern User Experience**
-- **Multi-language Support**: Full Arabic & English localization
-- **Responsive Design**: Optimized for all devices and screen sizes
-- **Real-time Updates**: Live data synchronization across all platforms
-- **Dark/Light Mode**: Customizable UI themes
-
-### 🔐 **Security & Authentication**
-- **JWT-based Authentication**: Secure token-based user sessions
-- **Role-based Access Control**: Granular permissions system
-- **Multi-tenant Architecture**: Secure data isolation
-- **Audit Logging**: Complete activity tracking
-
-### 📊 **Business Modules**
-
-#### 💼 **Sales & CRM**
-- Customer management and profiles
-- Sales order processing
-- Quotation and invoice generation
-- Sales analytics and reporting
-
-#### 📦 **Inventory Management**
-- Real-time stock tracking
-- Multi-warehouse support
-- Automated reorder points
-- Barcode scanning support
-
-#### 💰 **Financial Management**
-- Chart of accounts
-- Journal entries and bookkeeping
-- Financial reporting
-- Tax management
-
-#### 🏪 **Point of Sale (POS)**
-- Touch-friendly POS interface
-- Multiple payment methods
-- Receipt printing
-- Cash management
-
-#### 👥 **Human Resources**
-- Employee management
-- Attendance tracking
-- Payroll processing
-- Performance management
-
-#### 🚚 **Travel & Logistics**
-- Travel booking management
-- Route optimization
-- Fleet management
-- Delivery tracking
-
----
-
-## 🏛️ Architecture
-
-### **Backend Technologies**
-- **FastAPI**: High-performance Python web framework
-- **PostgreSQL**: Robust relational database
-- **SQLAlchemy**: ORM with database migrations
-- **Alembic**: Database version control
-- **JWT**: Secure authentication
-- **Docker**: Containerization support
-
-### **Frontend Technologies**
-- **React 18**: Modern JavaScript framework
-- **TypeScript**: Type-safe development
-- **Vite**: Fast build tool and dev server
-- **Tailwind CSS**: Utility-first styling
-- **Radix UI**: Accessible component library
-
-### **Mobile Technologies**
-- **Flutter**: Cross-platform mobile framework
-- **Dart**: Modern programming language
-- **Provider**: State management
-- **HTTP**: API integration
-
----
+### 🔧 **Technical Features**
+- **🌐 Multi-language Support** (Arabic/English)
+- **🔐 Advanced Security** - JWT authentication, role-based permissions
+- **📡 Real-time Updates** - WebSocket integration for live data
+- **🗄️ Database Management** - PostgreSQL with Alembic migrations
+- **🐳 Containerization** - Docker support for easy deployment
+- **📋 Comprehensive Testing** - Unit and integration tests
+- **📚 API Documentation** - Auto-generated OpenAPI/Swagger docs
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.9+**
-- **Node.js 18+**
-- **PostgreSQL 13+**
-- **Flutter SDK** (for mobile development)
+- Python 3.9+
+- Node.js 16+
+- PostgreSQL 12+
+- Flutter 3.0+ (for mobile development)
 
-### 1. Clone the Repository
+### 🖥️ Backend Setup (FastAPI)
+
 ```bash
-git clone https://github.com/yourusername/tsh-erp-system.git
+# Clone the repository
+git clone git@github.com:Qmop1967/tsh-erp-system.git
 cd tsh-erp-system
-```
 
-### 2. Backend Setup
-```bash
 # Create virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
@@ -159,181 +75,183 @@ cd ..
 python -m uvicorn app.main:app --reload
 ```
 
-### 3. Frontend Setup
+The API will be available at `http://localhost:8000`
+API Documentation: `http://localhost:8000/docs`
+
+### 🌐 Frontend Setup (React)
+
 ```bash
+# Navigate to frontend directory
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-### 4. Access the Application
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Frontend**: http://localhost:5173
+The web application will be available at `http://localhost:5173`
 
----
+### 📱 Mobile App Setup (Flutter)
 
-## 📱 Mobile Applications
-
-The system includes 17+ specialized Flutter mobile applications:
-
-| App | Description | Target Users |
-|-----|-------------|--------------|
-| **Admin Dashboard** | Complete system administration | System Administrators |
-| **Salesperson App** | Sales management and CRM | Sales Representatives |
-| **Inventory App** | Stock and warehouse management | Warehouse Staff |
-| **Travel Sales** | Travel booking and management | Travel Agents |
-| **Retail Sales** | Point of sale and retail | Store Staff |
-| **HR App** | Human resources management | HR Personnel |
-| **Client App** | Customer portal | Business Clients |
-| **Consumer App** | End-user services | End Consumers |
-| **Partners App** | Business partner portal | Business Partners |
-
-### Mobile App Development
 ```bash
-cd mobile/flutter_apps/[app_name]
+# Navigate to specific mobile app
+cd mobile/flutter_apps/admin_dashboard
+
+# Get dependencies
 flutter pub get
+
+# Run the app
 flutter run
 ```
 
----
+## 📁 Project Structure
 
-## 📚 API Documentation
-
-### Authentication Endpoints
-```http
-POST /auth/login     # User login
-POST /auth/refresh   # Token refresh
-POST /auth/logout    # User logout
+```
+TSH ERP System/
+├── 🖥️  app/                    # FastAPI Backend Application
+│   ├── models/                # Database models
+│   ├── routers/              # API route handlers
+│   ├── services/             # Business logic
+│   ├── schemas/              # Pydantic schemas
+│   └── db/                   # Database configuration
+├── 🌐 frontend/               # React Web Application
+│   ├── src/                  # Source code
+│   ├── public/               # Static assets
+│   └── build/                # Production build
+├── 📱 mobile/                 # Mobile Applications
+│   ├── flutter_apps/         # Flutter applications
+│   │   ├── admin_dashboard/
+│   │   ├── salesperson/
+│   │   ├── inventory_app/
+│   │   ├── hr_app/
+│   │   └── ...               # 17+ mobile apps
+│   ├── ios/                  # iOS specific files
+│   └── android/              # Android specific files
+├── 🗄️  database/              # Database Schema & Migrations
+├── ⚙️  config/                # Configuration Files
+├── 🔧 scripts/               # Utility Scripts
+├── 📚 docs/                  # Documentation
+├── 🧪 tests/                 # Test Files
+├── 🐳 docker/                # Docker Configuration
+└── 🛠️  tools/                 # Development Tools
 ```
 
-### Core Business Endpoints
-```http
-GET    /customers           # List customers
-POST   /customers           # Create customer
-GET    /products            # List products
-POST   /orders              # Create sales order
-GET    /inventory/items     # Inventory items
-POST   /pos/transactions    # POS transactions
-```
+## 📱 Mobile Applications
 
-### Admin Endpoints
-```http
-GET    /admin/users         # User management
-POST   /admin/permissions   # Permission management
-GET    /admin/audit-logs    # System audit logs
-```
+The system includes 17+ specialized Flutter applications:
 
-**Full API Documentation**: Available at `http://localhost:8000/docs` when running the server.
+| App | Description |
+|-----|-------------|
+| **Admin Dashboard** | Complete system administration |
+| **Salesperson App** | Mobile sales management |
+| **Inventory App** | Stock management on-the-go |
+| **HR App** | Human resources management |
+| **Travel Sales** | Travel booking and management |
+| **Retail Sales** | Retail point-of-sale |
+| **Client App** | Customer portal |
+| **Consumer App** | End-user interface |
+| **Partners App** | Partner management |
 
----
+## 🔐 Security Features
 
-## 🐳 Deployment
+- **JWT Authentication** - Secure token-based authentication
+- **Role-Based Access Control** - Granular permission system
+- **Multi-tenant Architecture** - Data isolation between organizations
+- **Audit Logging** - Complete activity tracking
+- **Data Encryption** - Sensitive data protection
+- **API Rate Limiting** - Protection against abuse
 
-### Docker Deployment
+## 🌍 Internationalization
+
+- **Arabic Language Support** - Complete RTL interface
+- **English Language Support** - Full LTR interface
+- **Multi-currency Support** - Handle multiple currencies
+- **Localized Date/Time** - Regional formatting
+
+## 📊 Database Schema
+
+The system uses PostgreSQL with comprehensive models including:
+
+- User Management (Users, Roles, Permissions)
+- Inventory (Products, Categories, Stock Movements)
+- Sales (Orders, Invoices, Payments)
+- Accounting (Chart of Accounts, Journal Entries)
+- POS (Terminals, Transactions, Sessions)
+- And much more...
+
+## 🐳 Docker Deployment
+
 ```bash
 # Build and run with Docker Compose
 docker-compose up -d
 
 # Or build manually
-docker build -t tsh-erp-backend .
-docker run -p 8000:8000 tsh-erp-backend
+docker build -t tsh-erp-system .
+docker run -p 8000:8000 tsh-erp-system
 ```
 
-### Production Deployment
-```bash
-# Install production dependencies
-pip install -r config/requirements.txt
+## 📋 Testing
 
-# Set production environment
-export ENVIRONMENT=production
-
-# Run with production server
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
-```
-
----
-
-## 📊 System Status
-
-| Component | Status | Version | Coverage |
-|-----------|--------|---------|----------|
-| Backend API | ✅ Ready | 1.0.0 | 95% |
-| Web Frontend | ✅ Ready | 1.0.0 | 90% |
-| Mobile Apps | ✅ Ready | 1.0.0 | 85% |
-| Database | ✅ Ready | 1.0.0 | 100% |
-| Documentation | ✅ Complete | 1.0.0 | 95% |
-
----
-
-## 🔧 Development
-
-### Code Structure
-```
-app/
-├── models/          # Database models
-├── schemas/         # Pydantic schemas
-├── routers/         # API route handlers
-├── services/        # Business logic
-├── db/             # Database configuration
-└── config/         # Application configuration
-
-frontend/src/
-├── components/      # React components
-├── pages/          # Page components
-├── hooks/          # Custom React hooks
-├── services/       # API services
-└── utils/          # Utility functions
-
-mobile/flutter_apps/
-├── admin_dashboard/ # Admin mobile app
-├── salesperson/     # Sales mobile app
-└── [other apps]/    # Various specialized apps
-```
-
-### Testing
 ```bash
 # Backend tests
-pytest tests/
+python -m pytest tests/
 
 # Frontend tests
-cd frontend && npm test
+cd frontend
+npm test
 
 # Mobile tests
-cd mobile/flutter_apps/[app] && flutter test
+cd mobile/flutter_apps/admin_dashboard
+flutter test
 ```
 
----
+## 📚 Documentation
+
+- **[API Documentation](http://localhost:8000/docs)** - Auto-generated Swagger UI
+- **[System Guides](docs/guides/)** - Setup and configuration guides
+- **[Implementation Details](docs/implementation/)** - Technical documentation
+- **[Deployment Guide](docs/deployment/)** - Production deployment instructions
 
 ## 🤝 Contributing
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit changes**: `git commit -m 'Add amazing feature'`
-4. **Push to branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
----
+## 📄 License
 
-## 📝 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This project is proprietary software. All rights reserved.
+## 🔧 Development
 
----
+### Environment Setup
+```bash
+# Backend development
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload
+
+# Frontend development
+cd frontend && npm run dev
+
+# Mobile development
+cd mobile/flutter_apps/[app_name] && flutter run
+```
+
+### Code Style
+- **Python**: Follow PEP 8, use Black formatter
+- **JavaScript/TypeScript**: Use Prettier, ESLint
+- **Flutter**: Follow Dart style guide
 
 ## 📞 Support
 
-For support and inquiries:
-- **Email**: support@tsh-erp.com
-- **Documentation**: [docs/](./docs/)
-- **Issues**: GitHub Issues
+For support and questions, please open an issue in the GitHub repository.
 
 ---
 
-<div align="center">
-
-**Built with ❤️ for modern businesses**
-
-*Last Updated: September 27, 2025*
-
-</div>
+**Last Updated:** September 2025
+**Version:** 1.0.0
+**Status:** Production Ready ✅
