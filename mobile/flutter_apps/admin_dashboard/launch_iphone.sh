@@ -4,7 +4,7 @@ echo "🚀 TSH Admin Dashboard - iPhone Launch Script"
 echo "============================================="
 
 # Navigate to the project directory
-cd "/Users/khaleelal-mulla/Desktop/TSH ERP System/frontend/tsh_admin_dashboard"
+cd "/Users/khaleelal-mulla/TSH_ERP_System_Local/mobile/flutter_apps/admin_dashboard"
 
 echo "📱 Checking for connected devices..."
 flutter devices
@@ -25,8 +25,18 @@ if [ -z "$IPHONE_DEVICE" ]; then
     echo "🔄 Would you like to run on the iOS Simulator instead? (y/n)"
     read -r response
     if [[ $response =~ ^[Yy]$ ]]; then
-        echo "📱 Launching on iOS Simulator..."
-        flutter run -d "85FB8298-7B40-4A40-BA3D-D1B324B287F9"
+        echo "📱 Finding an available iOS Simulator..."
+        # Find the first available iPhone simulator
+        SIMULATOR_ID=$(xcrun simctl list devices available | grep 'iPhone' | head -n 1 | grep -o '[A-F0-9-]\{36\}')
+        
+        if [ -z "$SIMULATOR_ID" ]; then
+            echo "❌ Could not find any available iOS Simulators."
+            echo "Please open Xcode and create a new simulator."
+            exit 1
+        fi
+
+        echo "📱 Launching on iOS Simulator (ID: $SIMULATOR_ID)..."
+        flutter run -d "$SIMULATOR_ID"
     else
         echo "🛑 Please connect your iPhone and try again."
         exit 1
@@ -43,12 +53,42 @@ else
     
     echo "✅ Found iPhone: $DEVICE_NAME"
     echo "📱 Device ID: $DEVICE_ID"
+    echo "🔧 Ensuring proper code signing..."
+    
+    # Clean and build with proper signing
+    echo "🧹 Cleaning previous builds..."
+    flutter clean
+    flutter pub get
+    
+    # Ensure pods are properly configured
+    echo "🍫 Updating CocoaPods..."
+    cd ios && pod install && cd ..
+    
     echo "🚀 Launching TSH Admin Dashboard on your iPhone..."
     
     if [ -n "$DEVICE_ID" ]; then
-        flutter run -d "$DEVICE_ID"
+        # Run with release mode for better signing
+        if ! flutter run -d "$DEVICE_ID" --release; then
+            echo "------------------------------------------------------"
+            echo "🚨 Flutter run command failed."
+            echo "This is likely a code signing issue."
+            echo "Please run the signing setup script to fix it:"
+            echo ""
+            echo "    ./setup_ios_signing.sh"
+            echo ""
+            echo "------------------------------------------------------"
+        fi
     else
         echo "⚠️  Could not parse device ID, trying with full device string..."
-        flutter run
+        if ! flutter run --release; then
+            echo "------------------------------------------------------"
+            echo "🚨 Flutter run command failed."
+            echo "This is likely a code signing issue."
+            echo "Please run the signing setup script to fix it:"
+            echo ""
+            echo "    ./setup_ios_signing.sh"
+            echo ""
+            echo "------------------------------------------------------"
+        fi
     fi
 fi

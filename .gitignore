@@ -36,3 +36,77 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Flutter/iOS specific
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Runner/GeneratedPluginRegistrant.*
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/app/outputs/
+android/app/release/
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/contents.xcworkspacedata
+UserInterfaceState.xcuserstate
+build/
+DerivedData/
+.idea/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+# Android
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/.gradle/
+android/build/
+
+# Sensitive files
+*.key
+*.crt
+*.pem
+*.p12
+*.mobileprovision
+config/encryption.key
+config/zoho_credentials.enc
+
+# Backup files
+*.backup
+*_backup*
+backup_*
+
+# Test files
+test_*.py
+*_test_*
+
+# Cache and temp directories
+.pytest_cache/
+.coverage
+*.cover
+.nyc_output
+
+# Archives
+*.tar.gz
+*.zip
+*.rar
+
+# Symbolic links
+tsh_travel_sales_temp

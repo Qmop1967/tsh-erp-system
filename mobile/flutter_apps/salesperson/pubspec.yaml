@@ -48,7 +48,7 @@ dependencies:
   
   # CRITICAL: GPS Tracking & Location Services  
   geolocator: ^12.0.0          # GPS tracking for fraud prevention
-  permission_handler: ^11.3.1  # Location permissions
+  permission_handler: ^12.0.1  # Location permissions
   geocoding: ^3.0.0            # Address from GPS coordinates
   
   # CRITICAL: Receipt & Photo Management
@@ -77,7 +77,7 @@ dependencies:
 
   # TSH Core Package
   tsh_core_package:
-    path: ../tsh_core_package
+    path: ../core_package
 
 dev_dependencies:
   flutter_test:

@@ -3,7 +3,7 @@
 echo "🔧 TSH Admin - Complete iOS Build Fix"
 echo "===================================="
 
-PROJECT_PATH="/Users/khaleelal-mulla/Desktop/TSH ERP System/frontend/tsh_admin_dashboard"
+PROJECT_PATH="/Users/khaleelal-mulla/TSH_ERP_System_Local/mobile/flutter_apps/admin_dashboard"
 cd "$PROJECT_PATH"
 
 echo "📋 Issues Detected from Screenshot:"

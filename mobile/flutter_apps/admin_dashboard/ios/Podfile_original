@@ -1,0 +1,103 @@
+# Uncomment this line to define a global platform for your project
+platform :ios, '12.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  
+  # Add SQLite library to fix linker errors
+  pod 'SQLite.swift', '~> 0.14.1'
+  
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+      config.build_settings['SWIFT_VERSION'] = '5.0'
+      
+      # Comprehensive fix for all framework header issues
+      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+      config.build_settings['DEFINES_MODULE'] = 'YES'
+      
+      # Disable problematic warnings that cause build failures
+      config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+      config.build_settings['CLANG_WARN_DOCUMENTATION_COMMENTS'] = 'NO'
+      config.build_settings['CLANG_WARN_STRICT_PROTOTYPES'] = 'NO'
+      
+      # Fix SQLite linker issues
+      config.build_settings['OTHER_LDFLAGS'] = ['$(inherited)', '-lsqlite3']
+      
+      # Fix for permission handler specific issues
+      if target.name == 'permission_handler_apple'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = [
+          '$(inherited)',
+          'PERMISSION_CAMERA=0',
+          'PERMISSION_MICROPHONE=0', 
+          'PERMISSION_PHOTOS=0',
+          'PERMISSION_CONTACTS=0',
+          'PERMISSION_LOCATION=0',
+          'PERMISSION_NOTIFICATION=0',
+          'PERMISSION_MEDIA_LIBRARY=0',
+          'PERMISSION_SENSORS=0',
+          'PERMISSION_BLUETOOTH=0',
+          'PERMISSION_APP_TRACKING_TRANSPARENCY=0',
+          'PERMISSION_CRITICAL_ALERTS=0'
+        ]
+        # Force rebuild of this problematic target
+        config.build_settings['CLANG_MODULES_AUTOLINK'] = 'NO'
+      end
+      
+      # Aggressive fix for all other problematic pods
+      if target.name.include?('permission_handler') || target.name.include?('sqflite') || target.name.include?('shared_preferences')
+        config.build_settings['CLANG_MODULES_AUTOLINK'] = 'NO'
+        config.build_settings['OTHER_CFLAGS'] = ['$(inherited)', '-Wno-error=quoted-include-in-framework-header']
+      end
+    end
+  end
+  
+  # Add required system frameworks
+  installer.pods_project.targets.each do |target|
+    if target.name == 'Runner'
+      target.build_configurations.each do |config|
+        config.build_settings['OTHER_LDFLAGS'] ||= []
+        config.build_settings['OTHER_LDFLAGS'] << '-framework UIKit'
+        config.build_settings['OTHER_LDFLAGS'] << '-lsqlite3'
+      end
+    end
+  end
+end

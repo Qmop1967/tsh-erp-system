@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   
   # UI & Design
   cupertino_icons: ^1.0.6
@@ -22,10 +24,10 @@ dependencies:
   
   # State Management
   provider: ^6.1.2
-  flutter_bloc: ^8.1.6
+  flutter_bloc: ^9.1.1
   
   # Navigation
-  go_router: ^14.2.7
+  go_router: ^16.2.4
   
   # HTTP & API
   http: ^1.2.2
@@ -39,20 +41,20 @@ dependencies:
   path_provider: ^2.1.4
   
   # Utils
-  intl: ^0.19.0
+  intl: ^0.20.2
   uuid: ^4.5.1
   crypto: ^3.0.5
   logger: ^2.4.0
   
   # Forms & Validation
-  reactive_forms: ^17.0.0
+  reactive_forms: ^18.1.1
   
   # Charts & Analytics
-  fl_chart: ^0.69.0
-  syncfusion_flutter_charts: ^27.1.58
+  fl_chart: ^1.1.0
+  syncfusion_flutter_charts: ^31.1.19
   
   # Connectivity
-  connectivity_plus: ^6.0.5
+  connectivity_plus: ^7.0.0
   
   # Image Handling
   cached_network_image: ^3.4.1
@@ -63,16 +65,16 @@ dependencies:
   printing: ^5.13.2
   
   # Permissions
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
   
   # File Handling
-  file_picker: ^8.1.3
+  file_picker: ^10.3.3
   path_provider_platform_interface: ^2.1.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   build_runner: ^2.4.13
   json_serializable: ^6.8.0
   hive_generator: ^2.0.1
@@ -84,24 +86,6 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/animations/
-    - assets/fonts/
-  
-  fonts:
-    - family: Cairo
-      fonts:
-        - asset: assets/fonts/Cairo-Regular.ttf
-        - asset: assets/fonts/Cairo-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Cairo-Light.ttf
-          weight: 300
-    
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/Roboto-Regular.ttf
-        - asset: assets/fonts/Roboto-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Roboto-Light.ttf
-          weight: 300
 
 flutter_icons:
   android: "launcher_icon"

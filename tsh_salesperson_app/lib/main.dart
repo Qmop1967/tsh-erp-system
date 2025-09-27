@@ -168,9 +168,9 @@ class _ConnectivityWrapperState extends State<ConnectivityWrapper> {
   }
   
   void _checkConnectivity() {
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
       setState(() {
-        _isOnline = result != ConnectivityResult.none;
+        _isOnline = results.isNotEmpty && !results.contains(ConnectivityResult.none);
       });
     });
   }

@@ -10,7 +10,7 @@ echo "   • UDID: 00008130-000431C1ABA001C"
 echo ""
 
 # Project paths
-PROJECT_PATH="/Users/khaleelal-mulla/Desktop/TSH ERP System/frontend/tsh_admin_dashboard"
+PROJECT_PATH="/Users/khaleelal-mulla/TSH_ERP_System_Local/mobile/flutter_apps/admin_dashboard"
 WORKSPACE_PATH="$PROJECT_PATH/ios/Runner.xcworkspace"
 PROJECT_FILE="$PROJECT_PATH/ios/Runner.xcodeproj"
 
