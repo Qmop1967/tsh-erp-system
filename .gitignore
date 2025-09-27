@@ -159,3 +159,38 @@ yarn.lock
 .Python
 pip-log.txt
 pip-delete-this-directory.txt
+
+# Flutter SDK and large files
+flutter_*.zip
+flutter_macos_*.zip
+flutter_windows_*.zip
+flutter_linux_*.zip
+
+# Flutter SDK directories (shouldn't be committed)
+**/flutter/
+!mobile/flutter_apps/
+
+# Flutter build directories and cache
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Large binary files
+*.dylib
+*.so
+*.framework/Flutter
+*.dSYM/
+*.apk
+*.ipa
+*.app
+
+# Cache files
+.pub-cache/
+.pub-preload-cache/
+**/cache/
+**/Cache/
+
+# Git repositories within project
+**/.git/
+!.git/
