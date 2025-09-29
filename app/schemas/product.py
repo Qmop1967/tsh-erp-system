@@ -135,6 +135,11 @@ class Product(ProductBase):
         from_attributes = True
 
 
+class ProductResponse(Product):
+    """Response model for Product API endpoints"""
+    pass
+
+
 class ProductSummary(BaseModel):
     """ملخص المنتج للاستخدام في القوائم"""
     id: int

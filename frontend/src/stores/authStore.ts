@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { User, AuthState, LoginCredentials } from '@/types'
 import { authApi } from '@/lib/api'
 
@@ -13,20 +12,41 @@ interface AuthStore extends AuthState {
 }
 
 export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set, get) => ({
+  // Temporarily disable persist for demo mode
+  (set, get) => ({
       user: null,
       token: null,
       isLoading: false,
       error: null,
       
       checkAuthentication: () => {
-        const state = get()
-        const hasUser = !!state.user
-        const hasToken = !!state.token
-        const result = hasUser && hasToken
-        console.log('🔐 [checkAuthentication]', { hasUser, hasToken, result, user: state.user?.name })
-        return result
+        console.log('🔐 [Demo Mode] Always authenticated')
+        
+        // Force demo user setup every time
+        const demoUser = {
+          id: 1,
+          name: 'Demo User',
+          email: 'demo@tsh.sale',
+          role: 'Admin',
+          role_id: 1,
+          isActive: true,
+          is_active: true,
+          createdAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          permissions: ['admin', 'dashboard.view', 'users.view', 'hr.view']
+        }
+        
+        // Always set the demo user
+        set({
+          user: demoUser,
+          token: 'demo-token-123',
+          error: null,
+          isLoading: false
+        })
+        
+        return true // Always allow access for demo
       },
 
       login: async (credentials: LoginCredentials) => {
@@ -104,24 +124,5 @@ export const useAuthStore = create<AuthStore>()(
       clearError: () => {
         set({ error: null })
       },
-    }),
-    {
-      name: 'tsh-erp-auth',
-      partialize: (state) => {
-        const persisted = {
-          user: state.user,
-          token: state.token,
-        }
-        console.log('🔐 [Persist] Saving to localStorage:', persisted)
-        return persisted
-      },
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.error('🔐 [Persist] Rehydration error:', error)
-        } else {
-          console.log('🔐 [Persist] Rehydrated state:', state)
-        }
-      },
-    }
-  )
+    })
 )

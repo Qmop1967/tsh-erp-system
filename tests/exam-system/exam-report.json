@@ -1,0 +1,180 @@
+{
+  "timestamp": "2025-09-28T07:37:45.383Z",
+  "summary": {
+    "passed": 18,
+    "failed": 0,
+    "total": 18,
+    "score": 95,
+    "maxScore": 100,
+    "percentage": 95,
+    "grade": "A+"
+  },
+  "levelBreakdown": {
+    "L1": {
+      "score": 8,
+      "maxScore": 8,
+      "tests": 3
+    },
+    "L2": {
+      "score": 36,
+      "maxScore": 36,
+      "tests": 7
+    },
+    "L3": {
+      "score": 39,
+      "maxScore": 39,
+      "tests": 6
+    },
+    "L4": {
+      "score": 12,
+      "maxScore": 12,
+      "tests": 2
+    }
+  },
+  "details": [
+    {
+      "category": "Global",
+      "id": "G001",
+      "title": "Theme Toggle and Persistence",
+      "points": 2,
+      "status": "PASS",
+      "level": "L1"
+    },
+    {
+      "category": "Global",
+      "id": "G002",
+      "title": "Global Search Functionality",
+      "points": 3,
+      "status": "PASS",
+      "level": "L1"
+    },
+    {
+      "category": "Global",
+      "id": "G003",
+      "title": "Sidebar Navigation and Keyboard Accessibility",
+      "points": 4,
+      "status": "PASS",
+      "level": "L2"
+    },
+    {
+      "category": "Dashboard",
+      "id": "D001",
+      "title": "Dashboard Loading and Metrics Display",
+      "points": 3,
+      "status": "PASS",
+      "level": "L1"
+    },
+    {
+      "category": "Dashboard",
+      "id": "D002",
+      "title": "Financial Data Accuracy",
+      "points": 5,
+      "status": "PASS",
+      "level": "L2"
+    },
+    {
+      "category": "users",
+      "id": "U001",
+      "title": "User Management Navigation",
+      "points": 6,
+      "status": "PASS",
+      "level": "L2"
+    },
+    {
+      "category": "users",
+      "id": "U002",
+      "title": "Role-Based Access Control",
+      "points": 8,
+      "status": "PASS",
+      "level": "L3"
+    },
+    {
+      "category": "sales",
+      "id": "S001",
+      "title": "Sales Module Navigation",
+      "points": 6,
+      "status": "PASS",
+      "level": "L2"
+    },
+    {
+      "category": "sales",
+      "id": "S002",
+      "title": "Sales Workflow Simulation",
+      "points": 8,
+      "status": "PASS",
+      "level": "L3"
+    },
+    {
+      "category": "inventory",
+      "id": "I001",
+      "title": "Inventory Module Features",
+      "points": 6,
+      "status": "PASS",
+      "level": "L2"
+    },
+    {
+      "category": "inventory",
+      "id": "I002",
+      "title": "Stock Value Integration",
+      "points": 7,
+      "status": "PASS",
+      "level": "L3"
+    },
+    {
+      "category": "financial",
+      "id": "F001",
+      "title": "Money Boxes Display",
+      "points": 5,
+      "status": "PASS",
+      "level": "L2"
+    },
+    {
+      "category": "financial",
+      "id": "F002",
+      "title": "Financial Management Integration",
+      "points": 6,
+      "status": "PASS",
+      "level": "L3"
+    },
+    {
+      "category": "Accessibility",
+      "id": "A001",
+      "title": "Keyboard Navigation",
+      "points": 4,
+      "status": "PASS",
+      "level": "L2"
+    },
+    {
+      "category": "Accessibility",
+      "id": "A002",
+      "title": "Screen Reader Compatibility",
+      "points": 5,
+      "status": "PASS",
+      "level": "L3"
+    },
+    {
+      "category": "Performance",
+      "id": "P001",
+      "title": "Dashboard Load Performance",
+      "points": 5,
+      "status": "PASS",
+      "level": "L3"
+    },
+    {
+      "category": "Performance",
+      "id": "P002",
+      "title": "Theme Toggle Performance",
+      "points": 6,
+      "status": "PASS",
+      "level": "L4"
+    },
+    {
+      "category": "Security",
+      "id": "SEC001",
+      "title": "Input Validation and XSS Prevention",
+      "points": 6,
+      "status": "PASS",
+      "level": "L4"
+    }
+  ]
+}

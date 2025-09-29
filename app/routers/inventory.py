@@ -10,6 +10,9 @@ from app.schemas.product import ProductSummary
 from app.services.inventory_service import InventoryService
 from app.models.inventory import InventoryItem as InventoryItemModel
 from app.models.product import Product, Category
+from app.models.item import Item
+from pydantic import BaseModel
+from datetime import datetime
 
 router = APIRouter(tags=["inventory"])
 
@@ -132,3 +135,68 @@ def adjust_stock(
 ):
     """تعديل المخزون"""
     return InventoryService.adjust_stock(db, adjustment, user_id=1)
+
+
+class AddItemRequest(BaseModel):
+    name: str
+    sku: str
+    category: Optional[str] = None
+    price: Optional[float] = None
+    quantity: Optional[int] = None
+    description: Optional[str] = None
+
+class ItemResponse(BaseModel):
+    id: int
+    name: str
+    sku: str
+    category: Optional[str]
+    price: Optional[float]
+    quantity: Optional[int]
+    description: Optional[str]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+@router.post("/items/add", response_model=ItemResponse)
+async def add_inventory_item(
+    item_data: AddItemRequest,
+    db: Session = Depends(get_db)
+):
+    """Add a new inventory item via API"""
+    
+    # Check if SKU already exists
+    existing_item = db.query(Item).filter(Item.sku == item_data.sku).first()
+    if existing_item:
+        raise HTTPException(status_code=400, detail=f"Item with SKU '{item_data.sku}' already exists")
+    
+    # Create new inventory item
+    new_item = Item(
+        name=item_data.name,
+        sku=item_data.sku,
+        category=item_data.category,
+        description=item_data.description,
+        quantity_on_hand=item_data.quantity or 0,
+        unit_price=item_data.price or 0.0
+    )
+    
+    try:
+        db.add(new_item)
+        db.commit()
+        db.refresh(new_item)
+        
+        # Return the created item
+        return ItemResponse(
+            id=new_item.id,
+            name=new_item.name,
+            sku=new_item.sku,
+            category=new_item.category,
+            price=new_item.unit_price,
+            quantity=new_item.quantity_on_hand,
+            description=new_item.description,
+            created_at=new_item.created_at
+        )
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating item: {str(e)}")

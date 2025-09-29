@@ -2,10 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
-import { LanguageInitializer } from './components/LanguageInitializer'
-import './index.css'
+import './minimal.css'
 
-console.log('🚀 Starting TSH ERP System...')
+console.log('🚀 Starting TSH ERP System - Minimal Mode...')
 
 const root = document.getElementById('root')!
 console.log('Root element:', root)
@@ -13,9 +12,7 @@ console.log('Root element:', root)
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <BrowserRouter>
-      <LanguageInitializer>
-        <App />
-      </LanguageInitializer>
+      <App />
     </BrowserRouter>
   </React.StrictMode>,
 )

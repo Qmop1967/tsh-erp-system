@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { permissionsApi } from '@/lib/api'
-import { Plus, Shield, Users, UserCheck, Edit, Trash2, X } from 'lucide-react'
+import { Plus, Shield, Users, UserCheck, Edit, Trash2, X, ArrowLeft } from 'lucide-react'
 
 interface Permission {
   id: number

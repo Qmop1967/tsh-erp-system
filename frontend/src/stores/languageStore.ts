@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+// import { persist } from 'zustand/middleware' // Disabled for demo mode
 
 export type Language = 'en' | 'ar'
 
@@ -10,30 +10,18 @@ interface LanguageState {
 }
 
 export const useLanguageStore = create<LanguageState>()(
-  persist(
-    (set) => ({
-      language: 'en',
-      isRTL: false,
-      setLanguage: (language: Language) => {
-        const isRTL = language === 'ar'
-        
-        // Update HTML direction
-        document.documentElement.dir = isRTL ? 'rtl' : 'ltr'
-        document.documentElement.lang = language
-        
-        set({ language, isRTL })
-      },
-    }),
-    {
-      name: 'language-store',
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Apply language settings on page reload
-          const isRTL = state.language === 'ar'
-          document.documentElement.dir = isRTL ? 'rtl' : 'ltr'
-          document.documentElement.lang = state.language
-        }
-      },
-    }
-  )
+  // Temporarily disable persist for demo mode
+  (set) => ({
+    language: 'en',
+    isRTL: false,
+    setLanguage: (language: Language) => {
+      const isRTL = language === 'ar'
+      
+      // Update HTML direction
+      document.documentElement.dir = isRTL ? 'rtl' : 'ltr'
+      document.documentElement.lang = language
+      
+      set({ language, isRTL })
+    },
+  })
 )

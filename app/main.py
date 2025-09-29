@@ -90,7 +90,7 @@ from app.routers.auth import router as auth_router  # Enable auth router
 # from app.routers.partner_salesmen import router as partner_salesmen_router  # Temporarily disabled
 from app.routers.vendors import router as vendors_router  # Enable vendors
 from app.routers.permissions import router as permissions_router  # Enable permissions management
-from app.routers.product_images import router as product_images_router  # Enable product images
+# from app.routers.product_images import router as product_images_router  # Temporarily disabled
 
 # إضافة الـ routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])  # Enable authentication
@@ -130,8 +130,8 @@ app.include_router(vendors_router, prefix="/api")  # Enable vendors router
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 # 🔒 ENHANCED SECURITY SYSTEM: Advanced RBAC/ABAC, Multi-tenancy, Audit & Monitoring
 app.include_router(enhanced_settings_router, prefix="/api/security", tags=["Enhanced Security - RBAC/ABAC & Multi-tenancy"])
-# 📷 PRODUCT IMAGES MANAGEMENT: Zoho Integration & Image Processing
-app.include_router(product_images_router, tags=["Product Images - Zoho Integration"])
+# 📷 PRODUCT IMAGES MANAGEMENT: Temporarily disabled due to import issues
+# app.include_router(product_images_router, tags=["Product Images - Zoho Integration"])
 
 # Serve static files (e.g., images) from the "app/images" directory
 app.mount("/images", StaticFiles(directory=Path("app/images")), name="images")

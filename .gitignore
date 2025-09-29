@@ -176,21 +176,67 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 
+# Large Flutter SDK files and build outputs
+tsh_salesperson_app/flutter/
+mobile/flutter_apps/*/build/
+mobile/flutter_apps/*/.dart_tool/
+mobile/flutter_apps/*/android/.gradle/
+mobile/flutter_apps/*/android/app/build/
+mobile/flutter_apps/*/ios/Pods/
+mobile/flutter_apps/*/ios/.symlinks/
+mobile/flutter_apps/*/ios/Flutter/
+mobile/flutter_apps/*/ios/build/
+mobile/flutter_apps/*/macos/Flutter/
+mobile/flutter_apps/*/windows/flutter/
+mobile/flutter_apps/*/linux/flutter/
+
+# Flutter build artifacts
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/pubspec.lock
+
+# iOS build files
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Android build files
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/app/build/
+**/android/key.properties
+
 # Large binary files
-*.dylib
+*.framework/
+*.xcframework/
 *.so
-*.framework/Flutter
-*.dSYM/
+*.dylib
+*.a
+*.jar
 *.apk
 *.ipa
-*.app
+*.zip
+*.tar.gz
+*.dSYM/
 
-# Cache files
-.pub-cache/
-.pub-preload-cache/
-**/cache/
-**/Cache/
+# Virtual environment
+.venv/
+venv/
+env/
 
-# Git repositories within project
-**/.git/
-!.git/
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd

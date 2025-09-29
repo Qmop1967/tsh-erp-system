@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { usersApi } from '@/lib/api'
-import { Plus, Users, UserCheck, Shield, Edit, Trash2, Eye, EyeOff, X } from 'lucide-react'
+import { Plus, Users, UserCheck, Shield, Edit, Trash2, Eye, EyeOff, X, ArrowLeft } from 'lucide-react'
 
 interface UserCreateData {
   name: string
@@ -30,6 +31,7 @@ interface UserUpdateData {
 }
 
 export function UsersPage() {
+  const navigate = useNavigate()
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -239,11 +241,21 @@ export function UsersPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">🔐 TSH ERP System Users</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage TSH ERP system users, roles, and permissions
-          </p>
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Dashboard</span>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">🔐 TSH ERP System Users</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Manage TSH ERP system users, roles, and permissions
+            </p>
+          </div>
         </div>
         
         <Button 

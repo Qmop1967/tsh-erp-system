@@ -4,6 +4,7 @@ from .role import Role
 from .branch import Branch
 from .warehouse import Warehouse
 from .product import Category, Product
+from .item import Item
 from .customer import Customer, Supplier
 from .inventory import InventoryItem, StockMovement
 from .sales import SalesOrder, SalesItem

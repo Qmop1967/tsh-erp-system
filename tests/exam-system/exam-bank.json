@@ -1,0 +1,307 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "totalPoints": 100,
+    "levels": {
+      "L1": { "name": "Basic", "points": 20, "description": "Navigation, theme, search, viewing" },
+      "L2": { "name": "Core", "points": 40, "description": "CRUD operations, filtering, exports" },
+      "L3": { "name": "Integration", "points": 25, "description": "Cross-module workflows" },
+      "L4": { "name": "Advanced", "points": 15, "description": "Permissions, security, advanced features" }
+    }
+  },
+  "examinations": {
+    "global": [
+      {
+        "id": "G001",
+        "level": "L1",
+        "points": 2,
+        "title": "Theme Toggle and Persistence",
+        "description": "Toggle between light and dark themes and verify persistence",
+        "steps": [
+          "Navigate to dashboard",
+          "Click theme toggle button",
+          "Verify visual theme change",
+          "Reload page",
+          "Verify theme persists"
+        ],
+        "expected": "Theme changes immediately and persists after reload",
+        "testId": "theme-toggle"
+      },
+      {
+        "id": "G002",
+        "level": "L1",
+        "points": 3,
+        "title": "Global Search Functionality",
+        "description": "Use global search to locate modules and features",
+        "steps": [
+          "Click on global search input",
+          "Type 'Sales'",
+          "Verify search input is focused",
+          "Test keyboard navigation"
+        ],
+        "expected": "Search input accepts input and maintains focus",
+        "testId": "global-search"
+      },
+      {
+        "id": "G003",
+        "level": "L2",
+        "points": 4,
+        "title": "Sidebar Navigation and Keyboard Accessibility",
+        "description": "Test sidebar collapse/expand and keyboard navigation",
+        "steps": [
+          "Click sidebar toggle",
+          "Verify sidebar collapses",
+          "Use Tab to navigate",
+          "Use Enter/Space on navigation items"
+        ],
+        "expected": "Sidebar responds to both mouse and keyboard interactions",
+        "testId": "sidebar-navigation"
+      }
+    ],
+    "dashboard": [
+      {
+        "id": "D001",
+        "level": "L1",
+        "points": 3,
+        "title": "Dashboard Loading and Metrics Display",
+        "description": "Verify dashboard loads with all key metrics",
+        "steps": [
+          "Load application",
+          "Verify 'Dashboard' header is visible",
+          "Check Financial Overview section",
+          "Verify Money Boxes section",
+          "Check Recent Activity section"
+        ],
+        "expected": "All dashboard sections load with formatted data",
+        "testId": "dashboard-load"
+      },
+      {
+        "id": "D002",
+        "level": "L2",
+        "points": 5,
+        "title": "Financial Data Accuracy",
+        "description": "Verify financial calculations and formatting",
+        "steps": [
+          "Check Total Revenue display",
+          "Verify currency formatting",
+          "Calculate total cash flow manually",
+          "Compare with displayed total"
+        ],
+        "expected": "All financial data is accurately calculated and formatted",
+        "testId": "financial-accuracy"
+      }
+    ],
+    "users": [
+      {
+        "id": "U001",
+        "level": "L2",
+        "points": 6,
+        "title": "User Management Navigation",
+        "description": "Navigate to User Management and verify features",
+        "steps": [
+          "Click 'User Management' in sidebar",
+          "Verify module header changes",
+          "Check 'Available Features' section",
+          "Verify submodule list (Users, Permissions, Roles, Groups)"
+        ],
+        "expected": "User Management module loads with all subfeatures listed",
+        "testId": "user-management-nav"
+      },
+      {
+        "id": "U002",
+        "level": "L3",
+        "points": 8,
+        "title": "Role-Based Access Control",
+        "description": "Test user roles and permissions",
+        "steps": [
+          "Navigate to User Management",
+          "Verify 'Add New' button is present",
+          "Check action buttons (View All, Filter, Export)",
+          "Test submodule accessibility"
+        ],
+        "expected": "All user management actions are available for admin users",
+        "testId": "user-rbac"
+      }
+    ],
+    "sales": [
+      {
+        "id": "S001",
+        "level": "L2",
+        "points": 6,
+        "title": "Sales Module Navigation",
+        "description": "Navigate and verify Sales Management features",
+        "steps": [
+          "Click 'Sales Management' in sidebar",
+          "Verify header shows 'Sales Management'",
+          "Check Available Features section",
+          "Verify all submodules: Customers, Orders, Quotations, Invoices, Payments, Credit Notes"
+        ],
+        "expected": "Sales module loads with all 6 subfeatures enabled",
+        "testId": "sales-navigation"
+      },
+      {
+        "id": "S002",
+        "level": "L3",
+        "points": 8,
+        "title": "Sales Workflow Simulation",
+        "description": "Test the sales process flow understanding",
+        "steps": [
+          "Navigate to Sales Management",
+          "Identify Quotations feature",
+          "Identify Sales Orders feature",
+          "Identify Invoices feature",
+          "Identify Payments feature"
+        ],
+        "expected": "User can identify the sales workflow: Quote → Order → Invoice → Payment",
+        "testId": "sales-workflow"
+      }
+    ],
+    "inventory": [
+      {
+        "id": "I001",
+        "level": "L2",
+        "points": 6,
+        "title": "Inventory Module Features",
+        "description": "Verify inventory management capabilities",
+        "steps": [
+          "Navigate to Inventory module",
+          "Verify module header",
+          "Check all subfeatures: Items, Stock Adjustments, Warehouses, Stock Movements, Suppliers",
+          "Verify action buttons are present"
+        ],
+        "expected": "Inventory module shows all 5 subfeatures with enabled status",
+        "testId": "inventory-features"
+      },
+      {
+        "id": "I002",
+        "level": "L3",
+        "points": 7,
+        "title": "Stock Value Integration",
+        "description": "Verify inventory data integration with dashboard",
+        "steps": [
+          "Go to Dashboard",
+          "Note 'Stock Value' in Financial Overview",
+          "Note 'Inventory Items' count in metrics",
+          "Navigate to Inventory module",
+          "Understand the relationship"
+        ],
+        "expected": "Dashboard metrics reflect inventory system capabilities",
+        "testId": "stock-integration"
+      }
+    ],
+    "financial": [
+      {
+        "id": "F001",
+        "level": "L2",
+        "points": 5,
+        "title": "Money Boxes Display",
+        "description": "Verify money boxes section on dashboard",
+        "steps": [
+          "Navigate to Dashboard",
+          "Locate Money Boxes section",
+          "Count individual money boxes (should be 7)",
+          "Verify Total Cash Flow calculation",
+          "Check currency formatting"
+        ],
+        "expected": "7 money boxes displayed with accurate total",
+        "testId": "money-boxes"
+      },
+      {
+        "id": "F002",
+        "level": "L3",
+        "points": 6,
+        "title": "Financial Management Integration",
+        "description": "Connect Financial Management module to dashboard data",
+        "steps": [
+          "Note money boxes on dashboard",
+          "Navigate to Financial Management",
+          "Identify 'Cash Boxes' subfeature",
+          "Understand the connection"
+        ],
+        "expected": "User understands money boxes are managed through Financial Management module",
+        "testId": "financial-integration"
+      }
+    ],
+    "accessibility": [
+      {
+        "id": "A001",
+        "level": "L2",
+        "points": 4,
+        "title": "Keyboard Navigation",
+        "description": "Test full keyboard accessibility",
+        "steps": [
+          "Use Tab to navigate through sidebar",
+          "Use Enter to activate navigation items",
+          "Test theme toggle with keyboard",
+          "Navigate to search field with Tab"
+        ],
+        "expected": "All interactive elements are keyboard accessible",
+        "testId": "keyboard-nav"
+      },
+      {
+        "id": "A002",
+        "level": "L3",
+        "points": 5,
+        "title": "Screen Reader Compatibility",
+        "description": "Verify ARIA attributes and semantic HTML",
+        "steps": [
+          "Check for aria-labels on buttons",
+          "Verify heading hierarchy",
+          "Check for proper semantic structure",
+          "Test with screen reader simulation"
+        ],
+        "expected": "Page structure is screen reader friendly",
+        "testId": "screen-reader"
+      }
+    ],
+    "performance": [
+      {
+        "id": "P001",
+        "level": "L3",
+        "points": 5,
+        "title": "Dashboard Load Performance",
+        "description": "Measure dashboard loading performance",
+        "steps": [
+          "Clear browser cache",
+          "Navigate to application",
+          "Measure time to interactive",
+          "Check Core Web Vitals"
+        ],
+        "expected": "Dashboard loads within 2.5 seconds",
+        "testId": "dashboard-performance"
+      },
+      {
+        "id": "P002",
+        "level": "L4",
+        "points": 6,
+        "title": "Theme Toggle Performance",
+        "description": "Test theme switching performance",
+        "steps": [
+          "Toggle theme multiple times rapidly",
+          "Monitor for layout shifts",
+          "Check animation smoothness",
+          "Verify no memory leaks"
+        ],
+        "expected": "Theme changes are smooth without performance degradation",
+        "testId": "theme-performance"
+      }
+    ],
+    "security": [
+      {
+        "id": "SEC001",
+        "level": "L4",
+        "points": 6,
+        "title": "Input Validation and XSS Prevention",
+        "description": "Test input security measures",
+        "steps": [
+          "Test global search with special characters",
+          "Attempt script injection in search",
+          "Verify input sanitization",
+          "Check for proper escaping"
+        ],
+        "expected": "All inputs are properly sanitized and secured",
+        "testId": "input-security"
+      }
+    ]
+  }
+}

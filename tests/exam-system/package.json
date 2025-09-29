@@ -1,0 +1,40 @@
+{
+  "name": "tsh-erp-examination-system",
+  "version": "1.0.0",
+  "description": "Comprehensive examination system for TSH ERP System",
+  "main": "exam-runner.js",
+  "scripts": {
+    "exam:run": "node exam-runner.js",
+    "exam:run-verbose": "node exam-runner.js --verbose",
+    "test:unit": "echo 'Unit tests would run with Jest/Vitest here'",
+    "test:e2e": "echo 'E2E tests would run with Playwright here'",
+    "test:accessibility": "echo 'Accessibility tests would run here'",
+    "test:performance": "echo 'Performance tests would run with k6 here'",
+    "test:all": "npm run exam:run",
+    "report:generate": "node exam-runner.js && echo 'Report generated!'",
+    "setup": "echo 'Installing examination dependencies...' && npm install"
+  },
+  "keywords": [
+    "erp",
+    "testing",
+    "examination",
+    "quality-assurance"
+  ],
+  "author": "TSH ERP Team",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "playwright": "^1.55.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@testing-library/jest-dom": "^6.1.0",
+    "@testing-library/react": "^13.4.0",
+    "axe-core": "^4.8.0",
+    "jest": "^29.0.0",
+    "jest-axe": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+// import axios from 'axios' // Commented out for demo mode
 
 // Dashboard data types
 interface DashboardData {
@@ -54,10 +54,19 @@ const defaultData: DashboardData = {
 
 export const useDashboardData = () => {
   const [data, setData] = useState<DashboardData>(defaultData)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Start with false for demo
   const [error, setError] = useState<string | null>(null)
 
   const fetchDashboardData = async () => {
+    // For demo mode, just return default data immediately
+    console.log('🎯 [Demo Mode] Using default dashboard data')
+    setLoading(false)
+    setError(null)
+    setData(defaultData)
+    return
+    
+    // Original API code (commented out for demo)
+    /*
     try {
       setLoading(true)
       setError(null)
@@ -121,15 +130,16 @@ export const useDashboardData = () => {
     } finally {
       setLoading(false)
     }
+    */
   }
 
   useEffect(() => {
+    // For demo mode, set data immediately
     fetchDashboardData()
     
-    // Refresh data every 30 seconds
-    const interval = setInterval(fetchDashboardData, 30000)
-    
-    return () => clearInterval(interval)
+    // Comment out auto-refresh for demo
+    // const interval = setInterval(fetchDashboardData, 30000)
+    // return () => clearInterval(interval)
   }, [])
 
   return { data, loading, error, refetch: fetchDashboardData }

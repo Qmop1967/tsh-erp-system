@@ -26,60 +26,42 @@ export const useTranslationStore = create<TranslationStore>((set, get) => ({
   error: null,
 
   loadTranslations: async () => {
-    set({ isLoading: true, error: null });
+    // Demo mode: Use fallback translations immediately
+    console.log('🌐 [Demo Mode] Using fallback translations');
     
-    try {
-      const response = await fetch('/api/settings/translations');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    const fallbackTranslations = {
+      en: {
+        dashboard: "Dashboard",
+        sales: "Sales",
+        customers: "Customers",
+        allies: "Allies",
+        allEmployees: "All Employees",
+        travelSalespersons: "Travel Salespersons",
+        partnerSalesmen: "Partner Salesmen",
+        retailermen: "Retailermen",
+        settings: "Settings",
+        loadingDashboardData: "Loading dashboard data..."
+      },
+      ar: {
+        dashboard: "لوحة التحكم",
+        sales: "المبيعات",
+        customers: "العملاء",
+        allies: "الحلفاء",
+        allEmployees: "جميع الموظفين",
+        travelSalespersons: "مندوبي السفر",
+        partnerSalesmen: "مندوبي الشركاء",
+        retailermen: "مندوبي التجزئة",
+        settings: "الإعدادات",
+        loadingDashboardData: "جار تحميل بيانات لوحة التحكم..."
       }
-      
-      const data = await response.json();
-      
-      if (data.status === 'success' && data.translations) {
-        set({ 
-          translations: data.translations,
-          isLoading: false,
-          error: null 
-        });
-      } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (error) {
-      console.error('Error loading translations:', error);
-      set({ 
-        isLoading: false, 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
-      // Fallback to default translations
-      const fallbackTranslations = {
-        en: {
-          dashboard: "Dashboard",
-          sales: "Sales",
-          customers: "Customers",
-          allies: "Allies",
-          allEmployees: "All Employees",
-          travelSalespersons: "Travel Salespersons",
-          partnerSalesmen: "Partner Salesmen",
-          retailermen: "Retailermen",
-          settings: "Settings"
-        },
-        ar: {
-          dashboard: "لوحة التحكم",
-          sales: "المبيعات",
-          customers: "العملاء",
-          allies: "الحلفاء",
-          allEmployees: "جميع الموظفين",
-          travelSalespersons: "مندوبي السفر",
-          partnerSalesmen: "مندوبي الشركاء",
-          retailermen: "مندوبي التجزئة",
-          settings: "الإعدادات"
-        }
-      };
-      
-      set({ translations: fallbackTranslations });
-    }
+    };
+    
+    set({ 
+      translations: fallbackTranslations,
+      isLoading: false,
+      error: null 
+    });
+    return;
   },
 
   refreshTranslations: async () => {
