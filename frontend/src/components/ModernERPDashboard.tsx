@@ -31,6 +31,7 @@ export function ModernERPDashboard() {
   const navigate = useNavigate();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [activeModule, setActiveModule] = useState('dashboard');
+  const [isMobile, setIsMobile] = useState(false);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [currentModalType, setCurrentModalType] = useState('');
   const [isDark, setIsDark] = useState(false);
@@ -107,6 +108,24 @@ export function ModernERPDashboard() {
       setIsDark(savedTheme === 'true');
     }
   }, []);
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto-close sidebar on mobile for better UX
+      if (mobile && isSidebarOpen) {
+        setSidebarOpen(false);
+      } else if (!mobile && !isSidebarOpen) {
+        setSidebarOpen(true);
+      }
+    };
+
+    handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isSidebarOpen]);
 
   // ERP Modules with icons and submenus
   const erpModules = [
@@ -857,15 +876,34 @@ export function ModernERPDashboard() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: theme.background, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Mobile Overlay */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 15,
+          }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
       {/* Sidebar */}
       <div 
         style={{
-          width: isSidebarOpen ? '280px' : '80px',
+          position: isMobile ? 'fixed' : 'relative',
+          left: isMobile && !isSidebarOpen ? '-280px' : '0',
+          width: isMobile ? '280px' : (isSidebarOpen ? '280px' : '80px'),
+          height: '100vh',
           backgroundColor: theme.sidebar,
           color: theme.sidebarText,
-          transition: 'width 0.3s ease',
+          transition: isMobile ? 'left 0.3s ease' : 'width 0.3s ease',
           boxShadow: '4px 0 6px -1px rgba(0, 0, 0, 0.1)',
-          zIndex: 10,
+          zIndex: 20,
           overflow: 'hidden'
         }}
       >
@@ -1127,7 +1165,13 @@ export function ModernERPDashboard() {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        overflow: 'hidden',
+        marginLeft: isMobile ? '0' : '0' // No margin needed since sidebar is positioned
+      }}>
         {/* Top Header */}
         <header style={{ 
           backgroundColor: theme.card, 
