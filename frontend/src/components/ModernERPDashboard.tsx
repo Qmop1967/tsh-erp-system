@@ -26,6 +26,7 @@ import {
   Sun,
   Plus
 } from 'lucide-react';
+import { useSuccessToast, useErrorToast, useWarningToast } from './ui/toast';
 
 export function ModernERPDashboard() {
   const navigate = useNavigate();
@@ -35,6 +36,12 @@ export function ModernERPDashboard() {
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [currentModalType, setCurrentModalType] = useState('');
   const [isDark, setIsDark] = useState(false);
+  
+  // Toast notifications
+  const showSuccess = useSuccessToast();
+  const showError = useErrorToast();
+  const showWarning = useWarningToast();
+  
   const [newItem, setNewItem] = useState({
     name: '',
     sku: '',
@@ -329,6 +336,13 @@ export function ModernERPDashboard() {
   const handleSaveItem = async () => {
     console.log('Saving new item:', newItem, 'Modal type:', currentModalType);
     
+    // Form validation
+    const validationResult = validateForm();
+    if (!validationResult.isValid) {
+      showWarning(validationResult.message);
+      return;
+    }
+    
     try {
       let response;
       let successMessage = '';
@@ -365,27 +379,23 @@ export function ModernERPDashboard() {
         });
         successMessage = `New customer "${newCustomer.name}" created successfully!`;
       } else {
-        // Fallback to inventory item creation
-        response = await fetch('http://localhost:8889/api/inventory/items/add', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(newItem)
-        });
-        successMessage = `New item "${newItem.name}" added successfully!`;
+        // Fallback - show info message
+        showSuccess(`Mock: ${currentModalType} created successfully!`);
+        resetForms();
+        setShowAddItemModal(false);
+        setCurrentModalType('');
+        return;
       }
       
       if (response && response.ok) {
         const savedItem = await response.json();
         console.log('Item saved successfully:', savedItem);
-        alert(successMessage);
+        showSuccess(successMessage);
       } else if (response) {
         const error = await response.json();
         console.error('Error response:', error);
-        const errorMessage = error.detail || error.message || 'Unknown error';
-        alert(`Error saving: ${errorMessage}`);
+        const errorMessage = error.detail || error.message || 'Unknown error occurred';
+        showError(`Error saving: ${errorMessage}`);
         return; // Don't close modal on error
       }
       
@@ -396,8 +406,47 @@ export function ModernERPDashboard() {
       
     } catch (error) {
       console.error('Network error:', error);
-      alert('Network error: Could not connect to server. Please check if the backend is running on port 8889.');
+      showError('Network error: Could not connect to server. Please check if the backend is running.');
     }
+  };
+
+  const validateForm = () => {
+    if (currentModalType.includes('inventory-items')) {
+      if (!newItem.name.trim()) {
+        return { isValid: false, message: 'Item name is required' };
+      }
+      if (!newItem.sku.trim()) {
+        return { isValid: false, message: 'SKU is required' };
+      }
+      if (newItem.price && isNaN(parseFloat(newItem.price))) {
+        return { isValid: false, message: 'Price must be a valid number' };
+      }
+      if (newItem.quantity && isNaN(parseInt(newItem.quantity))) {
+        return { isValid: false, message: 'Quantity must be a valid number' };
+      }
+    } else if (currentModalType.includes('users-all-users')) {
+      if (!newUser.name.trim()) {
+        return { isValid: false, message: 'User name is required' };
+      }
+      if (!newUser.email.trim()) {
+        return { isValid: false, message: 'Email is required' };
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
+        return { isValid: false, message: 'Please enter a valid email address' };
+      }
+      if (!newUser.password || newUser.password.length < 6) {
+        return { isValid: false, message: 'Password must be at least 6 characters long' };
+      }
+    } else if (currentModalType.includes('sales-customers')) {
+      if (!newCustomer.name.trim()) {
+        return { isValid: false, message: 'Customer name is required' };
+      }
+      if (newCustomer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomer.email)) {
+        return { isValid: false, message: 'Please enter a valid email address' };
+      }
+    }
+    
+    return { isValid: true, message: '' };
   };
 
   const resetForms = () => {

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastProvider } from './components/ui/toast'
 import './minimal.css'
 
 console.log('🚀 Starting TSH ERP System - Minimal Mode...')
@@ -25,9 +26,11 @@ ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>,
