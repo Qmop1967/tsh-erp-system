@@ -3,6 +3,7 @@ import { ModernERPDashboard } from './components/ModernERPDashboard'
 import { UsersPage } from './pages/users/UsersPage'
 import { PermissionsPage } from './pages/permissions/PermissionsPage'
 import { RolesPage } from './pages/roles/RolesPage'
+import ItemsPage from './pages/inventory/ItemsPage'
 
 console.log('🚀 Modern TSH ERP System loading...')
 
@@ -17,6 +18,7 @@ function App() {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/permissions" element={<PermissionsPage />} />
         <Route path="/roles" element={<RolesPage />} />
+        <Route path="/inventory/items" element={<ItemsPage />} />
         <Route path="*" element={<ModernERPDashboard />} />
       </Routes>
     </div>

@@ -10,7 +10,7 @@ import { AchievementsPage } from '@/pages/hr/AchievementsPage'
 import { ChallengesPage } from '@/pages/hr/ChallengesPage'
 import { BranchesPage } from '@/pages/branches/BranchesPage'
 import { WarehousesPage } from '@/pages/warehouses/WarehousesPage'
-import { ItemsPage, ItemsManagement } from '@/pages/inventory/ItemsPage'
+import ItemsPage from '@/pages/inventory/ItemsPage'
 import { PriceListsPage } from '@/pages/inventory/PriceListsPage'
 import { InventoryAdjustmentsPage } from '@/pages/inventory/InventoryAdjustmentsPage'
 import { CustomersPage } from '@/pages/customers/CustomersPage'
@@ -63,7 +63,7 @@ function App() {
             
             {/* Inventory */}
             <Route path="items" element={<ItemsPage />} />
-            <Route path="inventory/items" element={<ItemsManagement />} />
+            <Route path="inventory/items" element={<ItemsPage />} />
             <Route path="inventory/price-lists" element={<PriceListsPage />} />
             <Route path="inventory/adjustments" element={<InventoryAdjustmentsPage />} />
             <Route path="inventory/reports" element={<div className="p-8"><h1>Inventory Reports - Coming Soon</h1></div>} />
