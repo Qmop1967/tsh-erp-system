@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { permissionsApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 import { Plus, Shield, Users, UserCheck, Edit, Trash2, X, ArrowLeft } from 'lucide-react'
 
 interface Permission {
@@ -32,6 +33,8 @@ interface RoleCreateData {
 }
 
 export function PermissionsPage() {
+  const navigate = useNavigate()
+  const { checkAuthentication } = useAuthStore()
   const [showAddRoleDialog, setShowAddRoleDialog] = useState(false)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [formData, setFormData] = useState<RoleCreateData>({
@@ -42,6 +45,11 @@ export function PermissionsPage() {
   })
 
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    // Check authentication on mount
+    checkAuthentication()
+  }, [checkAuthentication])
 
   // Fetch roles
   const { data: roles = [], isLoading: rolesLoading, error: rolesError } = useQuery(

@@ -1,9 +1,16 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 
 export function RolesPage() {
   const navigate = useNavigate()
+  const { checkAuthentication } = useAuthStore()
+
+  useEffect(() => {
+    // Check authentication on mount
+    checkAuthentication()
+  }, [checkAuthentication])
   
   return (
     <div style={{ padding: '24px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>

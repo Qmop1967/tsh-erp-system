@@ -122,12 +122,12 @@ class OrderProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.createOrder(orderData);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         await loadOrders(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to create order');
+        _setError(result?['message'] ?? 'Failed to create order');
         _setLoading(false);
         return false;
       }
@@ -145,7 +145,7 @@ class OrderProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.updateOrderStatus(orderId, newStatus);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         // Update local data
         final orderIndex = _orders.indexWhere((o) => o['id'] == orderId);
         if (orderIndex != -1) {
@@ -155,7 +155,7 @@ class OrderProvider extends ChangeNotifier {
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to update order status');
+        _setError(result?['message'] ?? 'Failed to update order status');
         _setLoading(false);
         return false;
       }

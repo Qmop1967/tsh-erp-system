@@ -17,6 +17,7 @@ import 'providers/customer_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/payment_provider.dart';
+import 'providers/pos_provider.dart';
 import 'utils/app_localizations.dart';
 
 void main() async {
@@ -112,6 +113,9 @@ class TSHSalespersonApp extends StatelessWidget {
           update: (context, auth, previous) => previous ?? PaymentProvider(
             context.read<OdooService>(),
           ),
+        ),
+        ChangeNotifierProvider<POSProvider>(
+          create: (context) => POSProvider(),
         ),
       ],
       child: Consumer<AuthProvider>(

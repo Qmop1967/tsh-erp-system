@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../pages/auth/login_page.dart';
-import '../pages/dashboard/dashboard_page.dart';
+import '../pages/home/home_page.dart';
 import '../pages/customers/customers_page.dart';
 import '../pages/orders/orders_page.dart';
 import '../pages/products/products_page.dart';
@@ -11,7 +11,7 @@ import '../pages/sales/sales_page.dart';
 
 class AppRoutes {
   static final GoRouter router = GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/home',
     routes: [
       GoRoute(
         path: '/login',
@@ -19,9 +19,9 @@ class AppRoutes {
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
-        path: '/dashboard',
-        name: 'dashboard',
-        builder: (context, state) => const DashboardPage(),
+        path: '/home',
+        name: 'home',
+        builder: (context, state) => const HomePage(),
       ),
       GoRoute(
         path: '/customers',
@@ -53,7 +53,7 @@ class AppRoutes {
 
   // Route names
   static const String login = '/login';
-  static const String dashboard = '/dashboard';
+  static const String home = '/home';
   static const String customers = '/customers';
   static const String orders = '/orders';
   static const String products = '/products';

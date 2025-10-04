@@ -140,12 +140,12 @@ class PaymentProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.processPayment(paymentData);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         await loadPayments(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Payment processing failed');
+        _setError(result?['message'] ?? 'Payment processing failed');
         _setLoading(false);
         return false;
       }
@@ -163,7 +163,7 @@ class PaymentProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.refundPayment(paymentId, amount, reason);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         // Update local data
         final paymentIndex = _payments.indexWhere((p) => p['id'] == paymentId);
         if (paymentIndex != -1) {
@@ -175,7 +175,7 @@ class PaymentProvider extends ChangeNotifier {
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Refund failed');
+        _setError(result?['message'] ?? 'Refund failed');
         _setLoading(false);
         return false;
       }

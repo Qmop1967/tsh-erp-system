@@ -2,22 +2,23 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_model.dart';
-import 'odoo_service.dart';
+import 'api_service.dart';
 
 class AuthService {
-  final OdooService _odooService;
+  final ApiService _apiService;
   
-  static const String _baseUrl = 'http://localhost:8000/api/v1';
+  static const String _baseUrl = 'http://localhost:8000'; // Updated to match backend
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
-  AuthService(this._odooService);
+  AuthService(this._apiService);
 
-  // Login method
+  // Login method - Uses mobile-specific endpoint
   Future<AuthModel?> login(String email, String password) async {
     try {
+      // Use the mobile login endpoint that allows all users
       final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
+        Uri.parse('$_baseUrl/auth/login/mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/odoo_service.dart';
+import '../services/api_service.dart';
 
 class PaymentProvider extends ChangeNotifier {
-  final OdooService _odooService;
+  final ApiService _apiService;
   
   bool _isLoading = false;
   String? _error;
@@ -16,7 +16,7 @@ class PaymentProvider extends ChangeNotifier {
   String _sortBy = 'date';
   bool _sortAscending = false;
 
-  PaymentProvider(this._odooService);
+  PaymentProvider(this._apiService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -38,7 +38,7 @@ class PaymentProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final data = await _odooService.getPayments();
+      final data = await _apiService.getPayments();
       _payments = List<Map<String, dynamic>>.from(data ?? []);
       _applyFilters();
     } catch (e) {
@@ -139,7 +139,7 @@ class PaymentProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.processPayment(paymentData);
+      final result = await _apiService.processPayment(paymentData);
       if (result['success'] == true) {
         await loadPayments(); // Reload to get updated list
         _setLoading(false);
@@ -162,7 +162,7 @@ class PaymentProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.refundPayment(paymentId, amount, reason);
+      final result = await _apiService.refundPayment(paymentId, amount, reason);
       if (result['success'] == true) {
         // Update local data
         final paymentIndex = _payments.indexWhere((p) => p['id'] == paymentId);

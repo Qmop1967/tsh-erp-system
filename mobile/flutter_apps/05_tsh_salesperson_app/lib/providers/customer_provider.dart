@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/odoo_service.dart';
+import '../services/api_service.dart';
 
 class CustomerProvider extends ChangeNotifier {
-  final OdooService _odooService;
+  final ApiService _apiService;
   
   bool _isLoading = false;
   String? _error;
@@ -12,7 +12,7 @@ class CustomerProvider extends ChangeNotifier {
   String _sortBy = 'name';
   bool _sortAscending = true;
 
-  CustomerProvider(this._odooService);
+  CustomerProvider(this._apiService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -30,7 +30,7 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final data = await _odooService.getCustomersAsMaps();
+      final data = await _apiService.getCustomersAsMaps();
       _customers = List<Map<String, dynamic>>.from(data ?? []);
       _applyFilters();
     } catch (e) {
@@ -98,7 +98,7 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.createCustomer(customerData);
+      final result = await _apiService.createCustomer(customerData);
       if (result['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
@@ -121,7 +121,7 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.updateCustomer(customerId, customerData);
+      final result = await _apiService.updateCustomer(customerId, customerData);
       if (result['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
@@ -144,7 +144,7 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.deleteCustomer(customerId);
+      final result = await _apiService.deleteCustomer(customerId);
       if (result['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);

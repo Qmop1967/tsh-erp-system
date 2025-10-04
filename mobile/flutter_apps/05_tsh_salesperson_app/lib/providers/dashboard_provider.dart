@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/odoo_service.dart';
+import '../services/api_service.dart';
 
 class DashboardProvider extends ChangeNotifier {
-  final OdooService _odooService;
+  final ApiService _apiService;
   
   bool _isLoading = false;
   String? _error;
@@ -24,7 +24,7 @@ class DashboardProvider extends ChangeNotifier {
   double _receivablesTrend = 0.0;
   double _commissionTrend = 0.0;
 
-  DashboardProvider(this._odooService);
+  DashboardProvider(this._apiService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -69,7 +69,7 @@ class DashboardProvider extends ChangeNotifier {
   // Load receivables data
   Future<void> _loadReceivables() async {
     try {
-      final data = await _odooService.getDashboardData('receivables');
+      final data = await _apiService.getDashboardData('receivables');
       _receivablesData = data ?? {};
       _totalReceivables = (_receivablesData['total'] ?? 0.0).toDouble();
       _receivablesTrend = (_receivablesData['trend'] ?? 0.0).toDouble();
@@ -82,7 +82,7 @@ class DashboardProvider extends ChangeNotifier {
   // Load commission data
   Future<void> _loadCommission() async {
     try {
-      final data = await _odooService.getDashboardData('commission');
+      final data = await _apiService.getDashboardData('commission');
       _commissionData = data ?? {};
       _totalCommission = (_commissionData['total'] ?? 0.0).toDouble();
       _commissionTrend = (_commissionData['trend'] ?? 0.0).toDouble();
@@ -95,7 +95,7 @@ class DashboardProvider extends ChangeNotifier {
   // Load cash box data
   Future<void> _loadCashBox() async {
     try {
-      final data = await _odooService.getDashboardData('cashbox');
+      final data = await _apiService.getDashboardData('cashbox');
       _cashBoxData = data ?? {};
       _cashBalance = (_cashBoxData['balance'] ?? 0.0).toDouble();
       notifyListeners();
@@ -107,7 +107,7 @@ class DashboardProvider extends ChangeNotifier {
   // Load regional breakdown data
   Future<void> _loadRegionalData() async {
     try {
-      final data = await _odooService.getDashboardData('regional');
+      final data = await _apiService.getDashboardData('regional');
       if (data != null && data['regions'] is List) {
         _regionalData = List<Map<String, dynamic>>.from(data['regions']);
       } else {
@@ -123,7 +123,7 @@ class DashboardProvider extends ChangeNotifier {
   // Load summary statistics
   Future<void> _loadSummaryStats() async {
     try {
-      final data = await _odooService.getDashboardData('summary');
+      final data = await _apiService.getDashboardData('summary');
       if (data != null) {
         _totalCustomers = (data['total_customers'] ?? 0).toInt();
         _activeOrders = (data['active_orders'] ?? 0).toInt();
@@ -145,7 +145,7 @@ class DashboardProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.processSettlement(settlementData);
+      final result = await _apiService.processSettlement(settlementData);
       if (result['success'] == true) {
         // Reload cash box data after successful settlement
         await _loadCashBox();

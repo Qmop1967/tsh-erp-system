@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/odoo_service.dart';
+import '../services/api_service.dart';
 
 class ProductProvider extends ChangeNotifier {
-  final OdooService _odooService;
+  final ApiService _apiService;
   
   bool _isLoading = false;
   String? _error;
@@ -14,7 +14,7 @@ class ProductProvider extends ChangeNotifier {
   String _sortBy = 'name';
   bool _sortAscending = true;
 
-  ProductProvider(this._odooService);
+  ProductProvider(this._apiService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -34,7 +34,7 @@ class ProductProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final data = await _odooService.getProductsAsMaps();
+      final data = await _apiService.getProductsAsMaps();
       _products = List<Map<String, dynamic>>.from(data ?? []);
       _updateCategories();
       _applyFilters();
@@ -140,7 +140,7 @@ class ProductProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.updateProductQuantity(productId, newQuantity);
+      final result = await _apiService.updateProductQuantity(productId, newQuantity);
       if (result['success'] == true) {
         // Update local data
         final productIndex = _products.indexWhere((p) => p['id'] == productId);

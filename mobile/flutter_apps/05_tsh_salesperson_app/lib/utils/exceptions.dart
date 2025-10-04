@@ -20,8 +20,8 @@ class TSHException implements Exception {
   }
 }
 
-class OdooException extends TSHException {
-  const OdooException(
+class ApiException extends TSHException {
+  const ApiException(
     String message, {
     String? code,
     dynamic originalError,
@@ -36,9 +36,9 @@ class OdooException extends TSHException {
   @override
   String toString() {
     if (code != null) {
-      return 'OdooException [$code]: $message';
+      return 'ApiException [$code]: $message';
     }
-    return 'OdooException: $message';
+    return 'ApiException: $message';
   }
 }
 
@@ -190,7 +190,7 @@ class ExceptionHandler {
       return 'خطأ في المصادقة';
     }
     
-    if (error is OdooException) {
+    if (error is ApiException) {
       return 'خطأ في النظام';
     }
     
@@ -210,7 +210,7 @@ class ExceptionHandler {
       return true;
     }
     
-    if (error is OdooException) {
+    if (error is ApiException) {
       final code = error.code;
       return code == 'CONNECTION_TIMEOUT' || 
              code == 'SERVER_ERROR' ||
@@ -222,11 +222,11 @@ class ExceptionHandler {
   
   static bool isAuthError(dynamic error) {
     return error is AuthenticationException ||
-           (error is OdooException && 
+           (error is ApiException && 
             (error.code == 'AUTH_ERROR' || error.code == 'INVALID_CREDENTIALS'));
   }
   
   static bool isNetworkError(dynamic error) {
     return error is NetworkException;
   }
-} 
+}

@@ -99,12 +99,12 @@ class CustomerProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.createCustomer(customerData);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to create customer');
+        _setError(result?['message'] ?? 'Failed to create customer');
         _setLoading(false);
         return false;
       }
@@ -122,12 +122,12 @@ class CustomerProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.updateCustomer(customerId, customerData);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to update customer');
+        _setError(result?['message'] ?? 'Failed to update customer');
         _setLoading(false);
         return false;
       }
@@ -145,12 +145,12 @@ class CustomerProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.deleteCustomer(customerId);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to delete customer');
+        _setError(result?['message'] ?? 'Failed to delete customer');
         _setLoading(false);
         return false;
       }

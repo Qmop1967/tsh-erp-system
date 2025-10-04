@@ -141,7 +141,7 @@ class ProductProvider extends ChangeNotifier {
 
     try {
       final result = await _odooService.updateProductQuantity(productId, newQuantity);
-      if (result['success'] == true) {
+      if (result?['success'] == true) {
         // Update local data
         final productIndex = _products.indexWhere((p) => p['id'] == productId);
         if (productIndex != -1) {
@@ -151,7 +151,7 @@ class ProductProvider extends ChangeNotifier {
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to update quantity');
+        _setError(result?['message'] ?? 'Failed to update quantity');
         _setLoading(false);
         return false;
       }

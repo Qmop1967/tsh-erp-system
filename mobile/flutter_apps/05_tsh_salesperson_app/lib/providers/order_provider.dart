@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/odoo_service.dart';
+import '../services/api_service.dart';
 
 class OrderProvider extends ChangeNotifier {
-  final OdooService _odooService;
+  final ApiService _apiService;
   
   bool _isLoading = false;
   String? _error;
@@ -14,7 +14,7 @@ class OrderProvider extends ChangeNotifier {
   String _sortBy = 'date';
   bool _sortAscending = false;
 
-  OrderProvider(this._odooService);
+  OrderProvider(this._apiService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -34,7 +34,7 @@ class OrderProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final data = await _odooService.getOrdersAsMaps();
+      final data = await _apiService.getOrdersAsMaps();
       _orders = List<Map<String, dynamic>>.from(data ?? []);
       _applyFilters();
     } catch (e) {
@@ -121,7 +121,7 @@ class OrderProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.createOrder(orderData);
+      final result = await _apiService.createOrder(orderData);
       if (result['success'] == true) {
         await loadOrders(); // Reload to get updated list
         _setLoading(false);
@@ -144,7 +144,7 @@ class OrderProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _odooService.updateOrderStatus(orderId, newStatus);
+      final result = await _apiService.updateOrderStatus(orderId, newStatus);
       if (result['success'] == true) {
         // Update local data
         final orderIndex = _orders.indexWhere((o) => o['id'] == orderId);

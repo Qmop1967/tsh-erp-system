@@ -112,7 +112,7 @@ class _SettlementDialogState extends State<SettlementDialog> {
             TextFormField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Amount (IQD)',
                 prefixIcon: Icon(MdiIcons.currencyUsd),
                 border: OutlineInputBorder(),
@@ -135,7 +135,7 @@ class _SettlementDialogState extends State<SettlementDialog> {
             TextFormField(
               controller: _notesController,
               maxLines: 3,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Notes (Optional)',
                 prefixIcon: Icon(MdiIcons.noteText),
                 border: OutlineInputBorder(),

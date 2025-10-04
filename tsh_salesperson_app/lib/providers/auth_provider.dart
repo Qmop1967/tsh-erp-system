@@ -57,6 +57,9 @@ class AuthProvider extends ChangeNotifier {
     
     _setLoading(false);
   }
+  
+  // Alias for signOut (for backward compatibility)
+  Future<void> logout() => signOut();
 
   // Check authentication status
   Future<void> checkAuthStatus() async {
@@ -119,7 +122,7 @@ class AuthProvider extends ChangeNotifier {
 
   // Check if user has specific permissions
   bool hasPermission(String permission) {
-    return _user?.permissions.contains(permission) ?? false;
+    return _user?.permissions?.contains(permission) ?? false;
   }
 
   // Get user role

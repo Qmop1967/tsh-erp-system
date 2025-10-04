@@ -68,6 +68,8 @@ class UserModel {
   final DateTime? lastLogin;
   final String? timezone;
   final String? lang;
+  final String? role;
+  final List<String>? permissions;
   
   const UserModel({
     required this.id,
@@ -83,6 +85,8 @@ class UserModel {
     this.lastLogin,
     this.timezone,
     this.lang,
+    this.role,
+    this.permissions,
   });
   
   factory UserModel.fromJson(Map<String, dynamic> json) => 
@@ -102,6 +106,9 @@ class UserModel {
   @override
   String toString() => 'UserModel{id: $id, name: $name, email: $email}';
 }
+
+// Alias for backward compatibility
+typedef AuthModel = UserModel;
 
 @JsonSerializable()
 class LoginRequest {
@@ -156,4 +163,4 @@ class SessionInfo {
     final end = lastActivity ?? DateTime.now();
     return end.difference(loginTime);
   }
-} 
+}

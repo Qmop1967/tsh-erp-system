@@ -1,0 +1,82 @@
+name: tsh_mfa_authenticator
+description: TSH ERP System MFA Authenticator - Advanced multi-factor authentication and device management app
+
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Navigation
+  cupertino_icons: ^1.0.2
+  flutter_svg: ^2.0.7
+  
+  # State Management
+  provider: ^6.0.5
+  riverpod: ^2.4.0
+  flutter_riverpod: ^2.4.0
+  
+  # Networking
+  http: ^1.1.0
+  dio: ^5.3.2
+  
+  # Local Storage
+  shared_preferences: ^2.2.0
+  flutter_secure_storage: ^9.0.0
+  sqflite: ^2.3.0
+  
+  # Authentication & Security
+  local_auth: ^2.1.6
+  crypto: ^3.0.3
+  otp: ^3.1.4
+  qr_code_scanner: ^1.0.1
+  qr_flutter: ^4.1.0
+  
+  # Push Notifications
+  firebase_core: ^2.15.0
+  firebase_messaging: ^14.6.5
+  flutter_local_notifications: ^15.1.0+1
+  
+  # Device Info & Location
+  device_info_plus: ^9.1.0
+  geolocator: ^9.0.2
+  permission_handler: ^11.0.0
+  
+  # Utils
+  intl: ^0.18.1
+  uuid: ^3.0.7
+  package_info_plus: ^4.1.0
+  url_launcher: ^6.1.12
+  
+  # Biometrics
+  flutter_biometric_storage: ^5.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  build_runner: ^2.4.6
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+  
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700

@@ -26,7 +26,11 @@ class AuthService:
     @staticmethod
     def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
         """Authenticate a user with email and password"""
-        user = db.query(User).filter(User.email == email).first()
+        from sqlalchemy.orm import joinedload
+        user = db.query(User).options(
+            joinedload(User.role),
+            joinedload(User.branch)
+        ).filter(User.email == email).first()
         if not user:
             return None
         if not AuthService.verify_password(password, user.password):
@@ -60,9 +64,13 @@ class AuthService:
     @staticmethod
     def get_current_user(db: Session, token: str) -> Optional[User]:
         """Get current user from JWT token"""
+        from sqlalchemy.orm import joinedload
         token_data = AuthService.verify_token(token)
         if token_data is None:
             return None
         
-        user = db.query(User).filter(User.email == token_data["email"]).first()
+        user = db.query(User).options(
+            joinedload(User.role),
+            joinedload(User.branch)
+        ).filter(User.email == token_data["email"]).first()
         return user

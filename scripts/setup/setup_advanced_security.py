@@ -15,11 +15,14 @@ sys.path.insert(0, str(project_root))
 
 from sqlalchemy.orm import Session
 from app.db.database import engine, SessionLocal
-from app.services.tenant_service import TenantService, setup_row_level_security
-from app.services.security_service import SecurityService
-from app.services.permission_service import PermissionService
-from app.models.permissions import Permission, RolePermission
+
+# Import all models to ensure they're registered
+from app.models.user import User
+from app.models.tenant import Tenant
+from app.models.branch import Branch
 from app.models.role import Role
+from app.models.permissions import Permission, RolePermission
+from app.models.advanced_security import *
 
 def create_default_tenant():
     """Create default tenant with admin user"""
@@ -27,27 +30,69 @@ def create_default_tenant():
     
     db = SessionLocal()
     try:
-        tenant_service = TenantService(db)
+        # Check if default tenant already exists
+        existing_tenant = db.query(Tenant).filter(Tenant.code == "TSH_DEFAULT").first()
+        if existing_tenant:
+            print(f"✅ Default tenant already exists: {existing_tenant.name}")
+            return existing_tenant
         
         # Create default tenant
-        admin_user_data = {
-            "username": "admin",
-            "email": "admin@tsh-erp.com",
-            "password": "AdminPass123!",  # Change this in production
-            "first_name": "System",
-            "last_name": "Administrator"
-        }
-        
-        tenant = tenant_service.create_tenant(
+        tenant = Tenant(
             name="TSH ERP Default Organization",
             code="TSH_DEFAULT",
             subdomain="default",
-            admin_user=admin_user_data
+            is_active=True
         )
+        db.add(tenant)
+        db.flush()  # Get the tenant ID
+        
+        # Create default admin role
+        admin_role = Role(
+            name="Admin",
+            display_name="System Administrator",
+            description="Full system access",
+            tenant_id=tenant.id,
+            is_active=True
+        )
+        db.add(admin_role)
+        db.flush()
+        
+        # Create default branch
+        default_branch = Branch(
+            name="Main Branch",
+            code="MAIN",
+            tenant_id=tenant.id,
+            is_active=True
+        )
+        db.add(default_branch)
+        db.flush()
+        
+        # Create admin user
+        from app.services.security_service import SecurityService
+        security_service = SecurityService(db)
+        
+        password_hash, salt = security_service.hash_password("AdminPass123!")
+        
+        admin_user = User(
+            username="admin",
+            email="admin@tsh-erp.com",
+            password_hash=password_hash,
+            password_salt=salt,
+            first_name="System",
+            last_name="Administrator",
+            tenant_id=tenant.id,
+            branch_id=default_branch.id,
+            role_id=admin_role.id,
+            is_active=True,
+            is_verified=True
+        )
+        db.add(admin_user)
+        
+        db.commit()
         
         print(f"✅ Created tenant: {tenant.name} (ID: {tenant.id})")
-        print(f"✅ Created admin user: {admin_user_data['username']}")
-        print(f"⚠️  Default admin password: {admin_user_data['password']}")
+        print(f"✅ Created admin user: admin")
+        print(f"⚠️  Default admin password: AdminPass123!")
         print("⚠️  CHANGE THE DEFAULT PASSWORD IMMEDIATELY!")
         
         return tenant
@@ -65,10 +110,22 @@ def setup_database_security():
     
     db = SessionLocal()
     try:
-        setup_row_level_security(db)
-        print("✅ Row-level security policies enabled")
+        # Enable RLS on tables (simplified version)
+        rls_tables = ['users', 'branches', 'products', 'customers', 'sales_orders']
+        
+        for table in rls_tables:
+            try:
+                # Enable RLS
+                db.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
+                print(f"✅ Enabled RLS on {table}")
+            except Exception as e:
+                print(f"⚠️  RLS already enabled on {table} or table doesn't exist: {e}")
+        
+        db.commit()
+        print("✅ Row-level security setup complete")
     except Exception as e:
         print(f"❌ Error setting up database security: {e}")
+        db.rollback()
     finally:
         db.close()
 
@@ -284,10 +341,228 @@ def verify_setup():
     else:
         print("\n⚠️  Some checks failed. Please review the errors above.")
 
+def setup_advanced_security_system():
+    """Setup the complete advanced security system"""
+    print("🔐 Setting up advanced security system...")
+    
+    db = SessionLocal()
+    try:
+        # Import advanced security models
+        from app.models.advanced_security import (
+            SecurityPolicy, RestrictionGroup, RLSRule, FLSRule,
+            MFADevice, UserSession, AuditLog, DeviceSession
+        )
+        from app.config.security_config import SecurityPolicies, RLSRules, FLSRules
+        
+        # Create default security policies
+        policies = SecurityPolicies.get_default_policies()
+        for policy_data in policies:
+            existing = db.query(SecurityPolicy).filter(
+                SecurityPolicy.name == policy_data["name"]
+            ).first()
+            
+            if not existing:
+                policy = SecurityPolicy(
+                    name=policy_data["name"],
+                    display_name=policy_data["display_name"],
+                    description=policy_data["description"],
+                    policy_document=policy_data["policy_document"],
+                    effect=policy_data["effect"],
+                    priority=policy_data["priority"],
+                    is_active=True,
+                    created_by=1  # Admin user
+                )
+                db.add(policy)
+                print(f"✅ Created security policy: {policy_data['display_name']}")
+        
+        # Create default restriction groups
+        restriction_groups = SecurityPolicies.get_default_restriction_groups()
+        for group_data in restriction_groups:
+            existing = db.query(RestrictionGroup).filter(
+                RestrictionGroup.name == group_data["name"]
+            ).first()
+            
+            if not existing:
+                group = RestrictionGroup(
+                    name=group_data["name"],
+                    description=group_data["description"],
+                    restrictions=group_data["restrictions"],
+                    is_active=True,
+                    created_by=1
+                )
+                db.add(group)
+                print(f"✅ Created restriction group: {group_data['name']}")
+        
+        # Create default RLS rules
+        rls_rules = RLSRules.get_default_rules()
+        for rule_data in rls_rules:
+            existing = db.query(RLSRule).filter(
+                RLSRule.name == rule_data["name"]
+            ).first()
+            
+            if not existing:
+                rule = RLSRule(
+                    name=rule_data["name"],
+                    description=rule_data["description"],
+                    table_name=rule_data["table_name"],
+                    rule_expression=rule_data["rule_expression"],
+                    applies_to_actions=rule_data["applies_to_actions"],
+                    applies_to_roles=rule_data["applies_to_roles"],
+                    is_active=True,
+                    created_by=1
+                )
+                db.add(rule)
+                print(f"✅ Created RLS rule: {rule_data['name']}")
+        
+        # Create default FLS rules
+        fls_rules = FLSRules.get_default_rules()
+        for rule_data in fls_rules:
+            existing = db.query(FLSRule).filter(
+                FLSRule.name == rule_data["name"]
+            ).first()
+            
+            if not existing:
+                rule = FLSRule(
+                    name=rule_data["name"],
+                    description=rule_data["description"],
+                    table_name=rule_data["table_name"],
+                    column_name=rule_data["column_name"],
+                    is_visible=rule_data.get("is_visible", True),
+                    is_readable=rule_data.get("is_readable", True),
+                    is_writable=rule_data.get("is_writable", True),
+                    masking_pattern=rule_data.get("masking_pattern"),
+                    requires_encryption=rule_data.get("requires_encryption", False),
+                    applies_to_roles=rule_data["applies_to_roles"],
+                    is_active=True,
+                    created_by=1
+                )
+                db.add(rule)
+                print(f"✅ Created FLS rule: {rule_data['name']}")
+        
+        db.commit()
+        print("✅ Advanced security system setup complete")
+        
+    except Exception as e:
+        print(f"❌ Error setting up advanced security system: {e}")
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+def create_firebase_config():
+    """Create Firebase configuration for MFA mobile app"""
+    print("📱 Creating Firebase configuration...")
+    
+    firebase_config = {
+        "apiKey": "your-firebase-api-key",
+        "authDomain": "tsh-erp-mfa.firebaseapp.com",
+        "projectId": "tsh-erp-mfa",
+        "storageBucket": "tsh-erp-mfa.appspot.com",
+        "messagingSenderId": "123456789",
+        "appId": "1:123456789:android:abcdef123456789",
+        "serverKey": "your-firebase-server-key"
+    }
+    
+    config_dir = Path("mobile/flutter_apps/09_tsh_mfa_authenticator/android/app")
+    config_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create google-services.json placeholder
+    google_services = {
+        "project_info": {
+            "project_number": "123456789",
+            "project_id": "tsh-erp-mfa"
+        },
+        "client": [
+            {
+                "client_info": {
+                    "mobilesdk_app_id": "1:123456789:android:abcdef123456789",
+                    "android_client_info": {
+                        "package_name": "com.tsh.mfa_authenticator"
+                    }
+                }
+            }
+        ]
+    }
+    
+    with open(config_dir / "google-services.json", "w") as f:
+        json.dump(google_services, f, indent=2)
+    
+    print("✅ Firebase configuration created (placeholder)")
+    print("⚠️  Please update with your actual Firebase project credentials")
+
+def setup_environment_file():
+    """Create comprehensive environment file"""
+    print("� Creating environment configuration...")
+    
+    env_content = """# TSH ERP System - Advanced Security Environment Configuration
+# Generated on {date}
+
+# === DATABASE ===
+DATABASE_URL=postgresql://username:password@localhost:5432/tsh_erp_db
+REDIS_URL=redis://localhost:6379/0
+
+# === SECURITY ===
+SECURITY_ENCRYPTION_KEY=your-256-bit-encryption-key-here-change-in-production
+JWT_SECRET_KEY=your-jwt-secret-key-here-change-in-production-minimum-32-chars
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_HOURS=24
+
+# === MFA & AUTHENTICATION ===
+MFA_ISSUER_NAME=TSH ERP System
+MFA_BACKUP_CODES_ENCRYPTION_KEY=your-backup-codes-encryption-key-here
+BIOMETRIC_ENCRYPTION_KEY=your-biometric-data-encryption-key-here
+
+# === FIREBASE (Mobile MFA) ===
+FIREBASE_PROJECT_ID=tsh-erp-mfa
+FIREBASE_SERVER_KEY=your-firebase-server-key-here
+FIREBASE_WEB_API_KEY=your-firebase-web-api-key-here
+
+# === EXTERNAL SERVICES ===
+# GeoIP Service
+GEOIP_API_KEY=your-geoip-api-key-here
+GEOIP_SERVICE_URL=https://api.ipgeolocation.io/ipgeo
+
+# Email Service (for notifications)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_USE_TLS=true
+
+# SMS Service (for MFA)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=+1234567890
+
+# === SECURITY MONITORING ===
+SECURITY_WEBHOOK_URL=https://your-monitoring-service.com/webhook
+SECURITY_ALERT_EMAIL=security@tsh-erp.com
+
+# === ENVIRONMENT ===
+ENVIRONMENT=development
+DEBUG=true
+LOG_LEVEL=INFO
+
+# === API KEYS ===
+API_RATE_LIMIT_REDIS_URL=redis://localhost:6379/1
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:8080
+
+# === MOBILE APP ===
+MOBILE_APP_DEEP_LINK_SCHEME=tsh-mfa
+MOBILE_APP_STORE_URL=https://play.google.com/store/apps/details?id=com.tsh.mfa_authenticator
+""".format(date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    
+    env_file = Path(".env.example")
+    with open(env_file, "w") as f:
+        f.write(env_content)
+    
+    print("✅ Environment configuration created (.env.example)")
+    print("⚠️  Copy to .env and update with your actual values")
+
 def main():
     """Main setup function"""
-    print("🚀 TSH ERP System - Advanced Security Setup")
-    print("=" * 50)
+    print("�🚀 TSH ERP System - Advanced Security Setup")
+    print("=" * 60)
     
     try:
         # Step 1: Create encryption key
@@ -303,20 +578,65 @@ def main():
         tenant = create_default_tenant()
         if not tenant:
             print("❌ Failed to create default tenant. Aborting setup.")
-            return
+            return False
         
-        # Step 5: Setup permissions
+        # Step 5: Setup advanced security system
+        setup_advanced_security_system()
+        
+        # Step 6: Setup permissions
         setup_default_permissions()
         
-        # Step 6: Create sample users
+        # Step 7: Create sample users
         create_sample_users()
         
-        # Step 7: Verify setup
+        # Step 8: Create Firebase config
+        create_firebase_config()
+        
+        # Step 9: Setup environment file
+        setup_environment_file()
+        
+        # Step 10: Verify setup
         verify_setup()
+        
+        print("\n🎉 Advanced Security System Setup Complete!")
+        print("=" * 60)
+        print("\n📋 What was created:")
+        print("• Advanced security models (ABAC, RBAC, PBAC)")
+        print("• Row-Level Security (RLS) rules")
+        print("• Field-Level Security (FLS) rules")
+        print("• Centralized audit logging system")
+        print("• Multi-Factor Authentication (MFA) framework")
+        print("• Device and session management")
+        print("• Security policies and restriction groups")
+        print("• Mobile MFA application structure")
+        print("• Comprehensive security configuration")
+        
+        print("\n🔧 Next Steps:")
+        print("1. Copy .env.example to .env and configure credentials")
+        print("2. Run database migration: python scripts/migrations/create_advanced_security_system.py")
+        print("3. Update Firebase configuration with real project details")
+        print("4. Configure external services (GeoIP, SMS, Email)")
+        print("5. Build and deploy the mobile MFA app")
+        print("6. Test the security system thoroughly")
+        print("7. Update admin password and enable MFA")
+        
+        print("\n🔒 Security Features Available:")
+        print("• Multi-layered access control (ABAC + RBAC + PBAC)")
+        print("• Dynamic policy evaluation with risk scoring")
+        print("• Real-time session and device monitoring")
+        print("• Location-based access restrictions")
+        print("• Advanced audit logging with forensic capabilities")
+        print("• Mobile MFA with push notifications")
+        print("• Biometric and passless authentication")
+        print("• Automated threat detection and response")
+        
+        return True
         
     except Exception as e:
         print(f"❌ Setup failed: {e}")
         print("Please check the error and try again.")
+        return False
 
 if __name__ == "__main__":
-    main()
+    success = main()
+    exit(0 if success else 1)

@@ -23,6 +23,10 @@ class DashboardProvider extends ChangeNotifier {
   // Trend data
   double _receivablesTrend = 0.0;
   double _commissionTrend = 0.0;
+  
+  // Leaderboard data
+  Map<String, dynamic> _leaderboardData = {};
+  Map<String, dynamic> _dashboardData = {};
 
   DashboardProvider(this._odooService);
 
@@ -44,6 +48,10 @@ class DashboardProvider extends ChangeNotifier {
   
   double get receivablesTrend => _receivablesTrend;
   double get commissionTrend => _commissionTrend;
+  
+  // New getters for leaderboard
+  Map<String, dynamic> get leaderboardData => _leaderboardData;
+  Map<String, dynamic> get dashboardData => _dashboardData;
 
   // Load dashboard data
   Future<void> loadDashboard() async {
@@ -58,6 +66,7 @@ class DashboardProvider extends ChangeNotifier {
         _loadCashBox(),
         _loadRegionalData(),
         _loadSummaryStats(),
+        _loadLeaderboardData(),
       ]);
     } catch (e) {
       _setError(e.toString());
@@ -131,6 +140,18 @@ class DashboardProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading summary stats: $e');
+    }
+  }
+
+  // Load leaderboard data
+  Future<void> _loadLeaderboardData() async {
+    try {
+      final data = await _odooService.getDashboardData('leaderboard');
+      _leaderboardData = data ?? {};
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading leaderboard data: $e');
+      _leaderboardData = {};
     }
   }
 
@@ -229,5 +250,147 @@ class DashboardProvider extends ChangeNotifier {
     _commissionTrend = 8.3;
 
     notifyListeners();
+  }
+  
+  // Fetch dashboard data
+  Future<void> fetchDashboardData() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Mock dashboard data
+      _dashboardData = {
+        'commission': {
+          'total': 45000000.0,
+          'paid': 30000000.0,
+          'pending': 15000000.0,
+          'this_month': 8500000.0,
+        },
+        'receivables': {
+          'total': 125000000.0,
+          'overdue': 35000000.0,
+          'due_this_week': 12000000.0,
+          'customer_count': 45,
+        },
+        'cash_box': {
+          'amount': 5500000.0,
+        },
+        'digital_payments': {
+          'amount': 12500000.0,
+          'count': 38,
+        },
+        'sales': {
+          'today': 3200000.0,
+          'this_week': 18500000.0,
+          'this_month': 65000000.0,
+          'growth_percentage': 15.5,
+          'top_products': [
+            {'name': 'منتج A', 'quantity': 45, 'revenue': 12500000.0},
+            {'name': 'منتج B', 'quantity': 32, 'revenue': 8900000.0},
+            {'name': 'منتج C', 'quantity': 28, 'revenue': 7200000.0},
+          ],
+        },
+      };
+      notifyListeners();
+    } catch (e) {
+      _setError(e.toString());
+    } finally {
+      _setLoading(false);
+    }
+  }
+  
+  // Fetch leaderboard data
+  Future<void> fetchLeaderboardData(String period) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Mock leaderboard data
+      _leaderboardData = {
+        'current_level': {
+          'name': 'ذهبي',
+          'progress': 0.65,
+          'current_points': 6500,
+          'next_level_points': 10000,
+          'rank': 8,
+          'total_salespeople': 45,
+        },
+        'challenges': [
+          {
+            'title': 'بطل المبيعات',
+            'description': 'حقق 50 مليون مبيعات هذا الشهر',
+            'progress': 0.82,
+            'reward': '500,000 نقطة',
+            'is_completed': false,
+          },
+          {
+            'title': 'جامع الديون',
+            'description': 'حصّل 30 مليون هذا الأسبوع',
+            'progress': 0.45,
+            'reward': '300,000 نقطة',
+            'is_completed': false,
+          },
+          {
+            'title': 'الزيارات النشطة',
+            'description': 'قم بزيارة 20 عميل',
+            'progress': 1.0,
+            'reward': '200,000 نقطة',
+            'is_completed': true,
+          },
+        ],
+        'sales_comparison': {
+          'my_sales': 65000000.0,
+          'team_average': 52000000.0,
+          'top_performer': 95000000.0,
+        },
+        'collection_comparison': {
+          'my_collections': 42000000.0,
+          'team_average': 38000000.0,
+          'top_collector': 68000000.0,
+        },
+        'activity': {
+          'visits': 18,
+          'calls': 45,
+          'follow_ups': 32,
+        },
+        'top_performers': [
+          {
+            'name': 'أحمد محمد',
+            'sales': 95000000.0,
+            'collections': 68000000.0,
+            'is_current_user': false,
+          },
+          {
+            'name': 'فاطمة علي',
+            'sales': 88000000.0,
+            'collections': 65000000.0,
+            'is_current_user': false,
+          },
+          {
+            'name': 'محمد حسن',
+            'sales': 82000000.0,
+            'collections': 58000000.0,
+            'is_current_user': false,
+          },
+          {
+            'name': 'أنت',
+            'sales': 65000000.0,
+            'collections': 42000000.0,
+            'is_current_user': true,
+          },
+          {
+            'name': 'علي كريم',
+            'sales': 58000000.0,
+            'collections': 45000000.0,
+            'is_current_user': false,
+          },
+        ],
+      };
+      notifyListeners();
+    } catch (e) {
+      _setError(e.toString());
+    } finally {
+      _setLoading(false);
+    }
   }
 }
