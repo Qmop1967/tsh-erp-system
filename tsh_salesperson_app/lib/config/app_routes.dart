@@ -11,7 +11,7 @@ import '../pages/sales/sales_page.dart';
 
 class AppRoutes {
   static final GoRouter router = GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/login',
     routes: [
       GoRoute(
         path: '/login',

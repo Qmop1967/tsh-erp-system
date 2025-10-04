@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../config/app_theme.dart';
+import '../../config/app_routes.dart';
 import '../../providers/auth_provider.dart';
 
 class MenuPage extends StatelessWidget {
@@ -311,9 +313,17 @@ class MenuPage extends StatelessWidget {
                   child: const Text('إلغاء'),
                 ),
                 TextButton(
-                  onPressed: () {
-                    context.read<AuthProvider>().logout();
+                  onPressed: () async {
+                    // Close dialog first
                     Navigator.pop(context);
+
+                    // Perform logout
+                    await context.read<AuthProvider>().logout();
+
+                    // Navigate to login page
+                    if (context.mounted) {
+                      context.go(AppRoutes.login);
+                    }
                   },
                   child: const Text(
                     'تسجيل الخروج',

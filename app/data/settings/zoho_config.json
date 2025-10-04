@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "client_id": "1000.SLY5X93N58VN46HXQIIZSOQKG8J3ZJ",
+  "client_secret": "0581c245cd951e1453042ff2bcf223768e128fed9f",
+  "refresh_token": "1000.442cace0b2ef482fd2003d0f9282a27c.924fb7daaeb23f1994d96766cf563d4c",
+  "access_token": "1000.42fa517668e9a3bbfb53bdf428c385b0.98e984d1469c06c2c2298e9d064a04e4",
+  "organization_id": "748369814",
+  "modules": [
+    {
+      "name": "Zoho CRM",
+      "enabled": true,
+      "last_sync": null
+    },
+    {
+      "name": "Zoho Books",
+      "enabled": true,
+      "last_sync": "2025-10-04T19:49:03.633966"
+    },
+    {
+      "name": "Zoho Inventory",
+      "enabled": true,
+      "last_sync": "2025-10-04T19:49:08.123802"
+    },
+    {
+      "name": "Zoho Invoice",
+      "enabled": false,
+      "last_sync": null
+    }
+  ]
+}

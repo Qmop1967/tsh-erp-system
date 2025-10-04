@@ -9,6 +9,16 @@ import ItemsPage from './pages/inventory/ItemsPage'
 import { ComingSoonPage } from './pages/ComingSoonPage'
 import { useAuthStore } from './stores/authStore'
 
+// Modern Settings Pages
+import ModernSettingsPage from './pages/settings/ModernSettingsPage'
+import WhatsAppBusinessSettings from './pages/settings/integrations/WhatsAppBusinessSettings'
+import ZohoIntegrationSettings from './pages/settings/integrations/ZohoIntegrationSettings'
+import ZohoIntegrationSimple from './pages/settings/integrations/ZohoIntegrationSimple'
+import DevicesManagement from './pages/settings/auth/DevicesManagement'
+import MFASettings from './pages/settings/auth/MFASettings'
+import OrganizationProfile from './pages/settings/general/OrganizationProfile'
+import DynamicTranslationManagementPage from './pages/settings/DynamicTranslationManagementPage'
+
 console.log('🚀 TSH ERP System - Enhanced Authentication Mode')
 
 // Protected Route wrapper
@@ -163,11 +173,60 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        {/* Settings Routes */}
         <Route 
           path="/settings" 
           element={
             <ProtectedRoute>
-              <ComingSoonPage title="System Settings" description="Configuration and settings coming soon." />
+              <ModernSettingsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/integrations/whatsapp" 
+          element={
+            <ProtectedRoute>
+              <WhatsAppBusinessSettings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/integrations/zoho" 
+          element={
+            <ProtectedRoute>
+              <ZohoIntegrationSettings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/auth/devices" 
+          element={
+            <ProtectedRoute>
+              <DevicesManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/auth/mfa" 
+          element={
+            <ProtectedRoute>
+              <MFASettings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/general/organization" 
+          element={
+            <ProtectedRoute>
+              <OrganizationProfile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/translations" 
+          element={
+            <ProtectedRoute>
+              <DynamicTranslationManagementPage />
             </ProtectedRoute>
           } 
         />

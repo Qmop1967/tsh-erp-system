@@ -7,7 +7,7 @@ import 'odoo_service.dart';
 class AuthService {
   final OdooService _odooService;
   
-  static const String _baseUrl = 'http://localhost:8000/api/v1';
+  static const String _baseUrl = 'http://localhost:8000/api';
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
@@ -17,7 +17,7 @@ class AuthService {
   Future<AuthModel?> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
+        Uri.parse('$_baseUrl/auth/login/mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -27,19 +27,17 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        
-        if (data['success'] == true && data['data'] != null) {
-          final authData = data['data'];
-          final token = authData['access_token'];
-          final userInfo = authData['user'];
 
-          // Save token and user data locally
-          await _saveTokenAndUser(token, userInfo);
+        // Backend returns data directly, not wrapped in success/data
+        final token = data['access_token'];
+        final userInfo = data['user'];
 
-          return AuthModel.fromJson(userInfo);
-        }
+        // Save token and user data locally
+        await _saveTokenAndUser(token, userInfo);
+
+        return AuthModel.fromJson(userInfo);
       }
-      
+
       return null;
     } catch (e) {
       print('Login error: $e');

@@ -1,0 +1,246 @@
+{
+  "testDate": "2025-10-04T12:04:15.246Z",
+  "baseUrl": "http://localhost:5173",
+  "tests": [
+    {
+      "name": "Homepage Load",
+      "status": "PASS",
+      "details": "Page title: \"TSH ERP System - Admin Dashboard\"",
+      "timestamp": "2025-10-04T12:04:17.489Z"
+    },
+    {
+      "name": "Login Form Elements",
+      "status": "PASS",
+      "details": "All login form elements found",
+      "timestamp": "2025-10-04T12:04:17.494Z"
+    },
+    {
+      "name": "Fill Login Form",
+      "status": "PASS",
+      "details": "Credentials entered successfully",
+      "timestamp": "2025-10-04T12:04:18.608Z"
+    },
+    {
+      "name": "Login Navigation",
+      "status": "PASS",
+      "details": "Navigated to: http://localhost:5173/dashboard",
+      "timestamp": "2025-10-04T12:04:22.212Z"
+    },
+    {
+      "name": "Inventory Page Navigation",
+      "status": "INFO",
+      "details": "Inventory link not found in current view",
+      "timestamp": "2025-10-04T12:04:24.220Z"
+    },
+    {
+      "name": "Users Page Navigation",
+      "status": "INFO",
+      "details": "Users link not found in current view",
+      "timestamp": "2025-10-04T12:04:24.221Z"
+    },
+    {
+      "name": "Sidebar Toggle",
+      "status": "INFO",
+      "details": "Collapse button not found",
+      "timestamp": "2025-10-04T12:04:24.222Z"
+    },
+    {
+      "name": "Tablet View",
+      "status": "PASS",
+      "details": "Tablet viewport tested",
+      "timestamp": "2025-10-04T12:04:25.290Z"
+    },
+    {
+      "name": "Mobile View",
+      "status": "PASS",
+      "details": "Mobile viewport tested",
+      "timestamp": "2025-10-04T12:04:26.350Z"
+    },
+    {
+      "name": "Performance Metrics",
+      "status": "PASS",
+      "details": "Load: 0.00ms, DOM: 0.00ms, Response: 3.70ms",
+      "timestamp": "2025-10-04T12:04:26.366Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "01-homepage-login",
+      "description": "Login page initial load",
+      "path": "/Users/khaleelal-mulla/TSH_ERP_System_Local/screenshots/01-homepage-login.png",
+      "timestamp": "2025-10-04T12:04:17.488Z"
+    },
+    {
+      "name": "02-login-filled",
+      "description": "Login form with credentials filled",
+      "path": "/Users/khaleelal-mulla/TSH_ERP_System_Local/screenshots/02-login-filled.png",
+      "timestamp": "2025-10-04T12:04:18.608Z"
+    },
+    {
+      "name": "03-after-login",
+      "description": "Page after login attempt",
+      "path": "/Users/khaleelal-mulla/TSH_ERP_System_Local/screenshots/03-after-login.png",
+      "timestamp": "2025-10-04T12:04:22.212Z"
+    },
+    {
+      "name": "09-tablet-view",
+      "description": "Tablet responsive view",
+      "path": "/Users/khaleelal-mulla/TSH_ERP_System_Local/screenshots/09-tablet-view.png",
+      "timestamp": "2025-10-04T12:04:25.290Z"
+    },
+    {
+      "name": "10-mobile-view",
+      "description": "Mobile responsive view",
+      "path": "/Users/khaleelal-mulla/TSH_ERP_System_Local/screenshots/10-mobile-view.png",
+      "timestamp": "2025-10-04T12:04:26.350Z"
+    }
+  ],
+  "errors": [],
+  "consoleMessages": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting...",
+      "timestamp": "2025-10-04T12:04:15.736Z"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected.",
+      "timestamp": "2025-10-04T12:04:15.746Z"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+      "timestamp": "2025-10-04T12:04:15.776Z"
+    },
+    {
+      "type": "log",
+      "text": "🚀 TSH ERP System - Enhanced Authentication Mode",
+      "timestamp": "2025-10-04T12:04:15.783Z"
+    },
+    {
+      "type": "log",
+      "text": "🚀 Starting TSH ERP System - Full Tailwind Mode...",
+      "timestamp": "2025-10-04T12:04:15.785Z"
+    },
+    {
+      "type": "log",
+      "text": "Root element: JSHandle@node",
+      "timestamp": "2025-10-04T12:04:15.786Z"
+    },
+    {
+      "type": "log",
+      "text": "🎯 App component rendering with authentication...",
+      "timestamp": "2025-10-04T12:04:15.800Z"
+    },
+    {
+      "type": "log",
+      "text": "🎯 App component rendering with authentication...",
+      "timestamp": "2025-10-04T12:04:15.800Z"
+    },
+    {
+      "type": "log",
+      "text": "🚫 Not authenticated, redirecting to login",
+      "timestamp": "2025-10-04T12:04:15.800Z"
+    },
+    {
+      "type": "log",
+      "text": "🚫 Not authenticated, redirecting to login",
+      "timestamp": "2025-10-04T12:04:15.800Z"
+    },
+    {
+      "type": "warning",
+      "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.",
+      "timestamp": "2025-10-04T12:04:15.810Z"
+    },
+    {
+      "type": "warning",
+      "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.",
+      "timestamp": "2025-10-04T12:04:15.811Z"
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o",
+      "timestamp": "2025-10-04T12:04:15.903Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:04:16.224Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:04:16.224Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:04:16.224Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:04:16.224Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:04:16.367Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:04:16.367Z"
+    },
+    {
+      "type": "log",
+      "text": "🔐 Attempting login... admin@tsh-erp.com",
+      "timestamp": "2025-10-04T12:04:18.628Z"
+    },
+    {
+      "type": "log",
+      "text": "✅ Login successful {id: 23, name: System Administrator, email: admin@tsh-erp.com, role: Admin, branch: Main Branch}",
+      "timestamp": "2025-10-04T12:04:19.018Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:04:24.247Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:04:24.247Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:04:25.296Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:04:25.296Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:04:26.353Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:04:26.353Z"
+    }
+  ],
+  "summary": {
+    "totalTests": 10,
+    "passed": 7,
+    "failed": 0,
+    "info": 3,
+    "successRate": "70.00%",
+    "totalScreenshots": 5,
+    "totalErrors": 0,
+    "totalConsoleMessages": 27
+  }
+}

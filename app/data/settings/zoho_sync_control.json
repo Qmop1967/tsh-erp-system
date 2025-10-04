@@ -1,0 +1,12 @@
+{
+  "webhook_enabled": true,
+  "webhook_url": "https://your-domain.com/api/webhooks/zoho",
+  "webhook_secret": "",
+  "batch_size": 100,
+  "retry_attempts": 3,
+  "retry_delay": 60,
+  "notification_email": null,
+  "error_threshold": 10,
+  "validate_data": true,
+  "backup_before_sync": true
+}

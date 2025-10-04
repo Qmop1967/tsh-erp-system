@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(github-copilot-cli:*)",
+      "Bash(ping:*)",
+      "Bash(curl -I https://github.com/login/device)",
+      "Bash(nslookup:*)",
+      "Read(//Users/khaleelal-mulla/.config/**)",
+      "Bash(brew install:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh extension install:*)",
+      "Bash(gh copilot:*)",
+      "Bash(npm start)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

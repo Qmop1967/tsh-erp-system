@@ -1,26 +1,35 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useLanguageStore } from '@/stores/languageStore'
 import { useTranslations } from '@/lib/translations'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { BranchSwitcher } from '@/components/ui/BranchSwitcher'
-import { 
-  Bell, 
-  Search, 
-  Sun, 
-  Moon, 
+import {
+  Bell,
+  Search,
+  Sun,
+  Moon,
   User,
   Settings,
-  ChevronDown 
+  ChevronDown
 } from 'lucide-react'
 
 export function Header() {
   const [darkMode, setDarkMode] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
   const { user } = useAuthStore()
   const { language, isRTL } = useLanguageStore()
   const t = useTranslations(language)
+
+  const hasPermission = (permissions: string[]) => {
+    if (!user || !user.permissions) return false
+    const userPerms = user.permissions || []
+    if (userPerms.includes('admin')) return true
+    return permissions.some(permission => userPerms.includes(permission))
+  }
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
@@ -66,17 +75,108 @@ export function Header() {
             )}
           </Button>
 
+          {/* Settings */}
+          {hasPermission(['admin', 'settings.view']) && (
+            <Link to="/settings">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
+
           {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 relative hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
-              3
-            </span>
-          </Button>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 relative hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
+                3
+              </span>
+            </Button>
+
+            {/* Notifications dropdown */}
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Notifications
+                  </h3>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {/* Notification items */}
+                  <div className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <p className="text-sm text-gray-900 dark:text-white font-medium">
+                          New sales order #SO-2024-001
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          A new sales order has been created
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          5 minutes ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <p className="text-sm text-gray-900 dark:text-white font-medium">
+                          Payment received
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Payment of $5,000 received for invoice #INV-2024-156
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          2 hours ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <p className="text-sm text-gray-900 dark:text-white font-medium">
+                          Low stock alert
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Product "Premium Widget" is running low on stock
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          1 day ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+                  <button className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                    View all notifications
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* User menu */}
           <div className="relative">

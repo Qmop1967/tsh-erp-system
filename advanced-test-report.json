@@ -1,0 +1,142 @@
+{
+  "testDate": "2025-10-04T12:05:48.762Z",
+  "baseUrl": "http://localhost:5173",
+  "tests": [
+    {
+      "name": "User Authentication",
+      "status": "PASS",
+      "details": "Successfully logged in and redirected to dashboard",
+      "timestamp": "2025-10-04T12:05:56.665Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "01-login-page",
+      "description": "Initial login page",
+      "path": "/Users/khaleelal-mulla/TSH_ERP_System_Local/screenshots/01-login-page.png",
+      "timestamp": "2025-10-04T12:05:51.203Z"
+    },
+    {
+      "name": "02-dashboard-main",
+      "description": "Main dashboard after login",
+      "path": "/Users/khaleelal-mulla/TSH_ERP_System_Local/screenshots/02-dashboard-main.png",
+      "timestamp": "2025-10-04T12:05:56.737Z"
+    }
+  ],
+  "errors": [
+    {
+      "message": "page.evaluate: SyntaxError: Failed to execute 'querySelector' on 'Document': 'div:has-text(\"Total Revenue\") ~ *' is not a valid selector.\n    at getText (eval at evaluate (:291:30), <anonymous>:3:29)\n    at eval (eval at evaluate (:291:30), <anonymous>:8:18)\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "stack": "page.evaluate: SyntaxError: Failed to execute 'querySelector' on 'Document': 'div:has-text(\"Total Revenue\") ~ *' is not a valid selector.\n    at getText (eval at evaluate (:291:30), <anonymous>:3:29)\n    at eval (eval at evaluate (:291:30), <anonymous>:8:18)\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at advancedERPTest (/Users/khaleelal-mulla/TSH_ERP_System_Local/advanced_comprehensive_test.js:91:32)",
+      "timestamp": "2025-10-04T12:05:56.738Z"
+    }
+  ],
+  "consoleMessages": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting...",
+      "timestamp": "2025-10-04T12:05:49.157Z"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected.",
+      "timestamp": "2025-10-04T12:05:49.172Z"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+      "timestamp": "2025-10-04T12:05:49.192Z"
+    },
+    {
+      "type": "log",
+      "text": "🚀 TSH ERP System - Enhanced Authentication Mode",
+      "timestamp": "2025-10-04T12:05:49.198Z"
+    },
+    {
+      "type": "log",
+      "text": "🚀 Starting TSH ERP System - Full Tailwind Mode...",
+      "timestamp": "2025-10-04T12:05:49.199Z"
+    },
+    {
+      "type": "log",
+      "text": "Root element: JSHandle@node",
+      "timestamp": "2025-10-04T12:05:49.201Z"
+    },
+    {
+      "type": "log",
+      "text": "🎯 App component rendering with authentication...",
+      "timestamp": "2025-10-04T12:05:49.213Z"
+    },
+    {
+      "type": "log",
+      "text": "🎯 App component rendering with authentication...",
+      "timestamp": "2025-10-04T12:05:49.213Z"
+    },
+    {
+      "type": "log",
+      "text": "🚫 Not authenticated, redirecting to login",
+      "timestamp": "2025-10-04T12:05:49.213Z"
+    },
+    {
+      "type": "log",
+      "text": "🚫 Not authenticated, redirecting to login",
+      "timestamp": "2025-10-04T12:05:49.213Z"
+    },
+    {
+      "type": "warning",
+      "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.",
+      "timestamp": "2025-10-04T12:05:49.223Z"
+    },
+    {
+      "type": "warning",
+      "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.",
+      "timestamp": "2025-10-04T12:05:49.223Z"
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o",
+      "timestamp": "2025-10-04T12:05:49.316Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:05:49.650Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:05:49.650Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:05:49.650Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:05:49.650Z"
+    },
+    {
+      "type": "warning",
+      "text": "Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+      "timestamp": "2025-10-04T12:05:49.803Z"
+    },
+    {
+      "type": "warning",
+      "text": "OTS parsing error: invalid sfntVersion: 791289955",
+      "timestamp": "2025-10-04T12:05:49.803Z"
+    },
+    {
+      "type": "log",
+      "text": "🔐 Attempting login... admin@tsh-erp.com",
+      "timestamp": "2025-10-04T12:05:52.846Z"
+    },
+    {
+      "type": "log",
+      "text": "✅ Login successful {id: 23, name: System Administrator, email: admin@tsh-erp.com, role: Admin, branch: Main Branch}",
+      "timestamp": "2025-10-04T12:05:53.045Z"
+    }
+  ],
+  "pageAnalysis": {},
+  "summary": {}
+}

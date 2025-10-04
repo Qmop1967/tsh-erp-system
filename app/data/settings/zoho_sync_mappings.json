@@ -1,0 +1,195 @@
+{
+  "item": {
+    "entity_type": "item",
+    "enabled": true,
+    "sync_direction": "zoho_to_tsh",
+    "sync_mode": "real_time",
+    "sync_frequency": 15,
+    "field_mappings": [
+      {
+        "zoho_field": "item_id",
+        "tsh_field": "zoho_item_id",
+        "field_type": "text",
+        "is_required": true,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "name",
+        "tsh_field": "name",
+        "field_type": "text",
+        "is_required": true,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "sku",
+        "tsh_field": "sku",
+        "field_type": "text",
+        "is_required": true,
+        "default_value": null,
+        "transformation_rule": "uppercase"
+      },
+      {
+        "zoho_field": "description",
+        "tsh_field": "description",
+        "field_type": "text",
+        "is_required": false,
+        "default_value": "",
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "rate",
+        "tsh_field": "unit_price",
+        "field_type": "number",
+        "is_required": true,
+        "default_value": "0.00",
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "stock_on_hand",
+        "tsh_field": "quantity_on_hand",
+        "field_type": "number",
+        "is_required": false,
+        "default_value": "0",
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "category_name",
+        "tsh_field": "category",
+        "field_type": "text",
+        "is_required": false,
+        "default_value": "General",
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "image_name",
+        "tsh_field": "image_url",
+        "field_type": "image",
+        "is_required": false,
+        "default_value": null,
+        "transformation_rule": "download_image"
+      }
+    ],
+    "sync_images": true,
+    "sync_attachments": false,
+    "conflict_resolution": "zoho_wins",
+    "auto_create": true,
+    "auto_update": true,
+    "delete_sync": false,
+    "last_sync": "2025-10-04T21:44:51.164389",
+    "last_sync_status": "success",
+    "total_synced": 6612,
+    "total_errors": 0
+  },
+  "customer": {
+    "entity_type": "customer",
+    "enabled": true,
+    "sync_direction": "zoho_to_tsh",
+    "sync_mode": "real_time",
+    "sync_frequency": 10,
+    "field_mappings": [
+      {
+        "zoho_field": "contact_id",
+        "tsh_field": "zoho_customer_id",
+        "field_type": "text",
+        "is_required": true,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "contact_name",
+        "tsh_field": "name",
+        "field_type": "text",
+        "is_required": true,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "company_name",
+        "tsh_field": "company_name",
+        "field_type": "text",
+        "is_required": false,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "email",
+        "tsh_field": "email",
+        "field_type": "text",
+        "is_required": false,
+        "default_value": null,
+        "transformation_rule": "lowercase"
+      },
+      {
+        "zoho_field": "phone",
+        "tsh_field": "phone",
+        "field_type": "text",
+        "is_required": false,
+        "default_value": null,
+        "transformation_rule": null
+      }
+    ],
+    "sync_images": false,
+    "sync_attachments": false,
+    "conflict_resolution": "zoho_wins",
+    "auto_create": true,
+    "auto_update": true,
+    "delete_sync": false,
+    "last_sync": "2025-10-04T21:06:16.492989",
+    "last_sync_status": "in_progress",
+    "total_synced": 0,
+    "total_errors": 0
+  },
+  "vendor": {
+    "entity_type": "vendor",
+    "enabled": true,
+    "sync_direction": "zoho_to_tsh",
+    "sync_mode": "real_time",
+    "sync_frequency": 10,
+    "field_mappings": [
+      {
+        "zoho_field": "vendor_id",
+        "tsh_field": "zoho_vendor_id",
+        "field_type": "text",
+        "is_required": true,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "vendor_name",
+        "tsh_field": "name",
+        "field_type": "text",
+        "is_required": true,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "company_name",
+        "tsh_field": "company_name",
+        "field_type": "text",
+        "is_required": false,
+        "default_value": null,
+        "transformation_rule": null
+      },
+      {
+        "zoho_field": "email",
+        "tsh_field": "email",
+        "field_type": "text",
+        "is_required": false,
+        "default_value": null,
+        "transformation_rule": "lowercase"
+      }
+    ],
+    "sync_images": true,
+    "sync_attachments": false,
+    "conflict_resolution": "zoho_wins",
+    "auto_create": true,
+    "auto_update": true,
+    "delete_sync": false,
+    "last_sync": null,
+    "last_sync_status": null,
+    "total_synced": 0,
+    "total_errors": 0
+  }
+}
