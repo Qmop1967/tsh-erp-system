@@ -342,13 +342,46 @@ class _POSPageState extends State<POSPage> {
                       top: Radius.circular(16),
                     ),
                   ),
-                  child: Center(
-                    child: Icon(
-                      _getCategoryIcon(product.category),
-                      size: 64,
-                      color: AppTheme.primaryGreen.withOpacity(0.7),
-                    ),
-                  ),
+                  child: product.image != null && product.image!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                          child: Image.network(
+                            product.image!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Icon(
+                                  _getCategoryIcon(product.category),
+                                  size: 64,
+                                  color: AppTheme.primaryGreen.withOpacity(0.7),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  color: AppTheme.primaryGreen,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : Center(
+                          child: Icon(
+                            _getCategoryIcon(product.category),
+                            size: 64,
+                            color: AppTheme.primaryGreen.withOpacity(0.7),
+                          ),
+                        ),
                 ),
                 // Stock Badge
                 Positioned(
@@ -405,58 +438,46 @@ class _POSPageState extends State<POSPage> {
             ),
           ),
           // Product Info
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Product Name
-                  Text(
-                    product.nameAr,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: AppTheme.textDark,
-                    ),
-                    textAlign: TextAlign.right,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(16),
+              ),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Product Name
+                Text(
+                  product.nameAr.isNotEmpty ? product.nameAr : product.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.textDark,
                   ),
-                  const SizedBox(height: 4),
-                  // Product Description
-                  if (product.description != null)
+                  textAlign: TextAlign.right,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                // Price
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
                     Text(
-                      product.description!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.textLight,
-                      ),
-                      textAlign: TextAlign.right,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const Spacer(),
-                  // Price
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
                       '${_numberFormat.format(product.price)} د.ع',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 13,
                         color: AppTheme.primaryGreen,
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

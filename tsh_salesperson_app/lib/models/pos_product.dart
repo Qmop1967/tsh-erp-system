@@ -21,6 +21,21 @@ class POSProduct {
     this.image,
   });
 
+  factory POSProduct.fromJson(Map<String, dynamic> json) {
+    final product = json['product'] ?? {};
+    return POSProduct(
+      id: json['product_id']?.toString() ?? '0',
+      name: product['name'] ?? '',
+      nameAr: product['name_ar'] ?? product['name'] ?? '',
+      category: product['category_name'] ?? 'General',
+      price: (product['unit_price'] as num?)?.toDouble() ?? 0.0,
+      stock: (json['available_quantity'] as num?)?.toInt() ?? 0,
+      sku: product['sku'] ?? '',
+      description: null,
+      image: product['image_url'],
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

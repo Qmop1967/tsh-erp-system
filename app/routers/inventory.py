@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.db.database import get_db
 from app.schemas.inventory import (
-    InventoryItem, StockMovementCreate, StockMovement, 
+    InventoryItem, StockMovementCreate, StockMovement,
     InventoryReport, StockAdjustment
 )
 from app.schemas.product import ProductSummary
@@ -11,6 +11,7 @@ from app.services.inventory_service import InventoryService
 from app.models.inventory import InventoryItem as InventoryItemModel
 from app.models.product import Product, Category
 from app.models.item import Item
+from app.utils.image_helper import get_product_image_url
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -19,6 +20,7 @@ router = APIRouter(tags=["inventory"])
 
 @router.get("/items", response_model=List[dict])
 def get_inventory_items(
+    request: Request,
     warehouse_id: Optional[int] = Query(None, description="معرف المستودع"),
     product_id: Optional[int] = Query(None, description="معرف المنتج"),
     skip: int = Query(0, ge=0),
@@ -26,24 +28,34 @@ def get_inventory_items(
     db: Session = Depends(get_db)
 ):
     """الحصول على عناصر المخزون"""
+    # Get base URL for image URLs
+    base_url = str(request.base_url).rstrip('/')
+
     query = db.query(InventoryItemModel).options(
         joinedload(InventoryItemModel.product).joinedload(Product.category)
     )
-    
+
     if warehouse_id:
         query = query.filter(InventoryItemModel.warehouse_id == warehouse_id)
-    
+
     if product_id:
         query = query.filter(InventoryItemModel.product_id == product_id)
-    
+
     inventory_items = query.offset(skip).limit(limit).all()
-    
+
     # Convert to dictionary format to avoid validation issues
     result = []
     for item in inventory_items:
         product = item.product
         category = product.category if product else None
-        
+
+        # Generate image URL from barcode or SKU (fallback)
+        image_url = get_product_image_url(
+            barcode=product.barcode if product else None,
+            sku=product.sku if product else None,
+            base_url=base_url
+        )
+
         item_dict = {
             "id": item.id,
             "product_id": item.product_id,
@@ -61,16 +73,17 @@ def get_inventory_items(
                 "sku": product.sku if product else "",
                 "name": product.name if product else "",
                 "name_ar": product.name_ar if product else None,
+                "barcode": product.barcode if product else None,
                 "unit_price": float(product.unit_price) if product else 0,
                 "unit_of_measure": product.unit_of_measure if product else "",
                 "is_active": product.is_active if product else False,
                 "category_name": category.name if category else "Unknown",
                 "category_name_ar": category.name_ar if category else None,
-                "image_url": product.image_url if product else None
+                "image_url": image_url  # Full URL with base_url
             }
         }
         result.append(item_dict)
-    
+
     return result
 
 

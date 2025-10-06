@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { MainLayout } from './components/layout/MainLayout'
 import { SimpleDashboardPage } from './pages/dashboard/SimpleDashboardPage'
 import { LoginPage } from './pages/auth/LoginPage'
@@ -7,17 +8,20 @@ import { PermissionsPage } from './pages/permissions/PermissionsPage'
 import { RolesPage } from './pages/roles/RolesPage'
 import ItemsPage from './pages/inventory/ItemsPage'
 import { ComingSoonPage } from './pages/ComingSoonPage'
+import { PurchaseOrdersPage } from './pages/purchase/PurchaseOrdersPage'
+import POSInterface from './pages/pos/POSInterface'
 import { useAuthStore } from './stores/authStore'
 
 // Modern Settings Pages
 import ModernSettingsPage from './pages/settings/ModernSettingsPage'
+import ChatGPTIntegrationSettings from './pages/settings/integrations/ChatGPTIntegrationSettings'
 import WhatsAppBusinessSettings from './pages/settings/integrations/WhatsAppBusinessSettings'
 import ZohoIntegrationSettings from './pages/settings/integrations/ZohoIntegrationSettings'
-import ZohoIntegrationSimple from './pages/settings/integrations/ZohoIntegrationSimple'
 import DevicesManagement from './pages/settings/auth/DevicesManagement'
 import MFASettings from './pages/settings/auth/MFASettings'
 import OrganizationProfile from './pages/settings/general/OrganizationProfile'
 import DynamicTranslationManagementPage from './pages/settings/DynamicTranslationManagementPage'
+import DocumentationModule from './pages/settings/documentation/DocumentationModule'
 
 console.log('🚀 TSH ERP System - Enhanced Authentication Mode')
 
@@ -34,6 +38,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { checkAuthentication } = useAuthStore()
+  
+  // Restore authentication state from localStorage on app initialization
+  useEffect(() => {
+    console.log('🔐 Initializing app - checking stored authentication...')
+    const isAuthenticated = checkAuthentication()
+    if (isAuthenticated) {
+      console.log('✅ Authentication restored from localStorage')
+    } else {
+      console.log('ℹ️ No stored authentication found')
+    }
+  }, [checkAuthentication])
+  
   console.log('🎯 App component rendering with authentication...')
   
   return (
@@ -117,13 +134,21 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/purchase" 
+        <Route
+          path="/purchase"
           element={
             <ProtectedRoute>
-              <ComingSoonPage title="Purchase Management" description="Purchase order management coming soon." />
+              <PurchaseOrdersPage />
             </ProtectedRoute>
-          } 
+          }
+        />
+        <Route
+          path="/purchase/orders"
+          element={
+            <ProtectedRoute>
+              <PurchaseOrdersPage />
+            </ProtectedRoute>
+          }
         />
         <Route 
           path="/accounting" 
@@ -141,11 +166,11 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/pos" 
+        <Route
+          path="/pos"
           element={
             <ProtectedRoute>
-              <ComingSoonPage title="Point of Sale" description="Modern POS system coming soon." />
+              <POSInterface />
             </ProtectedRoute>
           } 
         />
@@ -179,6 +204,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ModernSettingsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/integrations/chatgpt" 
+          element={
+            <ProtectedRoute>
+              <ChatGPTIntegrationSettings />
             </ProtectedRoute>
           } 
         />
@@ -227,6 +260,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DynamicTranslationManagementPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings/documentation" 
+          element={
+            <ProtectedRoute>
+              <DocumentationModule />
             </ProtectedRoute>
           } 
         />

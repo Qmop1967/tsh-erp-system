@@ -204,7 +204,10 @@ class MigrationItem(Base):
     # Physical attributes
     weight = Column(Numeric(10, 3))
     dimensions = Column(String(100))  # L x W x H
-    
+
+    # Product image
+    image_url = Column(String(500))  # URL or path to product image
+
     # Status and flags
     is_active = Column(Boolean, default=True, nullable=False)
     is_serialized = Column(Boolean, default=False)

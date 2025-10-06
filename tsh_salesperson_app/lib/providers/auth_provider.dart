@@ -18,6 +18,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isLoggedIn => _isLoggedIn;
+  AuthService get authService => _authService;
 
   // Sign in method
   Future<bool> signIn(String email, String password) async {

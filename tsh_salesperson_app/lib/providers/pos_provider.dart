@@ -1,199 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/pos_product.dart';
 import '../models/pos_customer.dart';
 import '../models/cart_item.dart';
 
 class POSProvider with ChangeNotifier {
-  // Demo Products - Electronics Catalog
-  final List<POSProduct> _products = [
-    // Smartphones
-    POSProduct(
-      id: '1',
-      name: 'iPhone 15 Pro Max',
-      nameAr: 'ايفون 15 برو ماكس',
-      category: 'Smartphones',
-      price: 1350000,
-      stock: 15,
-      sku: 'IP15PM-256',
-      description: '256GB, Titanium Blue',
-    ),
-    POSProduct(
-      id: '2',
-      name: 'Samsung Galaxy S24 Ultra',
-      nameAr: 'سامسونج جالاكسي S24 الترا',
-      category: 'Smartphones',
-      price: 1200000,
-      stock: 20,
-      sku: 'SGS24U-512',
-      description: '512GB, Titanium Gray',
-    ),
-    POSProduct(
-      id: '3',
-      name: 'iPhone 14 Pro',
-      nameAr: 'ايفون 14 برو',
-      category: 'Smartphones',
-      price: 950000,
-      stock: 25,
-      sku: 'IP14P-128',
-      description: '128GB, Space Black',
-    ),
-    POSProduct(
-      id: '4',
-      name: 'Samsung Galaxy A54',
-      nameAr: 'سامسونج جالاكسي A54',
-      category: 'Smartphones',
-      price: 450000,
-      stock: 40,
-      sku: 'SGA54-128',
-      description: '128GB, Awesome Lime',
-    ),
-    POSProduct(
-      id: '5',
-      name: 'Xiaomi 13 Pro',
-      nameAr: 'شاومي 13 برو',
-      category: 'Smartphones',
-      price: 650000,
-      stock: 30,
-      sku: 'XM13P-256',
-      description: '256GB, Ceramic White',
-    ),
-    
-    // Laptops
-    POSProduct(
-      id: '6',
-      name: 'MacBook Pro 16"',
-      nameAr: 'ماك بوك برو 16 انش',
-      category: 'Laptops',
-      price: 3500000,
-      stock: 8,
-      sku: 'MBP16-M3',
-      description: 'M3 Pro, 32GB RAM, 1TB SSD',
-    ),
-    POSProduct(
-      id: '7',
-      name: 'Dell XPS 15',
-      nameAr: 'ديل XPS 15',
-      category: 'Laptops',
-      price: 2200000,
-      stock: 12,
-      sku: 'DXPS15-I9',
-      description: 'Intel i9, 32GB RAM, 1TB SSD',
-    ),
-    POSProduct(
-      id: '8',
-      name: 'HP Pavilion 15',
-      nameAr: 'اتش بي بافيليون 15',
-      category: 'Laptops',
-      price: 950000,
-      stock: 18,
-      sku: 'HPP15-I7',
-      description: 'Intel i7, 16GB RAM, 512GB SSD',
-    ),
-    POSProduct(
-      id: '9',
-      name: 'Lenovo ThinkPad X1',
-      nameAr: 'لينوفو ثينك باد X1',
-      category: 'Laptops',
-      price: 1800000,
-      stock: 10,
-      sku: 'LTX1-I7',
-      description: 'Intel i7, 16GB RAM, 512GB SSD',
-    ),
-    
-    // Tablets
-    POSProduct(
-      id: '10',
-      name: 'iPad Pro 12.9"',
-      nameAr: 'ايباد برو 12.9 انش',
-      category: 'Tablets',
-      price: 1500000,
-      stock: 15,
-      sku: 'IPP12-M2',
-      description: 'M2, 256GB, Space Gray',
-    ),
-    POSProduct(
-      id: '11',
-      name: 'Samsung Galaxy Tab S9',
-      nameAr: 'سامسونج جالاكسي تاب S9',
-      category: 'Tablets',
-      price: 850000,
-      stock: 20,
-      sku: 'SGTS9-256',
-      description: '256GB, Graphite',
-    ),
-    POSProduct(
-      id: '12',
-      name: 'iPad Air',
-      nameAr: 'ايباد اير',
-      category: 'Tablets',
-      price: 750000,
-      stock: 25,
-      sku: 'IPA-64',
-      description: '64GB, Blue',
-    ),
-    
-    // Accessories
-    POSProduct(
-      id: '13',
-      name: 'AirPods Pro 2',
-      nameAr: 'ايربودز برو 2',
-      category: 'Accessories',
-      price: 350000,
-      stock: 50,
-      sku: 'APP2-USB',
-      description: 'USB-C, Active Noise Cancellation',
-    ),
-    POSProduct(
-      id: '14',
-      name: 'Samsung Buds2 Pro',
-      nameAr: 'سامسونج بودز 2 برو',
-      category: 'Accessories',
-      price: 250000,
-      stock: 40,
-      sku: 'SGB2P-BLK',
-      description: 'Graphite, ANC',
-    ),
-    POSProduct(
-      id: '15',
-      name: 'Apple Watch Series 9',
-      nameAr: 'ابل ووتش سيريز 9',
-      category: 'Accessories',
-      price: 550000,
-      stock: 30,
-      sku: 'AWS9-45',
-      description: '45mm, GPS + Cellular',
-    ),
-    POSProduct(
-      id: '16',
-      name: 'Samsung Galaxy Watch 6',
-      nameAr: 'سامسونج جالاكسي ووتش 6',
-      category: 'Accessories',
-      price: 400000,
-      stock: 35,
-      sku: 'SGW6-44',
-      description: '44mm, Graphite',
-    ),
-    POSProduct(
-      id: '17',
-      name: 'Magic Keyboard',
-      nameAr: 'لوحة مفاتيح ماجيك',
-      category: 'Accessories',
-      price: 180000,
-      stock: 45,
-      sku: 'MK-BLK',
-      description: 'Black, Arabic/English',
-    ),
-    POSProduct(
-      id: '18',
-      name: 'Logitech MX Master 3S',
-      nameAr: 'لوجيتك MX ماستر 3S',
-      category: 'Accessories',
-      price: 120000,
-      stock: 50,
-      sku: 'LMX3S-GRY',
-      description: 'Wireless Mouse, Graphite',
-    ),
-  ];
+  // Products from API
+  List<POSProduct> _products = [];
+  bool _isLoadingProducts = false;
+  String? _productsError;
+
+  bool get isLoadingProducts => _isLoadingProducts;
+  String? get productsError => _productsError;
+
+  // Fetch products from inventory API
+  Future<void> fetchProducts() async {
+    _isLoadingProducts = true;
+    _productsError = null;
+    notifyListeners();
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.68.66:8000/api/inventory/items?limit=1000'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        _products = data.map((json) => POSProduct.fromJson(json)).toList();
+        _productsError = null;
+      } else {
+        _productsError = 'Failed to load products: ${response.statusCode}';
+      }
+    } catch (e) {
+      _productsError = 'Error loading products: $e';
+      print('Error fetching products: $e');
+    } finally {
+      _isLoadingProducts = false;
+      notifyListeners();
+    }
+  }
+
+  // Demo products removed - using real data from API only
 
   // Demo Customers
   final List<POSCustomer> _customers = [
@@ -364,7 +212,10 @@ class POSProvider with ChangeNotifier {
   }
 
   // Initialize with demo data
-  void initializeDemoData() {
+  Future<void> initializeDemoData() async {
+    // Fetch products from API
+    await fetchProducts();
+
     // Demo orders can be added here if needed
     final demoOrder1 = POSOrder(
       id: 'ORD-001',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../pages/auth/login_page.dart';
 import '../pages/home/home_page.dart';
@@ -8,10 +9,34 @@ import '../pages/orders/orders_page.dart';
 import '../pages/products/products_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/sales/sales_page.dart';
+import '../providers/auth_provider.dart';
 
 class AppRoutes {
   static final GoRouter router = GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
+    redirect: (BuildContext context, GoRouterState state) async {
+      final authProvider = context.read<AuthProvider>();
+      final isLoggedIn = await authProvider.authService.isLoggedIn();
+      final isGoingToLogin = state.matchedLocation == '/login';
+
+      // If not logged in and not going to login page, redirect to login
+      if (!isLoggedIn && !isGoingToLogin) {
+        return '/login';
+      }
+
+      // If logged in and going to login page, redirect to home
+      if (isLoggedIn && isGoingToLogin) {
+        return '/home';
+      }
+
+      // If on root path, redirect based on login status
+      if (state.matchedLocation == '/') {
+        return isLoggedIn ? '/home' : '/login';
+      }
+
+      // No redirect needed
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/login',

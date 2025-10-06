@@ -27,6 +27,8 @@ import {
   Zap,
   Database,
   MessageSquare,
+  Sparkles,
+  HelpCircle,
 } from 'lucide-react';
 
 interface SettingCard {
@@ -59,6 +61,13 @@ const ModernSettingsPage: React.FC = () => {
       color: 'text-blue-600',
       bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100',
       items: [
+        {
+          name: 'ChatGPT AI Assistant',
+          description: 'Configure OpenAI ChatGPT integration for intelligent assistance',
+          icon: Sparkles,
+          path: '/settings/integrations/chatgpt',
+          enabled: true,
+        },
         {
           name: 'WhatsApp Business API',
           description: 'Configure WhatsApp Business integration for customer communication',
@@ -237,6 +246,44 @@ const ModernSettingsPage: React.FC = () => {
           description: 'Define fiscal years and accounting periods',
           icon: GitBranch,
           path: '/settings/accounting/periods',
+          enabled: true,
+        },
+      ],
+    },
+    {
+      id: 'documentation',
+      title: 'Documentation Center',
+      description: 'API references, user guides, and troubleshooting resources',
+      icon: BookOpen,
+      color: 'text-green-600',
+      bgColor: 'bg-gradient-to-br from-green-50 to-green-100',
+      items: [
+        {
+          name: 'API Documentation',
+          description: 'Complete API reference with examples and responses',
+          icon: Database,
+          path: '/settings/documentation',
+          enabled: true,
+        },
+        {
+          name: 'User Guides',
+          description: 'Step-by-step guides and tutorials for system features',
+          icon: BookOpen,
+          path: '/settings/documentation#user-guides',
+          enabled: true,
+        },
+        {
+          name: 'Troubleshooting',
+          description: 'Common issues, solutions, and FAQ',
+          icon: HelpCircle,
+          path: '/settings/documentation#troubleshooting',
+          enabled: true,
+        },
+        {
+          name: 'Integration Guides',
+          description: 'Third-party integration documentation and examples',
+          icon: Plug,
+          path: '/settings/documentation#integrations',
           enabled: true,
         },
       ],

@@ -18,6 +18,26 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Load last email after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadLastEmail();
+    });
+  }
+
+  Future<void> _loadLastEmail() async {
+    if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+    final lastEmail = await authProvider.authService.getLastEmail();
+    if (lastEmail != null && lastEmail.isNotEmpty && mounted) {
+      setState(() {
+        _emailController.text = lastEmail;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();

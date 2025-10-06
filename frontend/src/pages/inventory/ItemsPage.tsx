@@ -495,7 +495,23 @@ export default function ItemsPage() {
               >
                 {/* Product Image Area */}
                 <div className="aspect-square bg-gray-50 flex items-center justify-center border-b border-gray-100 group-hover:bg-gray-100 transition-colors">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                  {(item as any).image_url ? (
+                    <img
+                      src={(item as any).image_url}
+                      alt={(item as any).name_en || 'Product'}
+                      className="w-full h-full object-contain p-4"
+                      onError={(e) => {
+                        // Fallback to placeholder if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (placeholder) placeholder.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-md"
+                    style={{ display: (item as any).image_url ? 'none' : 'flex' }}
+                  >
                     <Package className="w-10 h-10 text-white" />
                   </div>
                 </div>

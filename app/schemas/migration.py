@@ -230,6 +230,7 @@ class Item(BaseModel):
     reorder_quantity: Decimal
     weight: Optional[Decimal]
     dimensions: Optional[str]
+    image_url: Optional[str]
     is_active: bool
     is_serialized: bool
     is_batch_tracked: bool

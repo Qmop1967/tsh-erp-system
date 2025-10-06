@@ -32,28 +32,52 @@ def import_inventory_items(db: Session):
         
         for item_data in items:
             try:
+                # Skip items with empty SKU
+                sku = item_data.get('code', '').strip()
+                if not sku:
+                    error_count += 1
+                    continue
+
+                # Truncate SKU if too long (max 50 characters)
+                if len(sku) > 50:
+                    sku = sku[:50]
+
                 # Check if item already exists
                 existing_item = db.query(Product).filter(
-                    Product.code == item_data.get('code')
+                    Product.sku == sku
                 ).first()
-                
+
+                # Get or create category
+                category_name = item_data.get('category_name', 'General')
+                category = db.query(Category).filter(Category.name == category_name).first()
+                if not category:
+                    category = Category(name=category_name, name_ar=category_name, is_active=True)
+                    db.add(category)
+                    db.flush()
+
                 # Prepare item data
+                reorder_level = item_data.get('reorder_level', 0) or 0
+                if isinstance(reorder_level, str):
+                    reorder_level = float(reorder_level) if reorder_level else 0
+
                 product_data = {
-                    'code': item_data.get('code', ''),
-                    'name_en': item_data.get('name_en', ''),
+                    'sku': sku,
+                    'name': item_data.get('name_en', '') or item_data.get('name', 'Unnamed Product'),
                     'name_ar': item_data.get('name_ar', ''),
-                    'description_en': item_data.get('description_en', ''),
+                    'description': item_data.get('description_en', ''),
                     'description_ar': item_data.get('description_ar', ''),
                     'brand': item_data.get('brand', ''),
                     'model': item_data.get('model', ''),
-                    'unit_of_measure': item_data.get('unit_of_measure', 'pcs'),
+                    'category_id': category.id,
+                    'unit_of_measure': item_data.get('unit_of_measure', 'pcs') or 'pcs',
                     'cost_price': Decimal(str(item_data.get('cost_price_usd', 0) or 0)),
-                    'selling_price': Decimal(str(item_data.get('selling_price_usd', 0) or 0)),
+                    'unit_price': Decimal(str(item_data.get('selling_price_usd', 0) or 0)),
                     'is_active': item_data.get('is_active', True),
-                    'track_inventory': item_data.get('track_inventory', True),
-                    'reorder_level': Decimal(str(item_data.get('reorder_level', 0) or 0)),
-                    'zoho_item_id': item_data.get('zoho_item_id'),
-                    'weight': Decimal(str(item_data.get('weight', 0) or 0)) if item_data.get('weight') else None
+                    'is_trackable': item_data.get('track_inventory', True),
+                    'reorder_point': int(float(reorder_level)),
+                    'weight': Decimal(str(item_data.get('weight', 0) or 0)) if item_data.get('weight') else None,
+                    'image_url': item_data.get('image_url') or None,
+                    'tags': [{'zoho_item_id': item_data.get('zoho_item_id')}] if item_data.get('zoho_item_id') else []
                 }
                 
                 if existing_item:
@@ -75,6 +99,7 @@ def import_inventory_items(db: Session):
             except Exception as e:
                 error_count += 1
                 print(f"   ❌ Error processing item {item_data.get('code', 'Unknown')}: {e}")
+                db.rollback()
                 continue
         
         # Final commit
@@ -104,26 +129,23 @@ def import_customers(db: Session):
             try:
                 # Check if customer already exists
                 existing_customer = db.query(Customer).filter(
-                    Customer.code == customer_data.get('code')
+                    Customer.customer_code == customer_data.get('code')
                 ).first()
-                
+
                 # Prepare customer data
                 customer_info = {
-                    'code': customer_data.get('code', ''),
-                    'name_en': customer_data.get('name_en', ''),
-                    'name_ar': customer_data.get('name_ar', ''),
+                    'customer_code': customer_data.get('code', ''),
+                    'name': customer_data.get('name_en', ''),
                     'email': customer_data.get('email', ''),
                     'phone': customer_data.get('phone', ''),
-                    'address_en': customer_data.get('address_en', ''),
-                    'address_ar': customer_data.get('address_ar', ''),
+                    'address': customer_data.get('address_en', ''),
                     'city': customer_data.get('city', ''),
                     'country': customer_data.get('country', 'Iraq'),
                     'is_active': customer_data.get('is_active', True),
                     'credit_limit': Decimal(str(customer_data.get('credit_limit', 0) or 0)),
                     'currency': customer_data.get('currency', 'USD'),
-                    'zoho_customer_id': customer_data.get('zoho_customer_id'),
                     'tax_number': customer_data.get('tax_number', ''),
-                    'payment_terms': customer_data.get('payment_terms', '')
+                    'payment_terms': int(customer_data.get('payment_terms', 0) or 0) if str(customer_data.get('payment_terms', '')).isdigit() else 0
                 }
                 
                 if existing_customer:
@@ -174,25 +196,22 @@ def import_vendors(db: Session):
             try:
                 # Check if vendor already exists
                 existing_vendor = db.query(Supplier).filter(
-                    Supplier.code == vendor_data.get('code')
+                    Supplier.supplier_code == vendor_data.get('code')
                 ).first()
-                
+
                 # Prepare vendor data
                 vendor_info = {
-                    'code': vendor_data.get('code', ''),
-                    'name_en': vendor_data.get('name_en', ''),
-                    'name_ar': vendor_data.get('name_ar', ''),
+                    'supplier_code': vendor_data.get('code', ''),
+                    'name': vendor_data.get('name_en', ''),
+                    'company_name': vendor_data.get('company_name', ''),
                     'email': vendor_data.get('email', ''),
                     'phone': vendor_data.get('phone', ''),
-                    'address_en': vendor_data.get('address_en', ''),
-                    'address_ar': vendor_data.get('address_ar', ''),
+                    'address': vendor_data.get('address_en', ''),
                     'city': vendor_data.get('city', ''),
                     'country': vendor_data.get('country', ''),
                     'is_active': vendor_data.get('is_active', True),
-                    'currency': vendor_data.get('currency', 'USD'),
                     'tax_number': vendor_data.get('tax_number', ''),
-                    'payment_terms': vendor_data.get('payment_terms', ''),
-                    'contact_person': vendor_data.get('contact_person', '')
+                    'payment_terms': int(vendor_data.get('payment_terms', 30) or 30) if str(vendor_data.get('payment_terms', '')).isdigit() else 30
                 }
                 
                 if existing_vendor:

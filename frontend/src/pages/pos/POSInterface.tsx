@@ -86,16 +86,52 @@ export default function POSInterface() {
   const loadInitialData = async () => {
     try {
       setLoading(true)
-      // Load active session
-      const sessionResponse = await api.get('/api/pos/sessions/active/1') // Assuming terminal ID 1
-      setActiveSession(sessionResponse.data)
-      
-      // Load products
-      const productsResponse = await api.get('/api/products')
-      setProducts(productsResponse.data)
+      setError(null)
+
+      // Try to load active session (optional)
+      try {
+        const sessionResponse = await api.get('/pos/sessions/active/1')
+        setActiveSession(sessionResponse.data)
+      } catch (sessionError) {
+        console.log('No active POS session, continuing without it')
+        // Create a mock session for now
+        setActiveSession({
+          id: 1,
+          session_number: 'SESSION-' + Date.now(),
+          terminal_id: 1,
+          start_time: new Date().toISOString(),
+          opening_cash_amount: 0,
+          total_sales: 0,
+          transaction_count: 0,
+          status: 'OPEN'
+        })
+      }
+
+      // Load products/items from inventory
+      const productsResponse = await api.get('/inventory/items')
+      const items = productsResponse.data
+
+      // Transform items to match Product interface
+      // Note: /items endpoint returns inventory items with nested product
+      const transformedProducts = items.map((item: any) => {
+        const product = item.product || item; // Handle both nested and flat structure
+        return {
+          id: product.id || item.product_id,
+          name_ar: product.name_ar || product.name || '',
+          name_en: product.name_en || product.name || '',
+          sku: product.sku || product.code || '',
+          price: parseFloat(product.unit_price || product.selling_price || product.price || 0),
+          stock_quantity: item.available_quantity || item.quantity_on_hand || product.quantity || product.stock_quantity || 0,
+          category: product.category_name || product.category?.name || product.category || 'General',
+          image_url: product.image_url || product.image
+        };
+      })
+
+      setProducts(transformedProducts)
+      console.log('Loaded', transformedProducts.length, 'products')
     } catch (error) {
       console.error('Error loading POS data:', error)
-      setError('Failed to load POS data')
+      setError('Failed to load products. Please refresh.')
     } finally {
       setLoading(false)
     }

@@ -3,6 +3,27 @@ import 'package:json_annotation/json_annotation.dart';
 part 'auth_model.g.dart';
 
 @JsonSerializable()
+class AuthModel {
+  final String token;
+  final UserModel user;
+  final String? refreshToken;
+  
+  const AuthModel({
+    required this.token,
+    required this.user,
+    this.refreshToken,
+  });
+  
+  factory AuthModel.fromJson(Map<String, dynamic> json) => 
+      _$AuthModelFromJson(json);
+  
+  Map<String, dynamic> toJson() => _$AuthModelToJson(this);
+  
+  @override
+  String toString() => 'AuthModel{token: ${token.substring(0, 10)}..., user: $user}';
+}
+
+@JsonSerializable()
 class AuthResult {
   final bool success;
   final int? userId;
@@ -156,4 +177,4 @@ class SessionInfo {
     final end = lastActivity ?? DateTime.now();
     return end.difference(loginTime);
   }
-} 
+}

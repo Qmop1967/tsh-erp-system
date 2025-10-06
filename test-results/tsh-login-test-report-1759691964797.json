@@ -1,0 +1,189 @@
+{
+  "timestamp": "2025-10-05T19:18:49.341Z",
+  "summary": {
+    "total": 18,
+    "passed": 2,
+    "failed": 14,
+    "warnings": 2
+  },
+  "tests": [
+    {
+      "name": "Page Load",
+      "status": "FAIL",
+      "details": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n",
+      "timestamp": "2025-10-05T19:18:51.577Z",
+      "screenshot": null
+    },
+    {
+      "name": "Email Input Field",
+      "status": "FAIL",
+      "details": "Email input not found",
+      "timestamp": "2025-10-05T19:18:51.580Z",
+      "screenshot": null
+    },
+    {
+      "name": "Password Input Field",
+      "status": "FAIL",
+      "details": "Password input not found",
+      "timestamp": "2025-10-05T19:18:51.613Z",
+      "screenshot": null
+    },
+    {
+      "name": "Login Submit Button",
+      "status": "FAIL",
+      "details": "Login button not found",
+      "timestamp": "2025-10-05T19:18:51.614Z",
+      "screenshot": null
+    },
+    {
+      "name": "Form Validation",
+      "status": "WARNING",
+      "details": "Email required: false, Password required: false",
+      "timestamp": "2025-10-05T19:18:51.614Z",
+      "screenshot": null
+    },
+    {
+      "name": "Accessibility Labels",
+      "status": "WARNING",
+      "details": "Email label: false, Password label: false",
+      "timestamp": "2025-10-05T19:18:51.615Z",
+      "screenshot": null
+    },
+    {
+      "name": "Form Elements Test",
+      "status": "FAIL",
+      "details": "Error: page.screenshot: options.quality is unsupported for the png screenshots",
+      "timestamp": "2025-10-05T19:18:51.616Z",
+      "screenshot": null
+    },
+    {
+      "name": "Form Interactions Test",
+      "status": "FAIL",
+      "details": "Error: page.screenshot: options.quality is unsupported for the png screenshots",
+      "timestamp": "2025-10-05T19:18:51.617Z",
+      "screenshot": null
+    },
+    {
+      "name": "Valid Login Test",
+      "status": "FAIL",
+      "details": "Error: locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"email\"]')\u001b[22m\n",
+      "timestamp": "2025-10-05T19:19:21.618Z",
+      "screenshot": null
+    },
+    {
+      "name": "Invalid Login Test",
+      "status": "FAIL",
+      "details": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n",
+      "timestamp": "2025-10-05T19:19:21.680Z",
+      "screenshot": null
+    },
+    {
+      "name": "Desktop Responsive Design",
+      "status": "FAIL",
+      "details": "Login form visibility at 1920x1080: false",
+      "timestamp": "2025-10-05T19:19:22.693Z",
+      "screenshot": null
+    },
+    {
+      "name": "Desktop Responsive Test",
+      "status": "FAIL",
+      "details": "Error: page.screenshot: options.quality is unsupported for the png screenshots",
+      "timestamp": "2025-10-05T19:19:22.693Z",
+      "screenshot": null
+    },
+    {
+      "name": "Tablet Responsive Design",
+      "status": "FAIL",
+      "details": "Login form visibility at 768x1024: false",
+      "timestamp": "2025-10-05T19:19:23.732Z",
+      "screenshot": null
+    },
+    {
+      "name": "Tablet Responsive Test",
+      "status": "FAIL",
+      "details": "Error: page.screenshot: options.quality is unsupported for the png screenshots",
+      "timestamp": "2025-10-05T19:19:23.732Z",
+      "screenshot": null
+    },
+    {
+      "name": "Mobile Responsive Design",
+      "status": "FAIL",
+      "details": "Login form visibility at 375x667: false",
+      "timestamp": "2025-10-05T19:19:24.754Z",
+      "screenshot": null
+    },
+    {
+      "name": "Mobile Responsive Test",
+      "status": "FAIL",
+      "details": "Error: page.screenshot: options.quality is unsupported for the png screenshots",
+      "timestamp": "2025-10-05T19:19:24.756Z",
+      "screenshot": null
+    },
+    {
+      "name": "DOM Content Loaded",
+      "status": "PASS",
+      "details": "1.30ms",
+      "timestamp": "2025-10-05T19:19:24.796Z",
+      "screenshot": null
+    },
+    {
+      "name": "First Contentful Paint",
+      "status": "PASS",
+      "details": "32.00ms",
+      "timestamp": "2025-10-05T19:19:24.796Z",
+      "screenshot": null
+    }
+  ],
+  "screenshots": [],
+  "performance": {
+    "domContentLoaded": 1.2999999998137355,
+    "loadComplete": 0,
+    "firstPaint": 32,
+    "firstContentfulPaint": 32
+  },
+  "console_logs": [],
+  "network_requests": [
+    {
+      "url": "http://localhost:5173/",
+      "method": "GET",
+      "headers": {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+      },
+      "timestamp": "2025-10-05T19:18:51.557Z",
+      "type": "request"
+    },
+    {
+      "url": "http://localhost:5173/",
+      "method": "GET",
+      "headers": {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+      },
+      "timestamp": "2025-10-05T19:19:21.678Z",
+      "type": "request"
+    }
+  ],
+  "errors": [],
+  "browser_info": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "url": "chrome-error://chromewebdata/"
+  },
+  "test_environment": {
+    "backend_url": "http://localhost:8000",
+    "frontend_url": "http://localhost:5173",
+    "test_framework": "Chrome DevTools MCP + Playwright"
+  }
+}

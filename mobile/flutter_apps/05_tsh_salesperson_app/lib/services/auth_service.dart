@@ -7,7 +7,7 @@ import 'api_service.dart';
 class AuthService {
   final ApiService _apiService;
   
-  static const String _baseUrl = 'http://localhost:8000'; // Updated to match backend
+  static const String _baseUrl = 'http://192.168.68.66:8000'; // Mac's local IP address
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
@@ -17,8 +17,9 @@ class AuthService {
   Future<AuthModel?> login(String email, String password) async {
     try {
       // Use the mobile login endpoint that allows all users
+      // Fixed: Added /api prefix to match backend router configuration
       final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login/mobile'),
+        Uri.parse('$_baseUrl/api/auth/login/mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -28,16 +29,29 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        
-        if (data['success'] == true && data['data'] != null) {
-          final authData = data['data'];
-          final token = authData['access_token'];
-          final userInfo = authData['user'];
+
+        // Backend returns response directly without 'success'/'data' wrapper
+        // Response format: { "access_token": "...", "token_type": "bearer", "user": {...} }
+        if (data['access_token'] != null && data['user'] != null) {
+          final token = data['access_token'] as String;
+          final userInfo = data['user'] as Map<String, dynamic>;
 
           // Save token and user data locally
           await _saveTokenAndUser(token, userInfo);
 
-          return AuthModel.fromJson(userInfo);
+          // Create UserModel from user data
+          final user = UserModel(
+            id: userInfo['id'] as int,
+            name: userInfo['name'] as String? ?? 'User',
+            email: userInfo['email'] as String?,
+            active: true,
+          );
+
+          // Return AuthModel with token and user
+          return AuthModel(
+            token: token,
+            user: user,
+          );
         }
       }
       
@@ -111,7 +125,7 @@ class AuthService {
       if (token == null) return null;
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/auth/refresh'),
+        Uri.parse('$_baseUrl/api/auth/refresh'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -121,8 +135,9 @@ class AuthService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         
-        if (data['success'] == true && data['data'] != null) {
-          final newToken = data['data']['access_token'];
+        // Backend returns response directly without 'success'/'data' wrapper
+        if (data['access_token'] != null) {
+          final newToken = data['access_token'];
           
           // Save new token
           final prefs = await SharedPreferences.getInstance();
@@ -146,7 +161,7 @@ class AuthService {
       if (token == null) return false;
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/auth/change-password'),
+        Uri.parse('$_baseUrl/api/auth/change-password'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -173,7 +188,7 @@ class AuthService {
   Future<bool> requestPasswordReset(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/auth/reset-password'),
+        Uri.parse('$_baseUrl/api/auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -197,7 +212,7 @@ class AuthService {
       if (token == null) return null;
 
       final response = await http.put(
-        Uri.parse('$_baseUrl/auth/profile'),
+        Uri.parse('$_baseUrl/api/auth/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

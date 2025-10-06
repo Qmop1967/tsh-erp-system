@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { User, AuthState, LoginCredentials } from '@/types'
 import { authApi } from '@/lib/api'
 
@@ -12,7 +13,8 @@ interface AuthStore extends AuthState {
 }
 
 export const useAuthStore = create<AuthStore>()(
-  (set, get) => ({
+  persist(
+    (set, get) => ({
       user: null,
       token: null,
       isLoading: false,
@@ -21,25 +23,13 @@ export const useAuthStore = create<AuthStore>()(
       checkAuthentication: () => {
         console.log('🔐 Checking authentication...')
         
-        // Check if we have stored auth data
-        const authData = localStorage.getItem('tsh-erp-auth')
-        if (authData) {
-          try {
-            const { state } = JSON.parse(authData)
-            if (state?.token && state?.user) {
-              console.log('✅ Found stored auth data')
-              set({
-                user: state.user,
-                token: state.token,
-                error: null,
-                isLoading: false
-              })
-              return true
-            }
-          } catch (error) {
-            console.error('Error parsing auth data:', error)
-            localStorage.removeItem('tsh-erp-auth')
-          }
+        // With Zustand persist, the state is automatically restored
+        // We just need to check if it exists
+        const { user, token } = get()
+        
+        if (user && token) {
+          console.log('✅ Found stored auth data:', user.email)
+          return true
         }
         
         console.log('❌ No valid authentication found')
@@ -69,17 +59,7 @@ export const useAuthStore = create<AuthStore>()(
             permissions: user.permissions || []
           }
           
-          // Save to localStorage
-          localStorage.setItem('tsh-erp-auth', JSON.stringify({
-            state: {
-              user: enhancedUser,
-              token: access_token,
-              isLoading: false,
-              error: null
-            },
-            version: 0
-          }))
-          
+          // Zustand persist middleware will automatically save to localStorage
           set({
             user: enhancedUser,
             token: access_token,
@@ -138,5 +118,13 @@ export const useAuthStore = create<AuthStore>()(
       clearError: () => {
         set({ error: null })
       },
-    })
+    }),
+    {
+      name: 'tsh-erp-auth', // localStorage key
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+      }), // Only persist user and token, not loading/error states
+    }
+  )
 )

@@ -1,11 +1,17 @@
+// IMPORTANT: Initialize error suppression FIRST before any other imports
+// This must be the very first code that runs
+import { initErrorSuppression } from './utils/errorSuppression'
+initErrorSuppression();
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
+import { NotificationProvider } from './components/ui/NotificationProvider'
 import App from './App.tsx'
 import './index.css'
 
-console.log('🚀 Starting TSH ERP System - Full Tailwind Mode...')
+console.log('🚀 Starting TSH ERP System - Full Tailwind Mode...');
 
 // Create a client
 const queryClient = new QueryClient({
@@ -24,8 +30,15 @@ console.log('Root element:', root)
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

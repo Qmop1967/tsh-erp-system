@@ -3,9 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AppConfig {
   // TSH ERP System API Configuration
-  static const String apiUrl = 'http://localhost:8000'; // TSH ERP Backend API (Local Development)
-  static const String defaultUsername = 'frati@tsh.sale'; // Travel Salesperson test user
-  static const String defaultPassword = 'password123'; // Update with actual password
+  static const String apiUrl = 'http://192.168.68.66:8000'; // TSH ERP Backend API (Mac's local IP)
+  static const String defaultUsername = 'frati@tsh.sale'; // Salesperson: Ayad
+  static const String defaultPassword = 'password123'; // Working password
   
   // App Constants
   static const String appName = 'TSH Salesperson';

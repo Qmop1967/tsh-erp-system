@@ -224,3 +224,4 @@ if __name__ == "__main__":
     else:
         print("\n❌ Image fetch failed. Please check errors above.")
 
+

@@ -1,0 +1,131 @@
+{
+  "name": "claude-code-runner",
+  "displayName": "Claude Code Runner",
+  "description": "Execute commands directly from Claude AI assistant in VS Code",
+  "version": "1.0.0",
+  "publisher": "tsh-erp",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claude.runCommand",
+        "title": "Claude: Run Command in Terminal"
+      },
+      {
+        "command": "claude.openTerminal",
+        "title": "Claude: Open Claude Terminal"
+      },
+      {
+        "command": "claude.executeScript",
+        "title": "Claude: Execute Script"
+      },
+      {
+        "command": "claude.analyzeCode",
+        "title": "Claude: Analyze Current File"
+      },
+      {
+        "command": "claude.clearHistory",
+        "title": "Claude: Clear Execution History"
+      }
+    ],
+    "configuration": {
+      "title": "Claude Code Runner",
+      "properties": {
+        "claude.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Claude API key from Anthropic",
+          "order": 1
+        },
+        "claude.model": {
+          "type": "string",
+          "default": "claude-3-5-sonnet-20241022",
+          "enum": [
+            "claude-3-5-sonnet-20241022",
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240307"
+          ],
+          "description": "Claude model to use for code analysis",
+          "order": 2
+        },
+        "claude.autoShow": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically show terminal when executing commands",
+          "order": 3
+        },
+        "claude.confirmBeforeRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask for confirmation before running commands",
+          "order": 4
+        },
+        "claude.maxTokens": {
+          "type": "number",
+          "default": 4096,
+          "description": "Maximum tokens for Claude API responses",
+          "order": 5
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-explorer",
+          "title": "Claude Assistant",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "claude-explorer": [
+        {
+          "id": "claude.executionHistory",
+          "name": "Execution History"
+        },
+        {
+          "id": "claude.quickActions",
+          "name": "Quick Actions"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "claude.runCommand",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "eslint": "^8.47.0",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "axios": "^1.6.0"
+  }
+}

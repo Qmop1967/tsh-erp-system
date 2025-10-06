@@ -5,7 +5,9 @@ Initialize User Management System for TSH ERP
 
 import sys
 import os
-sys.path.append(os.path.dirname(__file__))
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
 
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal

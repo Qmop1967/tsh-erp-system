@@ -7,9 +7,10 @@ import 'odoo_service.dart';
 class AuthService {
   final OdooService _odooService;
   
-  static const String _baseUrl = 'http://localhost:8000/api';
+  static const String _baseUrl = 'http://192.168.68.66:8000/api';
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
+  static const String _lastEmailKey = 'last_email';
 
   AuthService(this._odooService);
 
@@ -34,6 +35,9 @@ class AuthService {
 
         // Save token and user data locally
         await _saveTokenAndUser(token, userInfo);
+
+        // Save last email for auto-fill on next login
+        await saveLastEmail(email);
 
         return AuthModel.fromJson(userInfo);
       }
@@ -255,6 +259,18 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+  }
+
+  // Save last logged-in email
+  Future<void> saveLastEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastEmailKey, email);
+  }
+
+  // Get last logged-in email
+  Future<String?> getLastEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastEmailKey);
   }
 
   // Mock login for demo purposes

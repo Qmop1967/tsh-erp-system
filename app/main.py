@@ -90,6 +90,7 @@ from app.routers.auth import router as auth_router  # Enable auth router
 # from app.routers.partner_salesmen import router as partner_salesmen_router  # Temporarily disabled
 from app.routers.vendors import router as vendors_router  # Enable vendors
 from app.routers.permissions import router as permissions_router  # Enable permissions management
+from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
 
 # إضافة الـ routers
@@ -114,7 +115,9 @@ app.include_router(money_transfer_router, tags=["Money Transfers - FRAUD PREVENT
 app.include_router(admin_router, prefix="/api/admin", tags=["Admin Dashboard - BUSINESS CONTROL"])
 # 🤖 AI ASSISTANT: 24/7 Bilingual Customer Support
 app.include_router(ai_assistant_router, prefix="/api/ai", tags=["AI Assistant - 24/7 Customer Support"])
-# 📱 WHATSAPP INTEGRATION: Communication & Order Processing
+# � CHATGPT INTEGRATION: OpenAI-Powered Intelligent Assistant
+app.include_router(chatgpt_router, prefix="/api", tags=["ChatGPT - OpenAI Integration"])
+# �📱 WHATSAPP INTEGRATION: Communication & Order Processing
 app.include_router(whatsapp_router, prefix="/api/whatsapp", tags=["WhatsApp Integration - Business Communication"])
 # 👥 HR MANAGEMENT SYSTEM: Complete HR Control for 19+ Employees
 app.include_router(hr_router, prefix="/api/hr", tags=["HR Management System - Phase 3 Implementation"])
@@ -142,6 +145,14 @@ static_dir.mkdir(exist_ok=True)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Mount frontend public directory for product images (mobile app access)
+frontend_public_dir = Path("frontend/public")
+if frontend_public_dir.exists():
+    app.mount("/public", StaticFiles(directory=frontend_public_dir), name="public")
+    print(f"✅ Mounted frontend public directory: /public")
+else:
+    print(f"⚠️ Frontend public directory not found: {frontend_public_dir}")
 
 # Remove duplicate lines and keep clean structure
 

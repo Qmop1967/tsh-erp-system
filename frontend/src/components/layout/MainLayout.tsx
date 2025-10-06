@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
+import ChatGPTFloatingButton from '../chatgpt/ChatGPTFloatingButton';
 import { 
   LayoutDashboard, 
   Users, 
@@ -32,6 +33,16 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+// Notification interface
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  timestamp: Date;
+  read: boolean;
+}
+
 export function MainLayout({ children }: MainLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,6 +56,36 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const menuItemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  
+  // Notification state
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: '1',
+      title: 'New Order',
+      message: 'Order #12345 has been placed',
+      type: 'info',
+      timestamp: new Date(Date.now() - 5 * 60000),
+      read: false
+    },
+    {
+      id: '2',
+      title: 'Low Stock Alert',
+      message: 'Product ABC is running low on stock',
+      type: 'warning',
+      timestamp: new Date(Date.now() - 30 * 60000),
+      read: false
+    },
+    {
+      id: '3',
+      title: 'Payment Received',
+      message: 'Payment of $500 received from Customer XYZ',
+      type: 'success',
+      timestamp: new Date(Date.now() - 2 * 60 * 60000),
+      read: false
+    }
+  ]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -54,6 +95,64 @@ export function MainLayout({ children }: MainLayoutProps) {
       }
     };
   }, []);
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
+
+  // Notification functions
+  const markAsRead = (id: string) => {
+    setNotifications(prev =>
+      prev.map(notif => notif.id === id ? { ...notif, read: true } : notif)
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+  };
+
+  const deleteNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const getNotificationIcon = (type: Notification['type']) => {
+    switch (type) {
+      case 'success': return '✅';
+      case 'warning': return '⚠️';
+      case 'error': return '❌';
+      default: return 'ℹ️';
+    }
+  };
+
+  const formatTimeAgo = (date: Date) => {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
   // Theme configuration
   const lightTheme = {
@@ -179,13 +278,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       path: '/reports',
       color: '#8b5cf6'
     },
-    {
-      id: 'settings',
-      name: 'Settings',
-      icon: Settings,
-      path: '/settings',
-      color: '#6b7280'
-    }
   ];
 
   const toggleMenu = (menuId: string) => {
@@ -849,7 +941,9 @@ export function MainLayout({ children }: MainLayoutProps) {
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
+            {/* Settings Button */}
             <button
+              onClick={() => navigate('/settings')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -857,7 +951,6 @@ export function MainLayout({ children }: MainLayoutProps) {
                 padding: '10px',
                 borderRadius: '8px',
                 color: theme.text,
-                position: 'relative',
                 transition: 'background-color 0.2s'
               }}
               onMouseEnter={(e) => {
@@ -866,21 +959,357 @@ export function MainLayout({ children }: MainLayoutProps) {
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
+              title="Settings"
             >
-              <Bell size={20} />
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#ef4444',
-                  borderRadius: '50%',
-                  border: `2px solid ${theme.surface}`
-                }}
-              />
+              <Settings size={20} />
             </button>
+
+            {/* Notification Button with Dropdown */}
+            <div style={{ position: 'relative' }} ref={notificationRef}>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  color: theme.text,
+                  position: 'relative',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: showNotifications ? theme.hover : 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  if (!showNotifications) {
+                    e.currentTarget.style.backgroundColor = theme.hover;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!showNotifications) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+                title={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '6px',
+                      right: '6px',
+                      minWidth: '18px',
+                      height: '18px',
+                      backgroundColor: '#ef4444',
+                      borderRadius: '10px',
+                      border: `2px solid ${theme.surface}`,
+                      fontSize: '10px',
+                      fontWeight: '600',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 4px'
+                    }}
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '8px',
+                    width: '380px',
+                    maxHeight: '500px',
+                    backgroundColor: theme.surface,
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    border: `1px solid ${theme.border}`,
+                    zIndex: 1000,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  {/* Header */}
+                  <div
+                    style={{
+                      padding: '16px 20px',
+                      borderBottom: `1px solid ${theme.border}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: theme.text
+                      }}
+                    >
+                      Notifications
+                      {unreadCount > 0 && (
+                        <span
+                          style={{
+                            marginLeft: '8px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            color: theme.textSecondary
+                          }}
+                        >
+                          ({unreadCount} new)
+                        </span>
+                      )}
+                    </h3>
+                    {notifications.length > 0 && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              color: theme.primary,
+                              fontWeight: '500',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = `${theme.primary}15`;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                        <button
+                          onClick={clearAllNotifications}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#ef4444',
+                            fontWeight: '500',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ef444415';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notifications List */}
+                  <div
+                    style={{
+                      overflowY: 'auto',
+                      maxHeight: '400px'
+                    }}
+                  >
+                    {notifications.length === 0 ? (
+                      <div
+                        style={{
+                          padding: '40px 20px',
+                          textAlign: 'center',
+                          color: theme.textSecondary
+                        }}
+                      >
+                        <Bell
+                          size={48}
+                          style={{
+                            opacity: 0.3,
+                            marginBottom: '12px'
+                          }}
+                        />
+                        <p style={{ margin: 0, fontSize: '14px' }}>No notifications</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          onClick={() => {
+                            markAsRead(notification.id);
+                            setShowNotifications(false);
+                          }}
+                          style={{
+                            padding: '16px 20px',
+                            borderBottom: `1px solid ${theme.border}`,
+                            cursor: 'pointer',
+                            backgroundColor: notification.read ? 'transparent' : `${theme.primary}08`,
+                            transition: 'background-color 0.2s',
+                            position: 'relative'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.hover;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = notification.read ? 'transparent' : `${theme.primary}08`;
+                          }}
+                        >
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'start' }}>
+                            <span style={{ fontSize: '20px', flexShrink: 0 }}>
+                              {getNotificationIcon(notification.type)}
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  marginBottom: '4px'
+                                }}
+                              >
+                                <h4
+                                  style={{
+                                    margin: 0,
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    color: theme.text
+                                  }}
+                                >
+                                  {notification.title}
+                                </h4>
+                                {!notification.read && (
+                                  <div
+                                    style={{
+                                      width: '6px',
+                                      height: '6px',
+                                      borderRadius: '50%',
+                                      backgroundColor: theme.primary,
+                                      flexShrink: 0
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              <p
+                                style={{
+                                  margin: '0 0 4px 0',
+                                  fontSize: '13px',
+                                  color: theme.textSecondary,
+                                  lineHeight: '1.4'
+                                }}
+                              >
+                                {notification.message}
+                              </p>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  color: theme.textSecondary,
+                                  opacity: 0.8
+                                }}
+                              >
+                                {formatTimeAgo(notification.timestamp)}
+                              </span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notification.id);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                borderRadius: '4px',
+                                color: theme.textSecondary,
+                                opacity: 0,
+                                transition: 'opacity 0.2s, background-color 0.2s',
+                                fontSize: '18px',
+                                lineHeight: '1',
+                                flexShrink: 0
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#ef444420';
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                                e.currentTarget.style.color = theme.textSecondary;
+                              }}
+                              className="notification-delete-btn"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <div
+                      style={{
+                        padding: '12px 20px',
+                        borderTop: `1px solid ${theme.border}`,
+                        textAlign: 'center'
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          setShowNotifications(false);
+                          navigate('/notifications');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          color: theme.primary,
+                          fontWeight: '500',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          transition: 'background-color 0.2s',
+                          width: '100%'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = `${theme.primary}15`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        View all notifications
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <style>
+              {`
+                .notification-delete-btn {
+                  opacity: 0 !important;
+                }
+                div:hover > div > .notification-delete-btn {
+                  opacity: 1 !important;
+                }
+              `}
+            </style>
           </div>
         </div>
 
@@ -896,6 +1325,9 @@ export function MainLayout({ children }: MainLayoutProps) {
           {children}
         </div>
       </div>
+      
+      {/* ChatGPT Floating Button */}
+      <ChatGPTFloatingButton />
     </div>
   );
 }

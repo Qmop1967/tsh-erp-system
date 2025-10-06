@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-10-05T19:21:19.915Z",
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "tests": [
+    {
+      "name": "Test Execution",
+      "status": "FAIL",
+      "details": "Critical error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n",
+      "timestamp": "2025-10-05T19:21:20.585Z"
+    }
+  ],
+  "screenshots": []
+}
