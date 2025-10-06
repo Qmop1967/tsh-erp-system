@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/api_service.dart';
+import '../services/odoo_service.dart';
 
 class CustomerProvider extends ChangeNotifier {
-  final ApiService _apiService;
+  final OdooService _odooService;
   
   bool _isLoading = false;
   String? _error;
@@ -12,7 +12,7 @@ class CustomerProvider extends ChangeNotifier {
   String _sortBy = 'name';
   bool _sortAscending = true;
 
-  CustomerProvider(this._apiService);
+  CustomerProvider(this._odooService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -30,7 +30,7 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final data = await _apiService.getCustomersAsMaps();
+      final data = await _odooService.getCustomersAsMaps();
       _customers = List<Map<String, dynamic>>.from(data ?? []);
       _applyFilters();
     } catch (e) {
@@ -98,13 +98,13 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _apiService.createCustomer(customerData);
-      if (result['success'] == true) {
+      final result = await _odooService.createCustomer(customerData);
+      if (result?['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to create customer');
+        _setError(result?['message'] ?? 'Failed to create customer');
         _setLoading(false);
         return false;
       }
@@ -121,13 +121,13 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _apiService.updateCustomer(customerId, customerData);
-      if (result['success'] == true) {
+      final result = await _odooService.updateCustomer(customerId, customerData);
+      if (result?['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to update customer');
+        _setError(result?['message'] ?? 'Failed to update customer');
         _setLoading(false);
         return false;
       }
@@ -144,13 +144,13 @@ class CustomerProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _apiService.deleteCustomer(customerId);
-      if (result['success'] == true) {
+      final result = await _odooService.deleteCustomer(customerId);
+      if (result?['success'] == true) {
         await loadCustomers(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to delete customer');
+        _setError(result?['message'] ?? 'Failed to delete customer');
         _setLoading(false);
         return false;
       }

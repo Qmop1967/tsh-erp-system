@@ -1,382 +1,257 @@
-# TSH ERP System
+# 🏢 TSH ERP System
 
-نظام ERP شامل مبني باستخدام FastAPI و PostgreSQL يدعم المحاسبة ونقاط البيع مع دعم متعدد اللغات والعملات.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
+[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev/)
 
-## ✨ المميزات الجديدة
+A comprehensive **Enterprise Resource Planning (ERP)** system designed for trade and services management, featuring multi-platform support with web and mobile applications.
 
-### 🧮 نظام المحاسبة
-- **دعم العملات المتعددة**: IQD (دينار عراقي), USD (دولار أمريكي), RMB (يوان صيني)
-- **دعم اللغات المتعددة**: العربية والإنجليزية
-- **دليل الحسابات**: إدارة شاملة لدليل الحسابات مع الهيكل الهرمي
-- **دفاتر اليومية**: إدارة متعددة لدفاتر اليومية (عام، مبيعات، مشتريات، نقدية)
-- **القيود المحاسبية**: إنشاء وترحيل وعكس القيود المحاسبية
-- **السنوات والفترات المالية**: إدارة السنوات المالية والفترات المحاسبية
-- **التقارير المالية**: ميزان المراجعة، الميزانية العمومية، قائمة الدخل
-- **أسعار الصرف**: إدارة أسعار الصرف بين العملات
+## 🌟 Features
 
-### 🛒 نظام نقاط البيع (POS)
-- **إدارة الأجهزة**: إدارة أجهزة نقاط البيع المتعددة
-- **الجلسات**: إدارة جلسات البيع والصندوق
-- **المعاملات**: معالجة شاملة للمبيعات والمرتجعات
-- **طرق الدفع المتعددة**: نقدي، بطاقة، تحويل
-- **نظام الخصومات**: خصومات نسبية وثابتة مع شروط
-- **نظام العروض**: عروض الشراء والهدايا
-- **التقارير**: تقارير المبيعات والجلسات ومبيعات المنتجات
-- **إدارة المخزون**: فحص توفر المخزون في الوقت الفعلي
+### 🏗️ **Core Modules**
+- **👥 User Management** - Multi-tenant authentication and authorization
+- **🏪 Branch & Warehouse Management** - Multi-location inventory tracking
+- **📦 Inventory Management** - Real-time stock tracking and management
+- **💼 Sales & Purchase Management** - Complete order lifecycle management
+- **💰 Financial Management** - Accounting, invoicing, and financial reporting
+- **🛒 POS System** - Point-of-sale with real-time synchronization
+- **💸 Cash Flow Management** - Cash tracking and transfer management
+- **📊 Reporting & Analytics** - Comprehensive business intelligence
 
-## متطلبات النظام
+### 🌍 **Multi-Platform Support**
+- **🌐 Web Application** - React-based admin dashboard
+- **📱 Mobile Applications** - 17+ Flutter-based mobile apps including:
+  - Admin Dashboard
+  - Salesperson App
+  - Inventory Management
+  - HR Management
+  - Travel Sales
+  - Retail Sales
+  - And more...
 
+### 🔧 **Technical Features**
+- **🌐 Multi-language Support** (Arabic/English)
+- **🔐 Advanced Security** - JWT authentication, role-based permissions
+- **📡 Real-time Updates** - WebSocket integration for live data
+- **🗄️ Database Management** - PostgreSQL with Alembic migrations
+- **🐳 Containerization** - Docker support for easy deployment
+- **📋 Comprehensive Testing** - Unit and integration tests
+- **📚 API Documentation** - Auto-generated OpenAPI/Swagger docs
+
+## 🚀 Quick Start
+
+### Prerequisites
 - Python 3.9+
-- Docker و Docker Compose (للتشغيل باستخدام Docker)
-- PostgreSQL (للتشغيل المحلي)
+- Node.js 16+
+- PostgreSQL 12+
+- Flutter 3.0+ (for mobile development)
 
-## هيكل المشروع
-
-```
-erp_system/
-├── app/
-│   ├── models/           # SQLAlchemy Models
-│   ├── schemas/          # Pydantic Models
-│   ├── routers/          # API Endpoints
-│   ├── services/         # Business Logic
-│   ├── db/
-│   │   └── database.py   # Database connection
-│   └── main.py           # FastAPI app instance
-├── alembic/              # Database migrations
-├── .env.example          # Environment variables template
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
-```
-
-## تشغيل المشروع
-
-### باستخدام Docker Compose (الطريقة الموصى بها)
-
-1. استنسخ المشروع:
-```bash
-git clone <repository-url>
-cd erp_system
-```
-
-2. أنشئ ملف `.env` من القالب:
-```bash
-cp .env.example .env
-```
-
-3. شغّل المشروع:
-```bash
-docker-compose up --build
-```
-
-4. الوصول للتطبيق:
-   - **FastAPI App**: http://localhost:8000
-   - **API Documentation**: http://localhost:8000/docs
-   - **PGAdmin**: http://localhost:5050 (admin@example.com / admin)
-
-### التشغيل المحلي
-
-1. تثبيت المتطلبات:
-```bash
-pip install -r requirements.txt
-```
-
-2. إعداد قاعدة البيانات:
-```bash
-# تأكد من تشغيل PostgreSQL محلياً
-createdb erp_db
-```
-
-3. تحديث ملف `.env` مع إعدادات قاعدة البيانات المحلية:
-```
-DATABASE_URL=postgresql://username:password@localhost:5432/erp_db
-```
-
-4. تشغيل الهجرات:
-```bash
-alembic upgrade head
-```
-
-5. تشغيل التطبيق:
-```bash
-uvicorn app.main:app --reload
-```
-
-## النماذج الأساسية
-
-### Branch (الفروع)
-- `id`: المعرف الفريد
-- `name`: اسم الفرع
-- `location`: موقع الفرع
-
-### Warehouse (المستودعات)
-- `id`: المعرف الفريد
-- `name`: اسم المستودع
-- `branch_id`: معرف الفرع (مفتاح خارجي)
-
-### Role (الأدوار)
-- `id`: المعرف الفريد
-- `name`: اسم الدور (admin, sales_rep, partner, customer)
-
-### User (المستخدمون)
-- `id`: المعرف الفريد
-- `name`: اسم المستخدم
-- `email`: البريد الإلكتروني (فريد)
-- `password`: كلمة المرور (مشفرة)
-- `role_id`: معرف الدور (مفتاح خارجي)
-- `branch_id`: معرف الفرع (مفتاح خارجي)
-
-## أوامر مفيدة
-
-### إدارة قاعدة البيانات
+### 🖥️ Backend Setup (FastAPI)
 
 ```bash
-# إنشاء هجرة جديدة
-alembic revision --autogenerate -m "وصف التغيير"
+# Clone the repository
+git clone git@github.com:Qmop1967/tsh-erp-system.git
+cd tsh-erp-system
 
-# تطبيق الهجرات
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r config/requirements.txt
+
+# Set up environment variables
+cp config/env.example .env
+# Edit .env with your database credentials
+
+# Run database migrations
+cd database
 alembic upgrade head
 
-# التراجع عن هجرة
-alembic downgrade -1
-
-# عرض تاريخ الهجرات
-alembic history
+# Start the backend server
+cd ..
+python -m uvicorn app.main:app --reload
 ```
 
-### Docker
+The API will be available at `http://localhost:8000`
+API Documentation: `http://localhost:8000/docs`
+
+### 🌐 Frontend Setup (React)
 
 ```bash
-# إعادة بناء الصور
-docker-compose build --no-cache
+# Navigate to frontend directory
+cd frontend
 
-# عرض السجلات
-docker-compose logs -f web
+# Install dependencies
+npm install
 
-# إيقاف الخدمات
-docker-compose down
-
-# إيقاف الخدمات مع حذف البيانات
-docker-compose down -v
+# Start development server
+npm run dev
 ```
 
-## تطوير المشروع
+The web application will be available at `http://localhost:5173`
 
-المشروع مُعدّ للتوسعة المستقبلية. يمكنك إضافة:
+### 📱 Mobile App Setup (Flutter)
 
-1. **APIs جديدة** في مجلد `app/routers/`
-2. **نماذج جديدة** في مجلد `app/models/`
-3. **منطق العمل** في مجلد `app/services/`
-4. **مخططات البيانات** في مجلد `app/schemas/`
-
-## الأمان
-
-- كلمات المرور مشفرة باستخدام bcrypt
-- يستخدم JWT للمصادقة
-- CORS مُعدّ بشكل أساسي (يحتاج تخصيص للإنتاج)
-
-## الترخيص
-
-هذا المشروع للأغراض التعليمية والتطويرية.
-
-## 📚 API Documentation
-
-### 🧮 Accounting API Endpoints
-
-#### العملات (Currencies)
-- `GET /api/accounting/currencies` - جلب جميع العملات
-- `POST /api/accounting/currencies` - إنشاء عملة جديدة
-- `GET /api/accounting/currencies/{id}` - جلب عملة محددة
-- `PUT /api/accounting/currencies/{id}` - تحديث العملة
-
-#### أسعار الصرف (Exchange Rates)
-- `GET /api/accounting/exchange-rates` - جلب أسعار الصرف
-- `POST /api/accounting/exchange-rates` - إنشاء سعر صرف جديد
-- `GET /api/accounting/exchange-rates/latest/{from}/{to}` - جلب آخر سعر صرف
-
-#### دليل الحسابات (Chart of Accounts)
-- `GET /api/accounting/chart-of-accounts` - جلب أدلة الحسابات
-- `POST /api/accounting/chart-of-accounts` - إنشاء دليل حسابات جديد
-- `GET /api/accounting/chart-of-accounts/{id}` - جلب دليل حسابات محدد
-
-#### الحسابات (Accounts)
-- `GET /api/accounting/accounts` - جلب الحسابات مع مرشحات
-- `POST /api/accounting/accounts` - إنشاء حساب جديد
-- `GET /api/accounting/accounts/{id}` - جلب حساب محدد
-- `PUT /api/accounting/accounts/{id}` - تحديث الحساب
-
-#### دفاتر اليومية (Journals)
-- `GET /api/accounting/journals` - جلب دفاتر اليومية
-- `POST /api/accounting/journals` - إنشاء دفتر يومية جديد
-- `GET /api/accounting/journals/{id}` - جلب دفتر يومية محدد
-
-#### القيود المحاسبية (Journal Entries)
-- `GET /api/accounting/journal-entries` - جلب القيود مع مرشحات
-- `POST /api/accounting/journal-entries` - إنشاء قيد جديد
-- `GET /api/accounting/journal-entries/{id}` - جلب قيد محدد
-- `POST /api/accounting/journal-entries/{id}/post` - ترحيل القيد
-- `POST /api/accounting/journal-entries/{id}/reverse` - عكس القيد
-
-#### السنوات والفترات المالية (Fiscal Years & Periods)
-- `GET /api/accounting/fiscal-years` - جلب السنوات المالية
-- `POST /api/accounting/fiscal-years` - إنشاء سنة مالية جديدة
-- `GET /api/accounting/accounting-periods` - جلب الفترات المحاسبية
-- `POST /api/accounting/accounting-periods` - إنشاء فترة محاسبية جديدة
-- `POST /api/accounting/accounting-periods/{id}/close` - إغلاق الفترة
-
-#### التقارير المالية (Financial Reports)
-- `GET /api/accounting/reports/trial-balance` - تقرير ميزان المراجعة
-- `GET /api/accounting/reports/balance-sheet` - تقرير الميزانية العمومية
-- `GET /api/accounting/reports/income-statement` - تقرير قائمة الدخل
-
-### 🛒 POS API Endpoints
-
-#### الأجهزة (Terminals)
-- `GET /api/pos/terminals` - جلب أجهزة نقاط البيع
-- `POST /api/pos/terminals` - إنشاء جهاز جديد
-- `GET /api/pos/terminals/{id}` - جلب جهاز محدد
-- `PUT /api/pos/terminals/{id}` - تحديث الجهاز
-
-#### الجلسات (Sessions)
-- `GET /api/pos/sessions` - جلب الجلسات مع مرشحات
-- `POST /api/pos/sessions` - إنشاء جلسة جديدة
-- `GET /api/pos/sessions/{id}` - جلب جلسة محددة
-- `POST /api/pos/sessions/{id}/close` - إغلاق الجلسة
-- `GET /api/pos/sessions/active/{terminal_id}` - جلب الجلسة النشطة
-
-#### المعاملات (Transactions)
-- `GET /api/pos/transactions` - جلب المعاملات مع مرشحات
-- `POST /api/pos/transactions` - إنشاء معاملة جديدة
-- `GET /api/pos/transactions/{id}` - جلب معاملة محددة
-- `POST /api/pos/transactions/{id}/complete` - إتمام المعاملة
-- `POST /api/pos/transactions/{id}/void` - إلغاء المعاملة
-- `POST /api/pos/transactions/{id}/refund` - استرداد المعاملة
-
-#### المدفوعات (Payments)
-- `GET /api/pos/payments` - جلب المدفوعات
-- `POST /api/pos/payments` - إنشاء دفعة جديدة
-
-#### الخصومات (Discounts)
-- `GET /api/pos/discounts` - جلب الخصومات
-- `POST /api/pos/discounts` - إنشاء خصم جديد
-- `GET /api/pos/discounts/{id}` - جلب خصم محدد
-- `PUT /api/pos/discounts/{id}` - تحديث الخصم
-- `POST /api/pos/discounts/{id}/validate` - التحقق من صحة الخصم
-
-#### العروض (Promotions)
-- `GET /api/pos/promotions` - جلب العروض
-- `POST /api/pos/promotions` - إنشاء عرض جديد
-- `GET /api/pos/promotions/{id}` - جلب عرض محدد
-- `PUT /api/pos/promotions/{id}` - تحديث العرض
-
-#### فحص المخزون (Inventory Checks)
-- `GET /api/pos/inventory/check/{product_id}` - فحص توفر المخزون
-- `GET /api/pos/inventory/stock/{product_id}` - جلب كمية المخزون
-
-#### التقارير (Reports)
-- `GET /api/pos/reports/sales` - تقرير المبيعات
-- `GET /api/pos/reports/sessions` - تقارير الجلسات
-- `GET /api/pos/reports/product-sales` - تقرير مبيعات المنتجات
-
-## 🚀 بدء سريع
-
-### تشغيل سريع باستخدام السكريبت
 ```bash
-# إعطاء صلاحيات التنفيذ
-chmod +x startup.sh
+# Navigate to specific mobile app
+cd mobile/flutter_apps/admin_dashboard
 
-# تشغيل النظام
-./startup.sh
+# Get dependencies
+flutter pub get
+
+# Run the app
+flutter run
 ```
 
-### تهيئة البيانات الافتراضية
-السكريبت سيقوم تلقائياً بتهيئة:
-- العملات الثلاث (IQD, USD, RMB)
-- دليل حسابات معياري
-- دفاتر يومية افتراضية
-- السنة المالية الحالية مع 12 فترة محاسبية
-- خصومات وعروض نقاط البيع الافتراضية
-
-### أمثلة على الاستخدام
-
-#### إنشاء قيد محاسبي
-```python
-journal_entry = {
-    "journal_id": 1,
-    "period_id": 1,
-    "entry_number": "JE-001",
-    "description": "قيد بيع نقدي",
-    "reference": "INV-001",
-    "total_debit": 1000.0,
-    "total_credit": 1000.0,
-    "lines": [
-        {
-            "account_id": 5,  # النقدية
-            "description": "نقدية من البيع",
-            "debit_amount": 1000.0,
-            "credit_amount": 0.0
-        },
-        {
-            "account_id": 12,  # إيرادات المبيعات
-            "description": "إيرادات البيع",
-            "debit_amount": 0.0,
-            "credit_amount": 1000.0
-        }
-    ]
-}
-```
-
-#### إنشاء معاملة نقطة بيع
-```python
-pos_transaction = {
-    "session_id": 1,
-    "transaction_number": "TXN-001",
-    "customer_id": 1,
-    "subtotal": 100.0,
-    "tax_amount": 10.0,
-    "discount_amount": 5.0,
-    "total_amount": 105.0,
-    "items": [
-        {
-            "product_id": 1,
-            "quantity": 2,
-            "unit_price": 50.0,
-            "total_price": 100.0
-        }
-    ],
-    "payments": [
-        {
-            "payment_method": "CASH",
-            "amount": 105.0
-        }
-    ]
-}
-```
-
-## 🛠️ هيكل المشروع المُحدث
+## 📁 Project Structure
 
 ```
-erp_system/
-├── app/
-│   ├── models/
-│   │   ├── accounting.py    # نماذج المحاسبة
-│   │   ├── pos.py          # نماذج نقاط البيع
-│   │   └── ...
-│   ├── schemas/
-│   │   ├── accounting.py    # مخططات المحاسبة
-│   │   ├── pos.py          # مخططات نقاط البيع
-│   │   └── ...
-│   ├── routers/
-│   │   ├── accounting.py    # نقاط نهاية المحاسبة
-│   │   ├── pos.py          # نقاط نهاية نقاط البيع
-│   │   └── ...
-│   ├── services/
-│   │   ├── accounting_service.py  # منطق أعمال المحاسبة
-│   │   ├── pos_service.py        # منطق أعمال نقاط البيع
-│   │   └── ...
-│   ├── init_data.py        # تهيئة البيانات الافتراضية
-│   └── ...
-├── startup.sh              # سكريبت البدء السريع
-└── ...
+TSH ERP System/
+├── 🖥️  app/                    # FastAPI Backend Application
+│   ├── models/                # Database models
+│   ├── routers/              # API route handlers
+│   ├── services/             # Business logic
+│   ├── schemas/              # Pydantic schemas
+│   └── db/                   # Database configuration
+├── 🌐 frontend/               # React Web Application
+│   ├── src/                  # Source code
+│   ├── public/               # Static assets
+│   └── build/                # Production build
+├── 📱 mobile/                 # Mobile Applications
+│   ├── flutter_apps/         # Flutter applications
+│   │   ├── admin_dashboard/
+│   │   ├── salesperson/
+│   │   ├── inventory_app/
+│   │   ├── hr_app/
+│   │   └── ...               # 17+ mobile apps
+│   ├── ios/                  # iOS specific files
+│   └── android/              # Android specific files
+├── 🗄️  database/              # Database Schema & Migrations
+├── ⚙️  config/                # Configuration Files
+├── 🔧 scripts/               # Utility Scripts
+├── 📚 docs/                  # Documentation
+├── 🧪 tests/                 # Test Files
+├── 🐳 docker/                # Docker Configuration
+└── 🛠️  tools/                 # Development Tools
 ```
+
+## 📱 Mobile Applications
+
+The system includes 17+ specialized Flutter applications:
+
+| App | Description |
+|-----|-------------|
+| **Admin Dashboard** | Complete system administration |
+| **Salesperson App** | Mobile sales management |
+| **Inventory App** | Stock management on-the-go |
+| **HR App** | Human resources management |
+| **Travel Sales** | Travel booking and management |
+| **Retail Sales** | Retail point-of-sale |
+| **Client App** | Customer portal |
+| **Consumer App** | End-user interface |
+| **Partners App** | Partner management |
+
+## 🔐 Security Features
+
+- **JWT Authentication** - Secure token-based authentication
+- **Role-Based Access Control** - Granular permission system
+- **Multi-tenant Architecture** - Data isolation between organizations
+- **Audit Logging** - Complete activity tracking
+- **Data Encryption** - Sensitive data protection
+- **API Rate Limiting** - Protection against abuse
+
+## 🌍 Internationalization
+
+- **Arabic Language Support** - Complete RTL interface
+- **English Language Support** - Full LTR interface
+- **Multi-currency Support** - Handle multiple currencies
+- **Localized Date/Time** - Regional formatting
+
+## 📊 Database Schema
+
+The system uses PostgreSQL with comprehensive models including:
+
+- User Management (Users, Roles, Permissions)
+- Inventory (Products, Categories, Stock Movements)
+- Sales (Orders, Invoices, Payments)
+- Accounting (Chart of Accounts, Journal Entries)
+- POS (Terminals, Transactions, Sessions)
+- And much more...
+
+## 🐳 Docker Deployment
+
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
+
+# Or build manually
+docker build -t tsh-erp-system .
+docker run -p 8000:8000 tsh-erp-system
+```
+
+## 📋 Testing
+
+```bash
+# Backend tests
+python -m pytest tests/
+
+# Frontend tests
+cd frontend
+npm test
+
+# Mobile tests
+cd mobile/flutter_apps/admin_dashboard
+flutter test
+```
+
+## 📚 Documentation
+
+- **[API Documentation](http://localhost:8000/docs)** - Auto-generated Swagger UI
+- **[System Guides](docs/guides/)** - Setup and configuration guides
+- **[Implementation Details](docs/implementation/)** - Technical documentation
+- **[Deployment Guide](docs/deployment/)** - Production deployment instructions
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔧 Development
+
+### Environment Setup
+```bash
+# Backend development
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload
+
+# Frontend development
+cd frontend && npm run dev
+
+# Mobile development
+cd mobile/flutter_apps/[app_name] && flutter run
+```
+
+### Code Style
+- **Python**: Follow PEP 8, use Black formatter
+- **JavaScript/TypeScript**: Use Prettier, ESLint
+- **Flutter**: Follow Dart style guide
+
+## 📞 Support
+
+For support and questions, please open an issue in the GitHub repository.
+
+---
+
+**Last Updated:** September 2025
+**Version:** 1.0.0
+**Status:** Production Ready ✅

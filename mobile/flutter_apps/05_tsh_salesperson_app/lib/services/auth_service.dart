@@ -2,24 +2,23 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_model.dart';
-import 'api_service.dart';
+import 'odoo_service.dart';
 
 class AuthService {
-  final ApiService _apiService;
+  final OdooService _odooService;
   
-  static const String _baseUrl = 'http://192.168.68.66:8000'; // Mac's local IP address
+  static const String _baseUrl = 'http://192.168.68.66:8000/api';
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
+  static const String _lastEmailKey = 'last_email';
 
-  AuthService(this._apiService);
+  AuthService(this._odooService);
 
-  // Login method - Uses mobile-specific endpoint
+  // Login method
   Future<AuthModel?> login(String email, String password) async {
     try {
-      // Use the mobile login endpoint that allows all users
-      // Fixed: Added /api prefix to match backend router configuration
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/auth/login/mobile'),
+        Uri.parse('$_baseUrl/auth/login/mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -30,31 +29,19 @@ class AuthService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
 
-        // Backend returns response directly without 'success'/'data' wrapper
-        // Response format: { "access_token": "...", "token_type": "bearer", "user": {...} }
-        if (data['access_token'] != null && data['user'] != null) {
-          final token = data['access_token'] as String;
-          final userInfo = data['user'] as Map<String, dynamic>;
+        // Backend returns data directly, not wrapped in success/data
+        final token = data['access_token'];
+        final userInfo = data['user'];
 
-          // Save token and user data locally
-          await _saveTokenAndUser(token, userInfo);
+        // Save token and user data locally
+        await _saveTokenAndUser(token, userInfo);
 
-          // Create UserModel from user data
-          final user = UserModel(
-            id: userInfo['id'] as int,
-            name: userInfo['name'] as String? ?? 'User',
-            email: userInfo['email'] as String?,
-            active: true,
-          );
+        // Save last email for auto-fill on next login
+        await saveLastEmail(email);
 
-          // Return AuthModel with token and user
-          return AuthModel(
-            token: token,
-            user: user,
-          );
-        }
+        return AuthModel.fromJson(userInfo);
       }
-      
+
       return null;
     } catch (e) {
       print('Login error: $e');
@@ -125,7 +112,7 @@ class AuthService {
       if (token == null) return null;
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/auth/refresh'),
+        Uri.parse('$_baseUrl/auth/refresh'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -135,9 +122,8 @@ class AuthService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         
-        // Backend returns response directly without 'success'/'data' wrapper
-        if (data['access_token'] != null) {
-          final newToken = data['access_token'];
+        if (data['success'] == true && data['data'] != null) {
+          final newToken = data['data']['access_token'];
           
           // Save new token
           final prefs = await SharedPreferences.getInstance();
@@ -161,7 +147,7 @@ class AuthService {
       if (token == null) return false;
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/auth/change-password'),
+        Uri.parse('$_baseUrl/auth/change-password'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -188,7 +174,7 @@ class AuthService {
   Future<bool> requestPasswordReset(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/auth/reset-password'),
+        Uri.parse('$_baseUrl/auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -212,7 +198,7 @@ class AuthService {
       if (token == null) return null;
 
       final response = await http.put(
-        Uri.parse('$_baseUrl/api/auth/profile'),
+        Uri.parse('$_baseUrl/auth/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -273,6 +259,18 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+  }
+
+  // Save last logged-in email
+  Future<void> saveLastEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastEmailKey, email);
+  }
+
+  // Get last logged-in email
+  Future<String?> getLastEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastEmailKey);
   }
 
   // Mock login for demo purposes

@@ -2,10 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppConfig {
-  // TSH ERP System API Configuration
-  static const String apiUrl = 'http://192.168.68.66:8000'; // TSH ERP Backend API (Mac's local IP)
-  static const String defaultUsername = 'frati@tsh.sale'; // Salesperson: Ayad
-  static const String defaultPassword = 'password123'; // Working password
+  // Odoo Configuration
+  static const String odooUrl = 'http://138.68.89.104:8069';
+  static const String database = 'nootshitup';
+  static const String defaultUsername = 'khaleel@tsh.sale';
+  static const String defaultPassword = 'Zcbm.97531tsh';
   
   // App Constants
   static const String appName = 'TSH Salesperson';
@@ -94,7 +95,8 @@ class AppConfig {
     
     if (kDebugMode) {
       print('✅ AppConfig initialized');
-      print('📊 API URL: $apiUrl');
+      print('📊 Odoo URL: $odooUrl');
+      print('🗄️ Database: $database');
       print('💰 Commission Rate: ${(commissionRate * 100)}%');
     }
   }
@@ -102,25 +104,26 @@ class AppConfig {
   // Settings Management
   static Future<void> saveUserCredentials({
     required String username,
-    required String accessToken,
+    required String password,
     int? userId,
   }) async {
     await _prefs.setString(keyUsername, username);
-    await _prefs.setString(keyAuthToken, accessToken);
+    await _prefs.setString('password', password);
     if (userId != null) {
       await _prefs.setInt(keyUserId, userId);
     }
   }
   
   static String? get savedUsername => _prefs.getString(keyUsername);
-  static String? get savedAccessToken => _prefs.getString(keyAuthToken);
+  static String? get savedPassword => _prefs.getString('password');
   static int? get savedUserId => _prefs.getInt(keyUserId);
   
   static Future<void> clearUserData() async {
     await _prefs.remove(keyUsername);
-    await _prefs.remove(keyAuthToken);
+    await _prefs.remove('password');
     await _prefs.remove(keyUserId);
     await _prefs.remove(keyUserData);
+    await _prefs.remove(keyAuthToken);
   }
   
   // Cache Management
@@ -219,4 +222,4 @@ class EnvironmentConfig {
   
   static bool get enableLogging => current != AppEnvironment.production;
   static bool get enableDebugTools => current == AppEnvironment.development;
-}
+} 

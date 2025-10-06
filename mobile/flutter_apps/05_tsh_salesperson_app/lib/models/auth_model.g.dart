@@ -6,18 +6,6 @@ part of 'auth_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-AuthModel _$AuthModelFromJson(Map<String, dynamic> json) => AuthModel(
-      token: json['token'] as String,
-      user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
-      refreshToken: json['refreshToken'] as String?,
-    );
-
-Map<String, dynamic> _$AuthModelToJson(AuthModel instance) => <String, dynamic>{
-      'token': instance.token,
-      'user': instance.user,
-      'refreshToken': instance.refreshToken,
-    };
-
 AuthResult _$AuthResultFromJson(Map<String, dynamic> json) => AuthResult(
       success: json['success'] as bool,
       userId: (json['userId'] as num?)?.toInt(),

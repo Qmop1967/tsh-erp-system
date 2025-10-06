@@ -21,6 +21,7 @@ class AppTheme {
   static const Color backgroundDark = Color(0xFF121212);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color surfaceDark = Color(0xFF1E1E1E);
+  static const Color borderColor = Color(0xFFE0E0E0);
   
   // Status Colors
   static const Color success = Color(0xFF4CAF50);
@@ -170,7 +171,7 @@ class AppTheme {
     ),
     
     // Card Theme
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

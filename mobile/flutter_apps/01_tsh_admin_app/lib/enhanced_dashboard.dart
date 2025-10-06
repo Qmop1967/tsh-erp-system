@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tsh_core_package/tsh_core_package.dart';
+import 'utils/tsh_theme.dart';
 import 'enhanced_localization.dart';
 
 class EnhancedExecutiveDashboardScreen extends StatefulWidget {

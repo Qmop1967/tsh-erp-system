@@ -18,6 +18,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isLoggedIn => _isLoggedIn;
+  AuthService get authService => _authService;
 
   // Sign in method
   Future<bool> signIn(String email, String password) async {
@@ -57,6 +58,9 @@ class AuthProvider extends ChangeNotifier {
     
     _setLoading(false);
   }
+  
+  // Alias for signOut (for backward compatibility)
+  Future<void> logout() => signOut();
 
   // Check authentication status
   Future<void> checkAuthStatus() async {
@@ -119,7 +123,7 @@ class AuthProvider extends ChangeNotifier {
 
   // Check if user has specific permissions
   bool hasPermission(String permission) {
-    return _user?.permissions.contains(permission) ?? false;
+    return _user?.permissions?.contains(permission) ?? false;
   }
 
   // Get user role

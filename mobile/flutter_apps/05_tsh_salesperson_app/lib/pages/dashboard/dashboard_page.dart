@@ -29,10 +29,6 @@ class _DashboardPageState extends State<DashboardPage>
     with TickerProviderStateMixin {
   late AnimationController _refreshController;
   late Animation<double> _refreshAnimation;
-  final RefreshIndicator refreshIndicator = const RefreshIndicator(
-    onRefresh: null,
-    child: SizedBox(),
-  );
 
   @override
   void initState() {
@@ -57,7 +53,7 @@ class _DashboardPageState extends State<DashboardPage>
 
   Future<void> _loadDashboardData() async {
     final dashboardProvider = context.read<DashboardProvider>();
-    await dashboardProvider.loadDashboardData();
+    await dashboardProvider.fetchDashboardData();
   }
 
   Future<void> _refreshDashboard() async {
@@ -285,23 +281,27 @@ class _DashboardPageState extends State<DashboardPage>
                   
                   // Commission Card
                   CommissionCard(
-                    data: provider.commissionData,
-                    onTap: () => _showCommissionDetails(provider),
+                    totalCommission: provider.dashboardData['totalCommission']?.toDouble() ?? 0.0,
+                    thisMonthCommission: provider.dashboardData['thisMonthCommission']?.toDouble() ?? 0.0,
+                    lastMonthCommission: provider.dashboardData['lastMonthCommission']?.toDouble() ?? 0.0,
+                    isLoading: false,
                   ),
                   const SizedBox(height: 16),
                   
                   // Cash Box Card
                   CashBoxCard(
-                    data: provider.cashBoxData,
-                    onSettlement: () => _showSettlementDialog(provider),
+                    totalCash: provider.dashboardData['cashBalance']?.toDouble() ?? 0.0,
+                    dailyCollection: provider.dashboardData['dailyCollection']?.toDouble() ?? 0.0,
+                    recentTransactions: (provider.dashboardData['recentTransactions'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
+                    isLoading: false,
                   ),
                   const SizedBox(height: 16),
                   
                   // Regional Breakdown
-                  if (provider.regionalData.isNotEmpty)
+                  if (provider.dashboardData['regionalBreakdown'] != null)
                     RegionalBreakdownCard(
-                      data: provider.regionalData,
-                      onRegionTap: (region) => _showRegionDetails(region),
+                      regionalData: provider.dashboardData['regionalBreakdown'] ?? {},
+                      isLoading: false,
                     ),
                   
                   const SizedBox(height: 100), // Space for bottom navigation
@@ -315,36 +315,12 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   Widget _buildQuickStatsRow(DashboardProvider provider) {
-    return Row(
-      children: [
-        Expanded(
-          child: QuickStatsCard(
-            title: 'إجمالي المستحقات',
-            value: NumberFormat.currency(
-              locale: 'ar_IQ',
-              symbol: 'د.ع',
-              decimalDigits: 0,
-            ).format(provider.totalReceivables),
-            icon: MdiIcons.cashMultiple,
-            color: AppTheme.info,
-            trend: provider.receivablesTrend,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: QuickStatsCard(
-            title: 'العمولة المكتسبة',
-            value: NumberFormat.currency(
-              locale: 'ar_IQ',
-              symbol: 'د.ع',
-              decimalDigits: 0,
-            ).format(provider.totalCommission),
-            icon: MdiIcons.percentOutline,
-            color: AppTheme.success,
-            trend: provider.commissionTrend,
-          ),
-        ),
-      ],
+    return QuickStatsCard(
+      totalOrders: provider.dashboardData['totalOrders'] ?? 0,
+      pendingOrders: provider.dashboardData['pendingOrders'] ?? 0,
+      completedOrders: provider.dashboardData['completedOrders'] ?? 0,
+      totalCustomers: provider.dashboardData['totalCustomers'] ?? 0,
+      isLoading: false,
     );
   }
 

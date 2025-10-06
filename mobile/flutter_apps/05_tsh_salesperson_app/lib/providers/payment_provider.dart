@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/api_service.dart';
+import '../services/odoo_service.dart';
 
 class PaymentProvider extends ChangeNotifier {
-  final ApiService _apiService;
+  final OdooService _odooService;
   
   bool _isLoading = false;
   String? _error;
@@ -16,7 +16,7 @@ class PaymentProvider extends ChangeNotifier {
   String _sortBy = 'date';
   bool _sortAscending = false;
 
-  PaymentProvider(this._apiService);
+  PaymentProvider(this._odooService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -38,7 +38,7 @@ class PaymentProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final data = await _apiService.getPayments();
+      final data = await _odooService.getPayments();
       _payments = List<Map<String, dynamic>>.from(data ?? []);
       _applyFilters();
     } catch (e) {
@@ -139,13 +139,13 @@ class PaymentProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _apiService.processPayment(paymentData);
-      if (result['success'] == true) {
+      final result = await _odooService.processPayment(paymentData);
+      if (result?['success'] == true) {
         await loadPayments(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Payment processing failed');
+        _setError(result?['message'] ?? 'Payment processing failed');
         _setLoading(false);
         return false;
       }
@@ -162,8 +162,8 @@ class PaymentProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _apiService.refundPayment(paymentId, amount, reason);
-      if (result['success'] == true) {
+      final result = await _odooService.refundPayment(paymentId, amount, reason);
+      if (result?['success'] == true) {
         // Update local data
         final paymentIndex = _payments.indexWhere((p) => p['id'] == paymentId);
         if (paymentIndex != -1) {
@@ -175,7 +175,7 @@ class PaymentProvider extends ChangeNotifier {
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Refund failed');
+        _setError(result?['message'] ?? 'Refund failed');
         _setLoading(false);
         return false;
       }

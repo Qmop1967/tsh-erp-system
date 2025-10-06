@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'enhanced_dashboard.dart';
 import 'services/auth_service.dart';
 import 'utils/theme.dart';
+import 'mfa_screens/security_dashboard_screen.dart';
 
 void main() {
   runApp(TSHAdminApp());
@@ -19,7 +20,8 @@ class TSHAdminApp extends StatelessWidget {
       home: AuthWrapper(),
       routes: {
         '/login': (context) => LoginScreen(),
-        '/dashboard': (context) => DashboardScreen(),
+        '/dashboard': (context) => EnhancedExecutiveDashboardScreen(),
+        '/mfa-security': (context) => SecurityDashboardScreen(),
       },
     );
   }
@@ -99,7 +101,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
     }
 
-    return isAuthenticated ? DashboardScreen() : LoginScreen();
+    return isAuthenticated ? EnhancedExecutiveDashboardScreen() : LoginScreen();
   }
 
 class TestHomePage extends StatefulWidget {

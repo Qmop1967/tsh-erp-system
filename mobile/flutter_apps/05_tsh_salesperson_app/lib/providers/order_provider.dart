@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/api_service.dart';
+import '../services/odoo_service.dart';
 
 class OrderProvider extends ChangeNotifier {
-  final ApiService _apiService;
+  final OdooService _odooService;
   
   bool _isLoading = false;
   String? _error;
@@ -14,7 +14,7 @@ class OrderProvider extends ChangeNotifier {
   String _sortBy = 'date';
   bool _sortAscending = false;
 
-  OrderProvider(this._apiService);
+  OrderProvider(this._odooService);
 
   // Getters
   bool get isLoading => _isLoading;
@@ -34,7 +34,7 @@ class OrderProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final data = await _apiService.getOrdersAsMaps();
+      final data = await _odooService.getOrdersAsMaps();
       _orders = List<Map<String, dynamic>>.from(data ?? []);
       _applyFilters();
     } catch (e) {
@@ -121,13 +121,13 @@ class OrderProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _apiService.createOrder(orderData);
-      if (result['success'] == true) {
+      final result = await _odooService.createOrder(orderData);
+      if (result?['success'] == true) {
         await loadOrders(); // Reload to get updated list
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to create order');
+        _setError(result?['message'] ?? 'Failed to create order');
         _setLoading(false);
         return false;
       }
@@ -144,8 +144,8 @@ class OrderProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final result = await _apiService.updateOrderStatus(orderId, newStatus);
-      if (result['success'] == true) {
+      final result = await _odooService.updateOrderStatus(orderId, newStatus);
+      if (result?['success'] == true) {
         // Update local data
         final orderIndex = _orders.indexWhere((o) => o['id'] == orderId);
         if (orderIndex != -1) {
@@ -155,7 +155,7 @@ class OrderProvider extends ChangeNotifier {
         _setLoading(false);
         return true;
       } else {
-        _setError(result['message'] ?? 'Failed to update order status');
+        _setError(result?['message'] ?? 'Failed to update order status');
         _setLoading(false);
         return false;
       }
