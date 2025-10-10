@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_routes.dart';
 import '../../providers/auth_provider.dart';
+import '../financial/financial_management_page.dart';
+import '../remittance/remittance_management_page.dart';
 
 class MenuPage extends StatelessWidget {
   const MenuPage({super.key});
@@ -143,7 +145,28 @@ class MenuPage extends StatelessWidget {
                       icon: MdiIcons.walletOutline,
                       title: 'عمولاتي',
                       subtitle: 'عرض العمولات والأرباح',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FinancialManagementPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: MdiIcons.bankTransfer,
+                      title: 'إدارة الحوالات',
+                      subtitle: 'إرسال ومتابعة الحوالات الأسبوعية',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RemittanceManagementPage(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../pages/financial/financial_management_page.dart';
 
 class CommissionSummaryCard extends StatelessWidget {
   final Map<String, dynamic>? dashboardData;
@@ -27,7 +28,16 @@ class CommissionSummaryCard extends StatelessWidget {
     final pendingCommission = commission['pending'] ?? 0.0;
     final thisMonthCommission = commission['this_month'] ?? 0.0;
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const FinancialManagementPage(),
+          ),
+        );
+      },
+      child: Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -206,6 +216,7 @@ class CommissionSummaryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

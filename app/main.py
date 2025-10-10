@@ -91,6 +91,8 @@ from app.routers.auth import router as auth_router  # Enable auth router
 from app.routers.vendors import router as vendors_router  # Enable vendors
 from app.routers.permissions import router as permissions_router  # Enable permissions management
 from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
+from app.routers.backup_restore import router as backup_restore_router  # Backup & Restore System
+from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
 
 # إضافة الـ routers
@@ -131,6 +133,9 @@ app.include_router(warehouses_router, prefix="/api")  # Enable warehouses router
 app.include_router(items_router, prefix="/api")
 app.include_router(vendors_router, prefix="/api")  # Enable vendors router
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
+app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])
+# 🛒 CONSUMER APP: Modern E-commerce with Zoho Integration
+app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
 # 🔒 ENHANCED SECURITY SYSTEM: Advanced RBAC/ABAC, Multi-tenancy, Audit & Monitoring
 app.include_router(enhanced_settings_router, prefix="/api/security", tags=["Enhanced Security - RBAC/ABAC & Multi-tenancy"])
 # 📷 PRODUCT IMAGES MANAGEMENT: Temporarily disabled due to import issues

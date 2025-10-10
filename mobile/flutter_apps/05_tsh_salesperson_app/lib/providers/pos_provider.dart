@@ -22,7 +22,7 @@ class POSProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.68.66:8000/api/inventory/items?limit=1000'),
+        Uri.parse('http://192.168.68.82:8000/api/inventory/items?limit=1000'),
       );
 
       if (response.statusCode == 200) {

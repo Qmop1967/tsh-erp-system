@@ -288,6 +288,37 @@ const ModernSettingsPage: React.FC = () => {
         },
       ],
     },
+    {
+      id: 'system',
+      title: 'System & Maintenance',
+      description: 'Backup, restore, and system health monitoring',
+      icon: HardDrive,
+      color: 'text-red-600',
+      bgColor: 'bg-gradient-to-br from-red-50 to-red-100',
+      items: [
+        {
+          name: 'Backup & Restore',
+          description: 'Automated backups for database, images, and configuration',
+          icon: Shield,
+          path: '/settings/system/backup-restore',
+          enabled: true,
+        },
+        {
+          name: 'System Health',
+          description: 'Monitor system performance and resource usage',
+          icon: Activity,
+          path: '/settings/system/health',
+          enabled: false,
+        },
+        {
+          name: 'Database Management',
+          description: 'Database optimization and maintenance tools',
+          icon: Database,
+          path: '/settings/system/database',
+          enabled: false,
+        },
+      ],
+    },
   ];
 
   const handleCardClick = (path: string) => {

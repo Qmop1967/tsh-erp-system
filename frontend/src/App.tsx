@@ -22,6 +22,7 @@ import MFASettings from './pages/settings/auth/MFASettings'
 import OrganizationProfile from './pages/settings/general/OrganizationProfile'
 import DynamicTranslationManagementPage from './pages/settings/DynamicTranslationManagementPage'
 import DocumentationModule from './pages/settings/documentation/DocumentationModule'
+import BackupRestorePage from './pages/settings/system/BackupRestorePage'
 
 console.log('🚀 TSH ERP System - Enhanced Authentication Mode')
 
@@ -263,13 +264,21 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/settings/documentation" 
+        <Route
+          path="/settings/documentation"
           element={
             <ProtectedRoute>
               <DocumentationModule />
             </ProtectedRoute>
-          } 
+          }
+        />
+        <Route
+          path="/settings/system/backup-restore"
+          element={
+            <ProtectedRoute>
+              <BackupRestorePage />
+            </ProtectedRoute>
+          }
         />
         
         {/* Fallback */}

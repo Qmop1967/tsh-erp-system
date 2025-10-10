@@ -7,7 +7,7 @@ import 'odoo_service.dart';
 class AuthService {
   final OdooService _odooService;
   
-  static const String _baseUrl = 'http://192.168.68.66:8000/api';
+  static const String _baseUrl = 'http://192.168.68.82:8000/api';
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
   static const String _lastEmailKey = 'last_email';
