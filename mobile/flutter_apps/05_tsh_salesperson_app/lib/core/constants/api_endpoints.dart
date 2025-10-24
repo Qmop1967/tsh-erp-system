@@ -1,9 +1,9 @@
 class ApiEndpoints {
   // Base URL - Update based on environment
-  static const String baseUrl = 'http://192.168.68.82:8000/api';
+  static const String baseUrl = 'http://192.168.68.66:8000/api';
 
   // Authentication
-  static const String login = '/auth/login/mobile';
+  static const String login = '/auth/login';
   static const String logout = '/auth/logout';
   static const String refreshToken = '/auth/refresh';
 

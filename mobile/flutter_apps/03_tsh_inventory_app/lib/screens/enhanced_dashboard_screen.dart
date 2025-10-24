@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
+import 'notification_center_screen.dart';
 
 class EnhancedInventoryDashboardScreen extends StatefulWidget {
   const EnhancedInventoryDashboardScreen({super.key});
@@ -8,6 +10,9 @@ class EnhancedInventoryDashboardScreen extends StatefulWidget {
 }
 
 class _EnhancedInventoryDashboardScreenState extends State<EnhancedInventoryDashboardScreen> {
+  final NotificationService _notificationService = NotificationService();
+  int _unreadNotificationCount = 0;
+
   // Sample data - in real implementation, this would come from API
   final Map<String, dynamic> _dashboardData = {
     'pendingSalesOrders': 24,
@@ -22,6 +27,7 @@ class _EnhancedInventoryDashboardScreenState extends State<EnhancedInventoryDash
   void initState() {
     super.initState();
     _loadDashboardData();
+    _loadUnreadNotificationCount();
   }
 
   Future<void> _loadDashboardData() async {
@@ -29,6 +35,28 @@ class _EnhancedInventoryDashboardScreenState extends State<EnhancedInventoryDash
     setState(() {
       // Data loaded
     });
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final count = await _notificationService.getUnreadCount();
+      setState(() {
+        _unreadNotificationCount = count;
+      });
+    } catch (e) {
+      // Silently fail - notifications are not critical
+    }
+  }
+
+  void _openNotificationCenter() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const NotificationCenterScreen(),
+      ),
+    );
+    // Refresh unread count when returning from notification center
+    _loadUnreadNotificationCount();
   }
 
   @override
@@ -46,6 +74,43 @@ class _EnhancedInventoryDashboardScreenState extends State<EnhancedInventoryDash
           ],
         ),
         actions: [
+          // Notification bell with badge
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: _openNotificationCenter,
+                tooltip: 'Notifications',
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      _unreadNotificationCount > 99
+                          ? '99+'
+                          : '$_unreadNotificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadDashboardData,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // Import screens
+import 'screens/login_screen.dart';
 import 'screens/items_management_screen_simple.dart';
 import 'screens/enhanced_dashboard_screen.dart';
 import 'screens/sales_orders_packing_screen.dart';
@@ -9,6 +10,9 @@ import 'screens/enhanced_shipments_screen.dart';
 import 'screens/enhanced_purchase_orders_screen.dart';
 import 'screens/comprehensive_reports_screen.dart';
 import 'screens/placeholder_screens.dart';
+
+// Import services
+import 'services/auth_service.dart';
 
 // Simple language service for demo
 class SimpleLanguageService extends ChangeNotifier {
@@ -39,10 +43,91 @@ class TSHInventoryApp extends StatelessWidget {
             elevation: 2,
           ),
         ),
-        home: const InventoryMainScreen(),
+        home: const AuthWrapper(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/home': (context) => const InventoryMainScreen(),
+        },
         debugShowCheckedModeBanner: false,
       ),
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final _authService = AuthService();
+  bool _isLoading = true;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    try {
+      final isLoggedIn = await _authService.isLoggedIn();
+      setState(() {
+        _isLoggedIn = isLoggedIn;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoggedIn = false;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.teal.shade700, Colors.teal.shade900],
+            ),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inventory_2,
+                  size: 80,
+                  color: Colors.white,
+                ),
+                SizedBox(height: 24),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Loading...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _isLoggedIn ? const InventoryMainScreen() : const LoginScreen();
   }
 }
 
@@ -54,8 +139,10 @@ class InventoryMainScreen extends StatefulWidget {
 }
 
 class _InventoryMainScreenState extends State<InventoryMainScreen> {
+  final _authService = AuthService();
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  Map<String, dynamic>? _userData;
 
   final List<Widget> _screens = [
     const EnhancedInventoryDashboardScreen(),
@@ -68,24 +155,63 @@ class _InventoryMainScreenState extends State<InventoryMainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final userData = await _authService.getStoredUserData();
+      setState(() {
+        _userData = userData;
+      });
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      await _authService.logout();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Logout failed: $e')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.inventory, size: 35),
-            SizedBox(width: 12),
+            const Icon(Icons.inventory, size: 35),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Inventory Management', overflow: TextOverflow.ellipsis),
-                  Text(
-                    'Multi-Location Warehouse System',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  const Text('Inventory Management', overflow: TextOverflow.ellipsis),
+                  if (_userData != null)
+                    Text(
+                      'Welcome, ${_userData!['full_name'] ?? _userData!['email'] ?? 'User'}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
+                    const Text(
+                      'Multi-Location Warehouse System',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
@@ -158,8 +284,8 @@ class _InventoryMainScreenState extends State<InventoryMainScreen> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(
+          DrawerHeader(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -169,20 +295,39 @@ class _InventoryMainScreenState extends State<InventoryMainScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.inventory, size: 35, color: Colors.teal),
+                  child: Icon(Icons.person, size: 35, color: Colors.teal),
                 ),
-                SizedBox(height: 10),
-                Text(
-                  'TSH Inventory',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Management System',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
+                const SizedBox(height: 10),
+                if (_userData != null) ...[
+                  Text(
+                    _userData!['full_name'] ?? 'User',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    _userData!['email'] ?? '',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  Text(
+                    _userData!['role'] ?? 'Inventory Staff',
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                ] else ...[
+                  const Text(
+                    'TSH Inventory',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    'Management System',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
               ],
             ),
           ),
@@ -198,8 +343,8 @@ class _InventoryMainScreenState extends State<InventoryMainScreen> {
             leading: const Icon(Icons.logout, color: Colors.white),
             title: const Text('Logout', style: TextStyle(color: Colors.white)),
             onTap: () {
-              // TODO: Implement logout
               Navigator.pop(context);
+              _showLogoutDialog();
             },
           ),
         ],
@@ -222,6 +367,34 @@ class _InventoryMainScreenState extends State<InventoryMainScreen> {
     setState(() => _selectedIndex = 4); // Navigate to items management for scanning
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Quick Scan activated - Navigating to Items Management')),
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _logout();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

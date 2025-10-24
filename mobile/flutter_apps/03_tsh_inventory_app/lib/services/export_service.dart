@@ -245,9 +245,9 @@ class ExportService {
       final sheet = excel['TSH_Report'];
       
       // Add header
-      sheet.cell(CellIndex.indexByString('A1')).value = 'TSH ERP System - $reportTitle';
-      sheet.cell(CellIndex.indexByString('A2')).value = 'Generated: ${DateTime.now().toString().split('.')[0]}';
-      sheet.cell(CellIndex.indexByString('A3')).value = 'Report Type: $reportType';
+      sheet.cell(CellIndex.indexByString('A1')).value = TextCellValue('TSH ERP System - $reportTitle');
+      sheet.cell(CellIndex.indexByString('A2')).value = TextCellValue('Generated: ${DateTime.now().toString().split('.')[0]}');
+      sheet.cell(CellIndex.indexByString('A3')).value = TextCellValue('Report Type: $reportType');
       
       // Add data based on report type
       _addExcelData(sheet, reportType, data);
@@ -280,12 +280,12 @@ class ExportService {
     switch (reportType) {
       case 'stock_levels':
         // Headers
-        sheet.cell(CellIndex.indexByString('A$currentRow')).value = 'Item Name';
-        sheet.cell(CellIndex.indexByString('B$currentRow')).value = 'Current Stock';
-        sheet.cell(CellIndex.indexByString('C$currentRow')).value = 'Min Stock';
-        sheet.cell(CellIndex.indexByString('D$currentRow')).value = 'Status';
+        sheet.cell(CellIndex.indexByString('A$currentRow')).value = TextCellValue('Item Name');
+        sheet.cell(CellIndex.indexByString('B$currentRow')).value = TextCellValue('Current Stock');
+        sheet.cell(CellIndex.indexByString('C$currentRow')).value = TextCellValue('Min Stock');
+        sheet.cell(CellIndex.indexByString('D$currentRow')).value = TextCellValue('Status');
         currentRow++;
-        
+
         // Sample data
         final sampleItems = [
           ['Phone Charger USB-C', '150', '50', 'Normal'],
@@ -294,33 +294,33 @@ class ExportService {
           ['Screen Protectors', '15', '25', 'Low Stock'],
           ['Power Banks 10000mAh', '80', '40', 'Normal'],
         ];
-        
+
         for (final item in sampleItems) {
-          sheet.cell(CellIndex.indexByString('A$currentRow')).value = item[0];
-          sheet.cell(CellIndex.indexByString('B$currentRow')).value = item[1];
-          sheet.cell(CellIndex.indexByString('C$currentRow')).value = item[2];
-          sheet.cell(CellIndex.indexByString('D$currentRow')).value = item[3];
+          sheet.cell(CellIndex.indexByString('A$currentRow')).value = TextCellValue(item[0]);
+          sheet.cell(CellIndex.indexByString('B$currentRow')).value = TextCellValue(item[1]);
+          sheet.cell(CellIndex.indexByString('C$currentRow')).value = TextCellValue(item[2]);
+          sheet.cell(CellIndex.indexByString('D$currentRow')).value = TextCellValue(item[3]);
           currentRow++;
         }
         break;
         
       case 'low_stock_alerts':
-        sheet.cell(CellIndex.indexByString('A$currentRow')).value = 'Low Stock Items Count';
-        sheet.cell(CellIndex.indexByString('B$currentRow')).value = data['lowStockItemsCount'] ?? 0;
+        sheet.cell(CellIndex.indexByString('A$currentRow')).value = TextCellValue('Low Stock Items Count');
+        sheet.cell(CellIndex.indexByString('B$currentRow')).value = IntCellValue(data['lowStockItemsCount'] ?? 0);
         currentRow++;
-        sheet.cell(CellIndex.indexByString('A$currentRow')).value = 'Zero Stock Items Count';
-        sheet.cell(CellIndex.indexByString('B$currentRow')).value = data['zeroStockItemsCount'] ?? 0;
+        sheet.cell(CellIndex.indexByString('A$currentRow')).value = TextCellValue('Zero Stock Items Count');
+        sheet.cell(CellIndex.indexByString('B$currentRow')).value = IntCellValue(data['zeroStockItemsCount'] ?? 0);
         break;
-        
+
       default:
-        sheet.cell(CellIndex.indexByString('A$currentRow')).value = 'Total Inventory Value';
-        sheet.cell(CellIndex.indexByString('B$currentRow')).value = data['totalInventoryValue'] ?? 0;
+        sheet.cell(CellIndex.indexByString('A$currentRow')).value = TextCellValue('Total Inventory Value');
+        sheet.cell(CellIndex.indexByString('B$currentRow')).value = IntCellValue(data['totalInventoryValue'] ?? 0);
         currentRow++;
-        sheet.cell(CellIndex.indexByString('A$currentRow')).value = 'Stock Turnover Ratio';
-        sheet.cell(CellIndex.indexByString('B$currentRow')).value = data['stockTurnoverRatio'] ?? 0;
+        sheet.cell(CellIndex.indexByString('A$currentRow')).value = TextCellValue('Stock Turnover Ratio');
+        sheet.cell(CellIndex.indexByString('B$currentRow')).value = IntCellValue(data['stockTurnoverRatio'] ?? 0);
         currentRow++;
-        sheet.cell(CellIndex.indexByString('A$currentRow')).value = 'Low Stock Items';
-        sheet.cell(CellIndex.indexByString('B$currentRow')).value = data['lowStockItemsCount'] ?? 0;
+        sheet.cell(CellIndex.indexByString('A$currentRow')).value = TextCellValue('Low Stock Items');
+        sheet.cell(CellIndex.indexByString('B$currentRow')).value = IntCellValue(data['lowStockItemsCount'] ?? 0);
     }
   }
 

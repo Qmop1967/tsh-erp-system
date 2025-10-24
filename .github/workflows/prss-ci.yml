@@ -1,0 +1,123 @@
+name: PRSS CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/prss/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'apps/prss/**'
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: prss_user
+          POSTGRES_PASSWORD: prss_pass
+          POSTGRES_DB: prss_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      working-directory: apps/prss/backend
+      run: |
+        poetry install --no-interaction --no-ansi
+
+    - name: Run tests
+      working-directory: apps/prss/backend
+      env:
+        PRSS_DB_URL: postgresql+psycopg://prss_user:prss_pass@localhost:5432/prss_test_db
+        PRSS_JWT_SECRET: test-secret-key
+        INVENTORY_API_BASE: http://localhost:8000
+        SALES_API_BASE: http://localhost:8000
+        ACCOUNTING_API_BASE: http://localhost:8000
+      run: |
+        poetry run pytest tests/ -v --cov=prss --cov-report=xml
+
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./apps/prss/backend/coverage.xml
+
+  build-backend:
+    runs-on: ubuntu-latest
+    needs: test-backend
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build backend image
+      working-directory: apps/prss
+      run: |
+        docker build -t prss-backend:latest -f backend/Dockerfile backend/
+
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: apps/prss/web-admin/package-lock.json
+
+    - name: Install dependencies
+      working-directory: apps/prss/web-admin
+      run: npm ci
+
+    - name: Build frontend
+      working-directory: apps/prss/web-admin
+      run: npm run build
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install linting tools
+      run: |
+        pip install black flake8 mypy
+
+    - name: Run black
+      working-directory: apps/prss/backend/src
+      run: black --check prss/
+
+    - name: Run flake8
+      working-directory: apps/prss/backend/src
+      run: flake8 prss/ --max-line-length=120

@@ -1,0 +1,58 @@
+name: tsh_access_management
+description: TSH Access Management - Comprehensive user, role, permission, device, and security management app
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Design
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  provider: ^6.1.2
+
+  # Navigation
+  go_router: ^16.2.4
+
+  # HTTP & API
+  http: ^1.2.2
+  dio: ^5.7.0
+
+  # Secure Storage (JWT tokens, sensitive data)
+  flutter_secure_storage: ^9.2.2
+
+  # Local Storage
+  shared_preferences: ^2.3.2
+
+  # Utils
+  intl: ^0.19.0
+  uuid: ^4.5.1
+
+  # JSON Serialization
+  json_annotation: ^4.9.0
+
+  # Charts
+  fl_chart: ^1.1.0
+
+  # Biometric Authentication
+  local_auth: ^2.3.0
+
+  # Device Info
+  device_info_plus: ^11.1.1
+
+  # Connectivity Check
+  connectivity_plus: ^7.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

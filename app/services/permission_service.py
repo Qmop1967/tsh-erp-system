@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 from app.models.permissions import Permission, RolePermission, UserPermission, AuditLog
-from app.models.permissions import PermissionType, ResourceType
+from app.models.permissions import ActionType, ModuleType
 from app.models.user import User
 from app.models.role import Role
 from app.db.database import get_db
@@ -36,13 +36,13 @@ class PermissionService:
         # Check role-based permissions
         return self._check_role_permissions(user.role_id, permission_name, context)
     
-    def _check_user_permission(self, user_id: int, permission_name: str, 
+    def _check_user_permission(self, user_id: int, permission_code: str,
                               context: Optional[Dict[str, Any]] = None) -> Optional[bool]:
         """Check direct user permissions"""
         query = self.db.query(UserPermission).join(Permission).filter(
             and_(
                 UserPermission.user_id == user_id,
-                Permission.name == permission_name,
+                Permission.code == permission_code,
                 Permission.is_active == True,
                 or_(
                     UserPermission.expires_at.is_(None),
@@ -50,15 +50,15 @@ class PermissionService:
                 )
             )
         ).order_by(UserPermission.granted_at.desc())
-        
+
         user_permission = query.first()
         if not user_permission:
             return None
-        
+
         # Check conditions if present
         if user_permission.conditions:
             return self._evaluate_conditions(user_permission.conditions, context)
-        
+
         return user_permission.is_granted
     
     def _check_role_permissions(self, role_id: int, permission_name: str,
@@ -374,7 +374,7 @@ def simple_require_permission(permission_name: str):
             
             # Special case for admin users - check for wildcard permission
             user = db.query(User).filter(User.id == user_id).first()
-            if user and user.role and user.role.name == "Admin":
+            if user and user.role and user.role.name.lower() == "admin":
                 # Admin role gets access to everything
                 if hasattr(func, '__call__'):
                     import asyncio

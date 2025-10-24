@@ -24,8 +24,20 @@ from .pos import (
 from .tenant import Tenant, TenantSettings
 # Enhanced Security and Permission Models
 from .permissions import (
-    PermissionType, ResourceType, Permission, RolePermission, 
+    ActionType, ModuleType, Permission, RolePermission,
     UserPermission, AuditLog
+)
+# Data Scope and RLS Models
+from .data_scope import (
+    UserDataScope, DataScopeTemplate, DataAccessLog, DataScopeType,
+    user_customers, user_warehouses, user_branches
+)
+# Advanced Security Models
+from .security import (
+    LoginAttempt, AccountLockout, TokenBlacklist,
+    MFAMethod, UserMFA, MFAVerification,
+    UserSession, PasswordHistory, PasswordResetToken,
+    EmailVerificationToken, TrustedDevice, SecurityEvent
 )
 from .cashflow import (
     CashBox, SalespersonRegion, CashTransaction, CashTransfer, CashFlowSummary
@@ -53,6 +65,13 @@ from .hr import (
     HRNotification, WhatsAppIntegration,
     EmploymentStatus, PayrollStatus, LeaveType, LeaveStatus, AttendanceStatus,
     PerformanceRank, PaymentMethod, DocumentType
+)
+# After-Sales Operations (ASO) Models
+from .after_sales import (
+    ASOProduct, ASOReturnRequest, ASOInspection, ASOMaintenanceJob,
+    ASOWarrantyPolicy, ASODecisionRecord, ASONotification, ASOOutboxEvent,
+    ReturnReasonCode, ReturnStatus, InspectionStatus, InspectionResult,
+    MaintenanceStatus, WarrantyStatus, Decision, InventoryZone
 )
 
 # Migration models
@@ -104,5 +123,13 @@ __all__ = [
     "MigrationBatch", "MigrationRecord", "ItemCategory", "MigrationItem", "MigrationPriceList", "PriceListItem",
     "MigrationCustomer", "MigrationVendor", "MigrationStock",
     # Aliases for backward compatibility
-    "Item", "PriceList"
+    "Item", "PriceList",
+    # Data Scope and RLS Models
+    "UserDataScope", "DataScopeTemplate", "DataAccessLog", "DataScopeType",
+    "user_customers", "user_warehouses", "user_branches",
+    # After-Sales Operations (ASO) Models
+    "ASOProduct", "ASOReturnRequest", "ASOInspection", "ASOMaintenanceJob",
+    "ASOWarrantyPolicy", "ASODecisionRecord", "ASONotification", "ASOOutboxEvent",
+    "ReturnReasonCode", "ReturnStatus", "InspectionStatus", "InspectionResult",
+    "MaintenanceStatus", "WarrantyStatus", "Decision", "InventoryZone"
 ]

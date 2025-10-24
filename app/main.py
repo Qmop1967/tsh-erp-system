@@ -23,8 +23,10 @@ from app.models import (
     # Money Transfer models (CRITICAL - Fraud Prevention)
     MoneyTransfer, TransferPlatform,
     # Enhanced Security and Multi-tenancy models
-    Tenant, TenantSettings, PermissionType, ResourceType, 
-    Permission, RolePermission, UserPermission, AuditLog
+    Tenant, TenantSettings, ActionType, ModuleType,
+    Permission, RolePermission, UserPermission, AuditLog,
+    # Data Scope and RLS models
+    UserDataScope, DataScopeTemplate, DataAccessLog
 )
 
 # إنشاء جميع الجداول
@@ -86,17 +88,22 @@ from app.routers.whatsapp_integration import router as whatsapp_router
 from app.routers.hr import router as hr_router
 from app.routers.gps_tracking import router as gps_router
 from app.routers.partner_salesmen_simple import router as partner_salesmen_router
-from app.routers.auth import router as auth_router  # Enable auth router
+from app.routers.auth_enhanced import router as auth_router  # Enhanced auth router with MFA, rate limiting, sessions
 # from app.routers.partner_salesmen import router as partner_salesmen_router  # Temporarily disabled
 from app.routers.vendors import router as vendors_router  # Enable vendors
 from app.routers.permissions import router as permissions_router  # Enable permissions management
+from app.routers.trusted_devices import router as trusted_devices_router  # Trusted devices for automatic login
+from app.routers.data_scope import router as data_scope_router  # Row-Level Security (RLS) and data scope management
 from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
 from app.routers.backup_restore import router as backup_restore_router  # Backup & Restore System
 from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
+from app.routers.dashboard import router as dashboard_router  # Dashboard Statistics
+from app.routers.notifications import router as notifications_router  # Unified Notification System
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
 
 # إضافة الـ routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])  # Enable authentication
+app.include_router(dashboard_router, tags=["dashboard"])  # Dashboard statistics
 app.include_router(branches_router, prefix="/api/branches", tags=["branches"])
 app.include_router(products_router, prefix="/api/products", tags=["products"])
 app.include_router(customers_router, prefix="/api/customers", tags=["customers"])
@@ -129,6 +136,8 @@ app.include_router(migration_router, prefix="/api")
 app.include_router(models_router, prefix="/api", tags=["models"])
 app.include_router(users_router, prefix="/api")
 app.include_router(permissions_router, prefix="/api")  # Add permissions management
+app.include_router(trusted_devices_router, prefix="/api")  # Trusted devices for automatic login
+app.include_router(data_scope_router, prefix="/api")  # Row-Level Security (RLS) and data scope management
 app.include_router(warehouses_router, prefix="/api")  # Enable warehouses router
 app.include_router(items_router, prefix="/api")
 app.include_router(vendors_router, prefix="/api")  # Enable vendors router
@@ -136,6 +145,8 @@ app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])
 # 🛒 CONSUMER APP: Modern E-commerce with Zoho Integration
 app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
+# 🔔 UNIFIED NOTIFICATION SYSTEM: Enterprise-grade Notification Center
+app.include_router(notifications_router, prefix="/api", tags=["Notifications - Real-time & Push Notifications"])
 # 🔒 ENHANCED SECURITY SYSTEM: Advanced RBAC/ABAC, Multi-tenancy, Audit & Monitoring
 app.include_router(enhanced_settings_router, prefix="/api/security", tags=["Enhanced Security - RBAC/ABAC & Multi-tenancy"])
 # 📷 PRODUCT IMAGES MANAGEMENT: Temporarily disabled due to import issues

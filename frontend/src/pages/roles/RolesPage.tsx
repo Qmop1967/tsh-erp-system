@@ -160,28 +160,55 @@ export function RolesPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button style={{
-                    backgroundColor: role.color,
-                    color: 'white',
-                    border: 'none',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}>
+                  <button
+                    onClick={() => {
+                      alert(`Edit Role feature coming soon!\n\nRole: ${role.name}\nUsers: ${role.users}\n\nThis will allow you to:\n- Modify role permissions\n- Add/remove capabilities\n- Configure role settings`)
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.opacity = '0.9'
+                      e.currentTarget.style.transform = 'scale(1.05)'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.opacity = '1'
+                      e.currentTarget.style.transform = 'scale(1)'
+                    }}
+                    style={{
+                      backgroundColor: role.color,
+                      color: 'white',
+                      border: 'none',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}>
                     Edit Role
                   </button>
-                  <button style={{
-                    backgroundColor: 'transparent',
-                    color: role.color,
-                    border: `1px solid ${role.color}`,
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}>
+                  <button
+                    onClick={() => {
+                      // Navigate to users page with role filter
+                      navigate(`/users?role=${encodeURIComponent(role.name)}`)
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = role.color + '20'
+                      e.currentTarget.style.transform = 'scale(1.05)'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                      e.currentTarget.style.transform = 'scale(1)'
+                    }}
+                    style={{
+                      backgroundColor: 'transparent',
+                      color: role.color,
+                      border: `1px solid ${role.color}`,
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}>
                     View Users
                   </button>
                 </div>

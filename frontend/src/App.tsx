@@ -24,6 +24,16 @@ import DynamicTranslationManagementPage from './pages/settings/DynamicTranslatio
 import DocumentationModule from './pages/settings/documentation/DocumentationModule'
 import BackupRestorePage from './pages/settings/system/BackupRestorePage'
 
+// Security Pages
+import { SecurityDashboard } from './pages/security/SecurityDashboard'
+import { MFASetup } from './pages/security/MFASetup'
+import { SessionManagement } from './pages/security/SessionManagement'
+import { AuditLogViewer } from './pages/security/AuditLogViewer'
+
+// HR Pages
+import { HRDashboard } from './pages/hr/HRDashboard'
+import { EmployeeManagementPage } from './pages/hr/EmployeeManagementPage'
+
 console.log('🚀 TSH ERP System - Enhanced Authentication Mode')
 
 // Protected Route wrapper
@@ -110,14 +120,62 @@ function App() {
           } 
         />
         
-        {/* Other module routes - Coming Soon */}
-        <Route 
-          path="/hr" 
+        {/* HR Module Routes */}
+        <Route
+          path="/hr"
           element={
             <ProtectedRoute>
-              <ComingSoonPage title="Human Resources" description="Complete HR management system coming soon." />
+              <HRDashboard />
             </ProtectedRoute>
-          } 
+          }
+        />
+        <Route
+          path="/hr/employees"
+          element={
+            <ProtectedRoute>
+              <EmployeeManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/attendance"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage title="Attendance Management" description="Track employee attendance and working hours." />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/leave-requests"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage title="Leave Requests" description="Manage employee leave applications and approvals." />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/payroll"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage title="Payroll Management" description="Process employee salaries and payroll records." />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/performance"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage title="Performance Reviews" description="Conduct and manage employee performance evaluations." />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/departments"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage title="Departments" description="Manage organizational departments and structure." />
+            </ProtectedRoute>
+          }
         />
         <Route 
           path="/sales" 
@@ -183,13 +241,37 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/security" 
+        <Route
+          path="/security"
           element={
             <ProtectedRoute>
-              <ComingSoonPage title="Security Dashboard" description="Advanced security features coming soon." />
+              <SecurityDashboard />
             </ProtectedRoute>
-          } 
+          }
+        />
+        <Route
+          path="/security/mfa-setup"
+          element={
+            <ProtectedRoute>
+              <MFASetup />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/security/sessions"
+          element={
+            <ProtectedRoute>
+              <SessionManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/security/audit-log"
+          element={
+            <ProtectedRoute>
+              <AuditLogViewer />
+            </ProtectedRoute>
+          }
         />
         <Route 
           path="/reports" 

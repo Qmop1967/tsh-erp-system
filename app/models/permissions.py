@@ -6,37 +6,50 @@ import enum
 
 from app.db.database import Base
 
-class PermissionType(enum.Enum):
+class ActionType(enum.Enum):
+    """Granular action types for permissions"""
+    VIEW = "view"
     CREATE = "create"
-    READ = "read"
     UPDATE = "update"
     DELETE = "delete"
     APPROVE = "approve"
+    REJECT = "reject"
     EXPORT = "export"
     IMPORT = "import"
+    PRINT = "print"
 
-class ResourceType(enum.Enum):
-    BRANCH = "branch"
-    USER = "user"
-    PRODUCT = "product"
+class ModuleType(enum.Enum):
+    """Module-based organization of permissions"""
+    APPLICATION_ACCESS = "application_access"
+    USER_MANAGEMENT = "user_management"
+    ROLE_PERMISSION = "role_permission"
+    BRANCH_MANAGEMENT = "branch_management"
     INVENTORY = "inventory"
     SALES = "sales"
-    CUSTOMER = "customer"
+    PURCHASING = "purchasing"
     FINANCIAL = "financial"
+    CUSTOMER = "customer"
+    EMPLOYEE = "employee"
     REPORTS = "reports"
+    ANALYTICS = "analytics"
     SETTINGS = "settings"
+    AUDIT = "audit"
 
 class Permission(Base):
     __tablename__ = "permissions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
+    code = Column(String(100), unique=True, nullable=False, index=True)  # e.g., "inventory.products.create"
+    name = Column(String(200), nullable=False)  # Human-readable name
     description = Column(Text)
-    resource_type = Column(Enum(ResourceType), nullable=False)
-    permission_type = Column(Enum(PermissionType), nullable=False)
+    module = Column(String(50), nullable=False, index=True)
+    action = Column(String(50), nullable=False, index=True)
+    category = Column(String(100))  # Additional sub-grouping within modules
     is_active = Column(Boolean, default=True)
+    display_order = Column(Integer, default=0)  # For UI ordering
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
     # Relationships
     role_permissions = relationship("RolePermission", back_populates="permission")
 

@@ -1,13 +1,20 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/inventory_models.dart';
+import 'auth_service.dart';
 
 class InventoryService {
-  static const String baseUrl = 'http://localhost:8000/api/inventory';
-  static const Map<String, String> headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+  static const String baseUrl = 'http://192.168.68.51:8000/api/inventory';
+  final AuthService _authService = AuthService();
+
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await _authService.getStoredToken();
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   // ===============================================
   // Phase 1: Core Inventory Structure
@@ -30,9 +37,10 @@ class InventoryService {
     };
 
     final uri = Uri.parse('$baseUrl/items').replace(queryParameters: queryParams);
-    
+
     try {
-      final response = await http.get(uri, headers: headers);
+      final headers = await _getHeaders();
+      final response = await http.get(uri, headers: await _getHeaders());
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -51,7 +59,7 @@ class InventoryService {
   Future<InventoryItem> createItem(InventoryItem item) async {
     final response = await http.post(
       Uri.parse('$baseUrl/items'),
-      headers: headers,
+      headers: await _getHeaders(),
       body: json.encode(item.toJson()),
     );
 
@@ -65,7 +73,7 @@ class InventoryService {
   Future<InventoryItem> updateItem(String itemId, InventoryItem item) async {
     final response = await http.put(
       Uri.parse('$baseUrl/items/$itemId'),
-      headers: headers,
+      headers: await _getHeaders(),
       body: json.encode(item.toJson()),
     );
 
@@ -79,7 +87,7 @@ class InventoryService {
   Future<void> deleteItem(String itemId) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/items/$itemId'),
-      headers: headers,
+      headers: await _getHeaders(),
     );
 
     if (response.statusCode != 204) {
@@ -92,7 +100,7 @@ class InventoryService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/categories'),
-        headers: headers,
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -116,7 +124,7 @@ class InventoryService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/warehouses'),
-        headers: headers,
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -156,7 +164,7 @@ class InventoryService {
     final uri = Uri.parse('$baseUrl/movements').replace(queryParameters: queryParams);
     
     try {
-      final response = await http.get(uri, headers: headers);
+      final response = await http.get(uri, headers: await _getHeaders());
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -174,7 +182,7 @@ class InventoryService {
   Future<StockMovement> createStockMovement(StockMovement movement) async {
     final response = await http.post(
       Uri.parse('$baseUrl/movements'),
-      headers: headers,
+      headers: await _getHeaders(),
       body: json.encode(movement.toJson()),
     );
 
@@ -188,7 +196,7 @@ class InventoryService {
   Future<StockMovement> approveStockMovement(String movementId, String approvedBy) async {
     final response = await http.post(
       Uri.parse('$baseUrl/movements/$movementId/approve'),
-      headers: headers,
+      headers: await _getHeaders(),
       body: json.encode({'approved_by': approvedBy}),
     );
 
@@ -207,7 +215,7 @@ class InventoryService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/abc-analysis'),
-        headers: headers,
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -234,7 +242,7 @@ class InventoryService {
     final uri = Uri.parse('$baseUrl/stock-levels').replace(queryParameters: queryParams);
     
     try {
-      final response = await http.get(uri, headers: headers);
+      final response = await http.get(uri, headers: await _getHeaders());
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -257,7 +265,7 @@ class InventoryService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/dashboard'),
-        headers: headers,
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -288,7 +296,7 @@ class InventoryService {
     final uri = Uri.parse('$baseUrl/reports').replace(queryParameters: queryParams);
     
     try {
-      final response = await http.get(uri, headers: headers);
+      final response = await http.get(uri, headers: await _getHeaders());
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

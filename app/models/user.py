@@ -46,3 +46,8 @@ class User(Base):
     
     # HR System Integration
     employee_profile = relationship("Employee", foreign_keys="Employee.user_id", back_populates="user", uselist=False)
+
+    # Security relationships
+    mfa_config = relationship("UserMFA", back_populates="user", uselist=False)
+    sessions = relationship("UserSession", back_populates="user")
+    password_history = relationship("PasswordHistory", back_populates="user", order_by="PasswordHistory.created_at.desc()")

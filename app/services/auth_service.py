@@ -4,20 +4,60 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.models.user import User
+import os
+import re
 
-# Security configuration
-SECRET_KEY = "tsh-erp-secret-key-2025"  # In production, use environment variable
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Security configuration from environment variables
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable must be set for security")
+
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+# Password policy settings
+PASSWORD_MIN_LENGTH = int(os.getenv("PASSWORD_MIN_LENGTH", "12"))
+PASSWORD_REQUIRE_UPPERCASE = os.getenv("PASSWORD_REQUIRE_UPPERCASE", "true").lower() == "true"
+PASSWORD_REQUIRE_LOWERCASE = os.getenv("PASSWORD_REQUIRE_LOWERCASE", "true").lower() == "true"
+PASSWORD_REQUIRE_NUMBERS = os.getenv("PASSWORD_REQUIRE_NUMBERS", "true").lower() == "true"
+PASSWORD_REQUIRE_SPECIAL = os.getenv("PASSWORD_REQUIRE_SPECIAL", "true").lower() == "true"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthService:
     @staticmethod
+    def validate_password_strength(password: str) -> tuple[bool, str]:
+        """
+        Validate password against security policy
+        Returns: (is_valid, error_message)
+        """
+        if len(password) < PASSWORD_MIN_LENGTH:
+            return False, f"Password must be at least {PASSWORD_MIN_LENGTH} characters long"
+
+        if PASSWORD_REQUIRE_UPPERCASE and not re.search(r'[A-Z]', password):
+            return False, "Password must contain at least one uppercase letter"
+
+        if PASSWORD_REQUIRE_LOWERCASE and not re.search(r'[a-z]', password):
+            return False, "Password must contain at least one lowercase letter"
+
+        if PASSWORD_REQUIRE_NUMBERS and not re.search(r'\d', password):
+            return False, "Password must contain at least one number"
+
+        if PASSWORD_REQUIRE_SPECIAL and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            return False, "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)"
+
+        # Check for common weak passwords
+        weak_passwords = ['password', '12345678', 'qwerty', 'admin', 'letmein', 'welcome']
+        if password.lower() in weak_passwords:
+            return False, "Password is too common. Please choose a stronger password"
+
+        return True, "Password is strong"
+
+    @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash"""
         return pwd_context.verify(plain_password, hashed_password)
-    
+
     @staticmethod
     def get_password_hash(password: str) -> str:
         """Hash a password"""

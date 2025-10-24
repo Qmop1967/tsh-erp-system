@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.db.database import get_db
+from app.routers.auth import get_current_user
+from app.models.user import User
 from app.schemas.inventory import (
     InventoryItem, StockMovementCreate, StockMovement,
     InventoryReport, StockAdjustment
@@ -101,7 +103,7 @@ def get_inventory_report(
 def record_stock_movement(
     stock_movement: StockMovementCreate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """تسجيل حركة مخزون"""
     return InventoryService.record_stock_movement(db, stock_movement)

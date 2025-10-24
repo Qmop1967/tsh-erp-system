@@ -45,11 +45,11 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   
-  runApp(const TSHSalespersonApp());
+  runApp(const TSHFieldRepApp());
 }
 
-class TSHSalespersonApp extends StatelessWidget {
-  const TSHSalespersonApp({super.key});
+class TSHFieldRepApp extends StatelessWidget {
+  const TSHFieldRepApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +67,7 @@ class TSHSalespersonApp extends StatelessWidget {
         Provider<ConnectivityService>(
           create: (_) => ConnectivityService(),
         ),
-        
+
         // State Providers
         ChangeNotifierProvider<AuthProvider>(
           create: (context) => AuthProvider(
@@ -121,7 +121,7 @@ class TSHSalespersonApp extends StatelessWidget {
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
           return MaterialApp.router(
-            title: 'TSH Salesperson',
+            title: 'TSH Field Rep',
             debugShowCheckedModeBanner: false,
             
             // Theme Configuration
