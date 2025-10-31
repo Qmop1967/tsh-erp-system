@@ -83,9 +83,11 @@ class ApiService {
     return await _storage.read(key: _refreshTokenKey);
   }
 
-  Future<void> saveTokens(String accessToken, String refreshToken) async {
+  Future<void> saveTokens(String accessToken, String? refreshToken) async {
     await _storage.write(key: _tokenKey, value: accessToken);
-    await _storage.write(key: _refreshTokenKey, value: refreshToken);
+    if (refreshToken != null) {
+      await _storage.write(key: _refreshTokenKey, value: refreshToken);
+    }
   }
 
   Future<void> clearTokens() async {
@@ -98,13 +100,23 @@ class ApiService {
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) return false;
 
-      final response = await _dio.post('/auth/refresh', data: {
+      // Use a new Dio instance without interceptors to avoid infinite loop
+      final dio = Dio(BaseOptions(
+        baseUrl: _baseUrl,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ));
+
+      final response = await dio.post('/auth/refresh', data: {
         'refresh_token': refreshToken,
       });
 
       if (response.statusCode == 200) {
         final data = response.data;
-        await saveTokens(data['access_token'], data['refresh_token']);
+        // Only update access token, keep the existing refresh token
+        await _storage.write(key: _tokenKey, value: data['access_token']);
         return true;
       }
       return false;

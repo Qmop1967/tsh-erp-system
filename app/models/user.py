@@ -11,11 +11,11 @@ class User(Base):
     name = Column(String(100), nullable=False, index=True)
     email = Column(String(255), nullable=False, unique=True, index=True)
     password = Column(String(255), nullable=False)  # سيتم تشفيرها
-    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
-    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
-    
-    # Multi-tenancy support
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)  # Made nullable for unified schema
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)  # Made nullable for unified schema
+
+    # Multi-tenancy support (not used in unified database)
+    # tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     
     # Enhanced security fields
     password_hash = Column(String(255), nullable=True)  # New hashed password field
@@ -36,7 +36,7 @@ class User(Base):
     # Enhanced relationships
     role = relationship("Role", back_populates="users")
     branch = relationship("Branch", back_populates="users")
-    tenant = relationship("Tenant", back_populates="users")
+    # tenant = relationship("Tenant", back_populates="users")  # Not used in unified database
     cash_boxes = relationship("CashBox", foreign_keys="CashBox.user_id", back_populates="user")
     assigned_regions = relationship("SalespersonRegion", foreign_keys="SalespersonRegion.user_id", back_populates="salesperson")
     expenses = relationship("Expense", foreign_keys="Expense.user_id", back_populates="user")

@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.services.auth_service import AuthService, ACCESS_TOKEN_EXPIRE_MINUTES
-from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
+from app.services.auth_service import AuthService, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+from app.schemas.auth import LoginRequest, LoginResponse, UserResponse, RefreshTokenRequest, RefreshTokenResponse
 from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -194,15 +194,37 @@ async def mobile_login(login_data: LoginRequest, db: Session = Depends(get_db)):
             detail="Your account has been deactivated. Please contact your administrator.",
         )
     
+    # Get user permissions
+    permissions = get_user_permissions(user)
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = AuthService.create_access_token(
-        data={"sub": user.email, "platform": "mobile"}, expires_delta=access_token_expires
+        data={
+            "sub": user.email,
+            "platform": "mobile",
+            "role": user.role.name if user.role else "user",
+            "permissions": permissions,
+            "user_id": user.id
+        },
+        expires_delta=access_token_expires
     )
-    
+
+    # Create refresh token for mobile apps (30 days expiration)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    refresh_token = AuthService.create_refresh_token(
+        data={
+            "sub": user.email,
+            "platform": "mobile",
+            "user_id": user.id
+        },
+        expires_delta=refresh_token_expires
+    )
+
     role_name = user.role.name if user.role else "User"
-    
+
     return LoginResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         user={
             "id": user.id,
@@ -262,6 +284,55 @@ async def get_current_user(
         role=user.role.name if user.role else "No Role",
         branch=user.branch.name if user.branch else "No Branch",
         permissions=get_user_permissions(user)
+    )
+
+@router.post("/refresh", response_model=RefreshTokenResponse)
+async def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)):
+    """
+    Refresh access token using refresh token
+    Used by mobile apps to get new access token without re-login
+    """
+    # Verify the refresh token
+    token_data = AuthService.verify_token(refresh_data.refresh_token, token_type="refresh")
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Get user from database
+    from sqlalchemy.orm import joinedload
+    user = db.query(User).options(
+        joinedload(User.role),
+        joinedload(User.branch)
+    ).filter(User.email == token_data["email"]).first()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
+
+    # Get user permissions
+    permissions = get_user_permissions(user)
+
+    # Create new access token with permissions
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = AuthService.create_access_token(
+        data={
+            "sub": user.email,
+            "platform": "mobile",
+            "role": user.role.name if user.role else "user",
+            "permissions": permissions,
+            "user_id": user.id
+        },
+        expires_delta=access_token_expires
+    )
+
+    return RefreshTokenResponse(
+        access_token=access_token,
+        token_type="bearer"
     )
 
 @router.post("/logout")

@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
+import asyncio
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.db.database import get_db
 from app.services.accounting_service import AccountingService
+from app.services.accounting_websocket import accounting_ws_manager
+from app.dependencies.rbac import PermissionChecker, RoleChecker, get_current_user_from_token
 from app.schemas.accounting import (
     CurrencyCreate, CurrencyUpdate, Currency,
     ExchangeRateCreate, ExchangeRate,
@@ -18,17 +23,34 @@ from app.schemas.accounting import (
 )
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 # Currency Management
 @router.get("/currencies", response_model=List[Currency])
-def get_currencies(db: Session = Depends(get_db)):
-    """Get all currencies - جلب جميع العملات"""
+def get_currencies(
+    db: Session = Depends(get_db),
+    user: dict = Depends(PermissionChecker(["accounting.view"]))
+):
+    """
+    Get all currencies - جلب جميع العملات
+    Required Permission: accounting.view
+    """
     service = AccountingService(db)
     return service.get_currencies()
 
 @router.post("/currencies", response_model=Currency)
-def create_currency(currency: CurrencyCreate, db: Session = Depends(get_db)):
-    """Create new currency - إنشاء عملة جديدة"""
+@limiter.limit("20/minute")
+def create_currency(
+    request: Request,
+    currency: CurrencyCreate,
+    db: Session = Depends(get_db),
+    user: dict = Depends(PermissionChecker(["accounting.create"]))
+):
+    """
+    Create new currency - إنشاء عملة جديدة
+    Required Permission: accounting.create
+    Rate Limit: 20 requests per minute
+    """
     service = AccountingService(db)
     return service.create_currency(currency)
 
@@ -171,10 +193,27 @@ def get_journal_entries(
     return service.get_journal_entries(journal_id, period_id, start_date, end_date)
 
 @router.post("/journal-entries", response_model=JournalEntry)
-def create_journal_entry(entry: JournalEntryCreate, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+async def create_journal_entry(request: Request, entry: JournalEntryCreate, db: Session = Depends(get_db)):
     """Create new journal entry - إنشاء قيد يومية جديد"""
     service = AccountingService(db)
-    return service.create_journal_entry(entry)
+    new_entry = service.create_journal_entry(entry)
+
+    # Broadcast to all connected clients via WebSocket
+    entry_dict = {
+        "id": new_entry.id,
+        "reference": new_entry.reference,
+        "date": new_entry.date.isoformat() if new_entry.date else None,
+        "description_en": new_entry.description_en,
+        "description_ar": new_entry.description_ar,
+        "journal_id": new_entry.journal_id,
+        "status": new_entry.status,
+        "total_debit": float(new_entry.total_debit) if new_entry.total_debit else 0.0,
+        "total_credit": float(new_entry.total_credit) if new_entry.total_credit else 0.0,
+    }
+    await accounting_ws_manager.broadcast_journal_entry_created(entry_dict)
+
+    return new_entry
 
 @router.get("/journal-entries/{entry_id}", response_model=JournalEntry)
 def get_journal_entry(entry_id: int, db: Session = Depends(get_db)):
@@ -268,31 +307,62 @@ def get_accounting_summary(db: Session = Depends(get_db)):
 
 # Financial Reports
 @router.get("/reports/trial-balance", response_model=TrialBalance)
+@limiter.limit("20/hour")
 def get_trial_balance(
+    request: Request,
     period_id: int = Query(...),
     chart_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Get trial balance report - جلب تقرير ميزان المراجعة"""
+    """
+    Get trial balance report - جلب تقرير ميزان المراجعة
+    Rate Limit: 20 requests per hour
+    """
     service = AccountingService(db)
     return service.generate_trial_balance(period_id, chart_id)
 
 @router.get("/reports/balance-sheet", response_model=BalanceSheet)
+@limiter.limit("20/hour")
 def get_balance_sheet(
+    request: Request,
     period_id: int = Query(...),
     chart_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Get balance sheet report - جلب تقرير الميزانية العمومية"""
+    """
+    Get balance sheet report - جلب تقرير الميزانية العمومية
+    Rate Limit: 20 requests per hour
+    """
     service = AccountingService(db)
     return service.generate_balance_sheet(period_id, chart_id)
 
 @router.get("/reports/income-statement", response_model=IncomeStatement)
+@limiter.limit("20/hour")
 def get_income_statement(
+    request: Request,
     period_id: int = Query(...),
     chart_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Get income statement report - جلب تقرير قائمة الدخل"""
+    """
+    Get income statement report - جلب تقرير قائمة الدخل
+    Rate Limit: 20 requests per hour
+    """
     service = AccountingService(db)
     return service.generate_income_statement(period_id, chart_id)
+
+# WebSocket endpoint for real-time accounting updates
+@router.websocket("/ws")
+async def accounting_websocket(websocket: WebSocket):
+    """WebSocket endpoint for real-time accounting updates - نقطة WebSocket للتحديثات الفورية"""
+    await accounting_ws_manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive and handle incoming messages
+            data = await websocket.receive_text()
+            # Echo back for heartbeat
+            await websocket.send_json({"type": "pong", "timestamp": datetime.now().isoformat()})
+    except WebSocketDisconnect:
+        accounting_ws_manager.disconnect(websocket)
+    except Exception as e:
+        accounting_ws_manager.disconnect(websocket)

@@ -3,6 +3,7 @@ import { Plus, Search, Edit, Eye, AlertCircle, Calendar, FileText, DollarSign } 
 import { accountingApi } from '@/lib/api'
 import { useLanguageStore } from '@/stores/languageStore'
 import { useTranslations } from '@/lib/translations'
+import { useAccountingWebSocket } from '@/hooks/useAccountingWebSocket'
 import type { JournalEntry, Journal } from '@/types'
 
 const JournalEntriesPage: React.FC = () => {
@@ -21,6 +22,25 @@ const JournalEntriesPage: React.FC = () => {
     { value: 'POSTED', label: 'Posted - مرحل', color: 'bg-green-100 text-green-800' },
     { value: 'REVERSED', label: 'Reversed - معكوس', color: 'bg-red-100 text-red-800' }
   ]
+
+  // WebSocket for real-time updates
+  useAccountingWebSocket({
+    onJournalEntryCreated: (newEntry) => {
+      console.log('New journal entry received via WebSocket:', newEntry)
+      // Add to list immediately
+      setJournalEntries(prev => [newEntry, ...prev])
+      // Optionally refetch to get complete data with relationships
+      fetchData()
+    },
+    onJournalEntryUpdated: (updatedEntry) => {
+      console.log('Journal entry updated via WebSocket:', updatedEntry)
+      fetchData()
+    },
+    onJournalEntryPosted: (entryId) => {
+      console.log('Journal entry posted via WebSocket:', entryId)
+      fetchData()
+    }
+  })
 
   useEffect(() => {
     fetchData()

@@ -10,10 +10,10 @@ class Role(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), nullable=False, unique=True, index=True)
     description = Column(Text)
-    
-    # Multi-tenancy support
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
-    
+
+    # Multi-tenancy support (not used in unified database)
+    # tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+
     # Status and audit
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -22,4 +22,4 @@ class Role(Base):
     # Enhanced relationships
     users = relationship("User", back_populates="role")
     role_permissions = relationship("RolePermission", back_populates="role")
-    tenant = relationship("Tenant", back_populates="roles") 
+    # tenant = relationship("Tenant", back_populates="roles")  # Not used in unified database 

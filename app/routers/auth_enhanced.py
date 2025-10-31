@@ -29,6 +29,11 @@ from app.models.user import User
 from app.models.security import UserSession, SecurityEvent
 from jose import jwt
 
+# Import structured logging
+from app.utils.logging_config import get_logger, log_authentication, log_security_event
+
+logger = get_logger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["Authentication - Enhanced Security"])
 security = HTTPBearer()
 

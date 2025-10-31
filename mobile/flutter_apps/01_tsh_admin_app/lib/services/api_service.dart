@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Update this to your actual backend URL
-  static const String baseUrl = 'http://192.168.0.237:8000/api';
+  // API Base URL - النظام المركزي
+  static const String baseUrl = 'http://192.168.68.51:8000/api';
   
   static Map<String, String> _getHeaders({String? token}) {
     Map<String, String> headers = {

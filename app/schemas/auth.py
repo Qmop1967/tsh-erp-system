@@ -8,6 +8,7 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str
+    refresh_token: Optional[str] = None  # For mobile apps - 30 days expiration
     user: dict
 
 class UserResponse(BaseModel):
@@ -20,3 +21,10 @@ class UserResponse(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class RefreshTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

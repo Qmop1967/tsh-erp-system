@@ -74,69 +74,59 @@ class AuthService {
 
   Future<ApiResponse<User>> login(String email, String password) async {
     try {
-      // For demo purposes, return a mock user
-      final mockUser = User(
-        id: 1,
-        email: 'demo@tsh.com',
-        firstName: 'Demo',
-        lastName: 'User',
-        phoneNumber: '+1234567890',
-        isActive: true,
-        createdAt: DateTime.now().subtract(const Duration(days: 30)),
-        updatedAt: DateTime.now(),
-        role: Role(
-          id: 1,
-          name: 'Sales Representative',
-          permissions: ['sales', 'customers', 'orders'],
-          createdAt: DateTime.now().subtract(const Duration(days: 30)),
-          updatedAt: DateTime.now(),
-        ),
-        branch: Branch(
-          id: 1,
-          name: 'Main Branch',
-          address: '123 Business St, City, Country',
-          phoneNumber: '+1234567890',
-          email: 'main@tsh.com',
-          isActive: true,
-          createdAt: DateTime.now().subtract(const Duration(days: 30)),
-          updatedAt: DateTime.now(),
-        ),
-      );
-
-      _currentUser = mockUser;
-      _userController.add(_currentUser);
-      
-      // Save the mock user
-      await _storageService.saveData(_userKey, mockUser.toJson());
-      
-      return ApiResponse<User>(
-        success: true,
-        data: mockUser,
-        message: 'Login successful',
-      );
-
-      /* Original API call - commented out for demo
-      final request = LoginRequest(email: email, password: password);
-      final response = await _apiService.post<LoginResponse>(
-        '/auth/login',
-        data: request.toJson(),
-        fromJson: (json) => LoginResponse.fromJson(json),
+      // Call mobile login endpoint
+      final response = await _apiService.post(
+        '/auth/login/mobile',
+        data: {
+          'email': email,
+          'password': password,
+        },
       );
 
       if (response.success && response.data != null) {
-        final loginResponse = response.data!;
-        
-        // Save tokens
+        final data = response.data;
+
+        // Save tokens (access token + refresh token)
         await _apiService.saveTokens(
-          loginResponse.accessToken,
-          loginResponse.refreshToken,
+          data['access_token'],
+          data['refresh_token'], // 30 days expiration
         );
-        
-        // Save and set current user
-        _currentUser = loginResponse.user;
+
+        // Parse and save user data
+        final userData = data['user'];
+        _currentUser = User(
+          id: userData['id'],
+          email: userData['email'],
+          firstName: userData['name'].split(' ').first,
+          lastName: userData['name'].split(' ').length > 1
+              ? userData['name'].split(' ').sublist(1).join(' ')
+              : '',
+          phoneNumber: userData['phone'] ?? '',
+          isActive: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          role: Role(
+            id: 1,
+            name: userData['role'] ?? 'User',
+            permissions: List<String>.from(userData['permissions'] ?? []),
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          branch: Branch(
+            id: 1,
+            name: userData['branch'] ?? 'Main Branch',
+            address: '',
+            phoneNumber: '',
+            email: '',
+            isActive: true,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+
         await _storageService.saveData(_userKey, _currentUser!.toJson());
         _userController.add(_currentUser);
-        
+
         return ApiResponse.success(
           data: _currentUser,
           message: 'Login successful',
@@ -147,7 +137,6 @@ class AuthService {
           statusCode: response.statusCode,
         );
       }
-      */
     } catch (e) {
       return ApiResponse.error(error: e.toString());
     }

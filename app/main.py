@@ -1,8 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from app.db.database import engine
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+import time
+
+# Initialize structured logging
+from app.utils.logging_config import get_logger, log_api_request, log_api_response
+
+logger = get_logger(__name__)
 from app.models import (
     Branch, Warehouse, Role, User,
     Category, Product, Customer, Supplier,
@@ -22,8 +31,9 @@ from app.models import (
     Expense, ExpenseItem, ExpenseAttachment,
     # Money Transfer models (CRITICAL - Fraud Prevention)
     MoneyTransfer, TransferPlatform,
-    # Enhanced Security and Multi-tenancy models
-    Tenant, TenantSettings, ActionType, ModuleType,
+    # Enhanced Security models (Tenant disabled for unified database)
+    # Tenant, TenantSettings,
+    ActionType, ModuleType,
     Permission, RolePermission, UserPermission, AuditLog,
     # Data Scope and RLS models
     UserDataScope, DataScopeTemplate, DataAccessLog
@@ -45,11 +55,72 @@ from app.models import (
 # PurchaseOrder.__table__.create(bind=engine, checkfirst=True)
 # PurchaseItem.__table__.create(bind=engine, checkfirst=True)
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="TSH ERP System",
     description="نظام ERP بسيط باستخدام FastAPI و PostgreSQL",
     version="1.0.0",
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Logging middleware for API requests
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all incoming API requests and responses"""
+    start_time = time.time()
+
+    # Log incoming request
+    logger.info(
+        "api_request_received",
+        method=request.method,
+        path=str(request.url.path),
+        client_ip=request.client.host if request.client else "unknown",
+        user_agent=request.headers.get("user-agent", "unknown")
+    )
+
+    # Process request
+    try:
+        response = await call_next(request)
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Log response
+        logger.info(
+            "api_response_sent",
+            method=request.method,
+            path=str(request.url.path),
+            status_code=response.status_code,
+            duration_ms=round(duration_ms, 2)
+        )
+
+        return response
+    except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
+        logger.error(
+            "api_request_failed",
+            method=request.method,
+            path=str(request.url.path),
+            error=str(e),
+            duration_ms=round(duration_ms, 2),
+            exc_info=True
+        )
+        raise
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    """Log application startup"""
+    logger.info("application_startup", message="TSH ERP System starting up...")
+
+# Shutdown event
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Log application shutdown"""
+    logger.info("application_shutdown", message="TSH ERP System shutting down...")
 
 # إعدادات CORS
 app.add_middleware(
@@ -89,6 +160,7 @@ from app.routers.hr import router as hr_router
 from app.routers.gps_tracking import router as gps_router
 from app.routers.partner_salesmen_simple import router as partner_salesmen_router
 from app.routers.auth_enhanced import router as auth_router  # Enhanced auth router with MFA, rate limiting, sessions
+from app.routers.auth_simple import router as auth_simple_router  # Simple auth router for unified database
 # from app.routers.partner_salesmen import router as partner_salesmen_router  # Temporarily disabled
 from app.routers.vendors import router as vendors_router  # Enable vendors
 from app.routers.permissions import router as permissions_router  # Enable permissions management
@@ -103,6 +175,7 @@ from app.routers.notifications import router as notifications_router  # Unified 
 
 # إضافة الـ routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])  # Enable authentication
+app.include_router(auth_simple_router, tags=["Simple Authentication"])  # Simple auth for unified database
 app.include_router(dashboard_router, tags=["dashboard"])  # Dashboard statistics
 app.include_router(branches_router, prefix="/api/branches", tags=["branches"])
 app.include_router(products_router, prefix="/api/products", tags=["products"])

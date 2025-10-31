@@ -20,8 +20,8 @@ from .pos import (
     POSTerminal, POSSession, POSTransaction, POSTransactionItem,
     POSPayment, POSDiscount, POSPromotion
 )
-# Multi-tenancy Models
-from .tenant import Tenant, TenantSettings
+# Multi-tenancy Models (disabled in unified database)
+# from .tenant import Tenant, TenantSettings
 # Enhanced Security and Permission Models
 from .permissions import (
     ActionType, ModuleType, Permission, RolePermission,

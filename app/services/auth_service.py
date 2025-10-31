@@ -14,6 +14,7 @@ if not SECRET_KEY:
 
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))  # 30 days default
 
 # Password policy settings
 PASSWORD_MIN_LENGTH = int(os.getenv("PASSWORD_MIN_LENGTH", "12"))
@@ -79,25 +80,48 @@ class AuthService:
     
     @staticmethod
     def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-        """Create a JWT access token"""
+        """Create a JWT access token with user permissions"""
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
             expire = datetime.utcnow() + timedelta(minutes=15)
-        to_encode.update({"exp": expire})
+        to_encode.update({
+            "exp": expire,
+            "type": "access",
+            "iat": datetime.utcnow()  # issued at time
+        })
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return encoded_jwt
+
+    @staticmethod
+    def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
+        """Create a JWT refresh token - longer expiration for mobile apps"""
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        to_encode.update({"exp": expire, "type": "refresh"})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
     
     @staticmethod
-    def verify_token(token: str) -> Optional[dict]:
+    def verify_token(token: str, token_type: str = "access") -> Optional[dict]:
         """Verify and decode a JWT token"""
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             email: str = payload.get("sub")
+            t_type: str = payload.get("type")
+
             if email is None:
                 return None
-            return {"email": email}
+
+            # Verify token type matches expected type
+            if t_type != token_type:
+                return None
+
+            return {"email": email, "type": t_type}
         except JWTError:
             return None
     
