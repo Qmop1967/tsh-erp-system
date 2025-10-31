@@ -13,10 +13,11 @@ from datetime import datetime
 import logging
 
 from ..db.database import get_db
-from ..models.inventory import InventoryItem
+# Removed InventoryItem - using products table directly
 from ..models.product import Product, Category
 from ..services.zoho_service import ZohoAsyncService, ZohoAPIError
 from ..utils.image_helper import get_product_image_url
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -72,59 +73,71 @@ async def get_products(
     try:
         base_url = str(request.base_url).rstrip('/')
 
-        # Query with eager loading of product and category
-        query = db.query(InventoryItem).options(
-            joinedload(InventoryItem.product).joinedload(Product.category)
-        )
+        # Query products directly with Consumer pricelist
+        query_params = {"limit": limit, "skip": skip}
 
-        # Filter by category
+        # Build WHERE clause based on filters
+        where_conditions = ["p.is_active = true", "p.actual_available_stock > 0"]
+
         if category and category != 'All':
-            query = query.join(InventoryItem.product).join(Product.category).filter(
-                Category.name == category
-            )
+            where_conditions.append("p.category = :category")
+            query_params["category"] = category
 
-        # Search filter
         if search:
-            search_term = f"%{search}%"
-            query = query.join(InventoryItem.product).filter(
-                Product.name.ilike(search_term) |
-                Product.barcode.ilike(search_term) |
-                Product.sku.ilike(search_term)
-            )
+            where_conditions.append("(p.name ILIKE :search OR p.sku ILIKE :search)")
+            query_params["search"] = f"%{search}%"
 
-        # Get items
-        items = query.offset(skip).limit(limit).all()
+        where_clause = " AND ".join(where_conditions)
 
-        # Format response
+        # Use subquery to get ONLY Consumer pricelist price
+        query = text(f"""
+            SELECT DISTINCT ON (p.id)
+                p.id,
+                p.zoho_item_id,
+                p.sku,
+                p.name,
+                p.description,
+                COALESCE(p.cdn_image_url, p.image_url) as image_url,
+                p.category,
+                p.actual_available_stock,
+                p.is_active,
+                COALESCE(consumer_price.price, p.price, 0) as price,
+                COALESCE(consumer_price.currency, 'IQD') as currency
+            FROM products p
+            LEFT JOIN LATERAL (
+                SELECT pp.price, pp.currency
+                FROM product_prices pp
+                JOIN pricelists pl ON pp.pricelist_id = pl.id
+                WHERE pp.product_id = p.id
+                  AND pl.name = 'Consumer'
+                  AND pp.currency = 'IQD'
+                LIMIT 1
+            ) consumer_price ON true
+            WHERE {where_clause}
+            ORDER BY p.id, p.name
+            LIMIT :limit OFFSET :skip
+        """)
+
+        result = db.execute(query, query_params)
         products = []
-        for item in items:
-            product = item.product
-            category = product.category if product else None
 
-            # Generate image URL with fallback to placeholder
-            image_url = get_product_image_url(
-                barcode=product.barcode if product else None,
-                sku=product.sku if product else None,
-                base_url=base_url
-            )
-
-            # Use placeholder if no image
-            if not image_url or image_url == '':
-                image_url = f"{base_url}/static/placeholder-product.png"
+        for row in result:
+            # Use CDN image URL if available, otherwise fallback to placeholder
+            image_url = row.image_url if row.image_url else f"{base_url}/static/placeholder-product.png"
 
             products.append({
-                'id': item.id,
-                'item_id': item.id,
-                'product_id': item.product_id,
-                'product_name': product.name if product else 'Unknown',
-                'category_name': category.name if category else 'Unknown',
-                'selling_price': float(product.unit_price) if product else 0,
-                'quantity': float(item.quantity_on_hand) if item.quantity_on_hand else 0,
-                'barcode': product.barcode if product else None,
-                'sku': product.sku if product else None,
+                'id': str(row.id),
+                'item_id': str(row.zoho_item_id),
+                'product_id': str(row.id),
+                'product_name': row.name,
+                'category_name': row.category or 'Uncategorized',
+                'selling_price': float(row.price) if row.price else 0,
+                'quantity': float(row.actual_available_stock) if row.actual_available_stock else 0,
+                'barcode': row.sku,  # Using SKU as barcode
+                'sku': row.sku,
                 'image_path': image_url,
-                'in_stock': (item.quantity_on_hand or 0) > 0,
-                'has_image': bool(image_url and image_url != f"{base_url}/static/placeholder-product.png")
+                'in_stock': (row.actual_available_stock or 0) > 0,
+                'has_image': bool(row.image_url)
             })
 
         return {
@@ -140,7 +153,7 @@ async def get_products(
 
 @router.get("/products/{product_id}", summary="Get product details")
 async def get_product_details(
-    product_id: int,
+    product_id: str,
     request: Request,
     db: Session = Depends(get_db)
 ):
@@ -148,37 +161,56 @@ async def get_product_details(
     try:
         base_url = str(request.base_url).rstrip('/')
 
-        item = db.query(InventoryItem).options(
-            joinedload(InventoryItem.product).joinedload(Product.category)
-        ).filter(InventoryItem.id == product_id).first()
+        # Query product directly with Consumer price
+        query = text("""
+            SELECT
+                p.id,
+                p.zoho_item_id,
+                p.sku,
+                p.name,
+                p.description,
+                COALESCE(p.cdn_image_url, p.image_url) as image_url,
+                p.category,
+                p.actual_available_stock,
+                p.is_active,
+                COALESCE(consumer_price.price, p.price, 0) as price,
+                COALESCE(consumer_price.currency, 'IQD') as currency,
+                p.created_at
+            FROM products p
+            LEFT JOIN LATERAL (
+                SELECT pp.price, pp.currency
+                FROM product_prices pp
+                JOIN pricelists pl ON pp.pricelist_id = pl.id
+                WHERE pp.product_id = p.id
+                  AND pl.name = 'Consumer'
+                  AND pp.currency = 'IQD'
+                LIMIT 1
+            ) consumer_price ON true
+            WHERE p.id = :product_id::uuid
+        """)
 
-        if not item:
+        result = db.execute(query, {"product_id": product_id}).first()
+
+        if not result:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        product = item.product
-        category = product.category if product else None
-
-        image_url = get_product_image_url(
-            barcode=product.barcode if product else None,
-            sku=product.sku if product else None,
-            base_url=base_url
-        )
+        image_url = result.image_url if result.image_url else f"{base_url}/static/placeholder-product.png"
 
         return {
             'status': 'success',
             'product': {
-                'id': item.id,
-                'product_id': item.product_id,
-                'product_name': product.name if product else 'Unknown',
-                'category_name': category.name if category else 'Unknown',
-                'selling_price': float(product.unit_price) if product else 0,
-                'cost_price': float(item.average_cost) if item.average_cost else 0,
-                'quantity': float(item.quantity_on_hand) if item.quantity_on_hand else 0,
-                'barcode': product.barcode if product else None,
-                'sku': product.sku if product else None,
+                'id': str(result.id),
+                'product_id': str(result.id),
+                'product_name': result.name,
+                'category_name': result.category or 'Uncategorized',
+                'selling_price': float(result.price) if result.price else 0,
+                'cost_price': 0,  # Not tracked in this schema
+                'quantity': float(result.actual_available_stock) if result.actual_available_stock else 0,
+                'barcode': result.sku,
+                'sku': result.sku,
                 'image_path': image_url,
-                'in_stock': (item.quantity_on_hand or 0) > 0,
-                'created_at': item.created_at.isoformat() if item.created_at else None
+                'in_stock': (result.actual_available_stock or 0) > 0,
+                'created_at': result.created_at.isoformat() if result.created_at else None
             }
         }
 
@@ -193,8 +225,15 @@ async def get_product_details(
 async def get_categories(db: Session = Depends(get_db)):
     """Get list of all product categories"""
     try:
-        categories = db.query(Category.name).distinct().all()
-        category_list = [cat[0] for cat in categories if cat[0]]
+        # Get distinct categories from products table
+        query = text("""
+            SELECT DISTINCT category
+            FROM products
+            WHERE category IS NOT NULL AND category != ''
+            ORDER BY category
+        """)
+        result = db.execute(query)
+        category_list = [row.category for row in result]
 
         return {
             'status': 'success',
@@ -291,13 +330,24 @@ def update_inventory_after_order(line_items: List[OrderLineItem], db: Session):
     """Background task to update inventory quantities after order"""
     try:
         for item in line_items:
-            db_item = db.query(InventoryItem).filter(
-                InventoryItem.id == int(item.item_id)
-            ).first()
+            # Update product stock directly
+            update_query = text("""
+                UPDATE products
+                SET actual_available_stock = actual_available_stock - :quantity,
+                    stock_quantity = stock_quantity - :quantity,
+                    updated_at = NOW()
+                WHERE zoho_item_id = :item_id
+                  AND actual_available_stock >= :quantity
+            """)
+            result = db.execute(update_query, {
+                "quantity": item.quantity,
+                "item_id": item.item_id
+            })
 
-            if db_item and db_item.quantity_on_hand:
-                db_item.quantity_on_hand -= item.quantity
-                logger.info(f"Updated inventory for {item.product_name}: {db_item.quantity_on_hand}")
+            if result.rowcount > 0:
+                logger.info(f"Updated inventory for {item.product_name}: reduced by {item.quantity}")
+            else:
+                logger.warning(f"Could not update inventory for {item.product_name}: insufficient stock or not found")
 
         db.commit()
 
@@ -330,23 +380,24 @@ async def sync_inventory_from_zoho(db: Session = Depends(get_db)):
             # Update database
             updated_count = 0
             for zoho_item in items:
-                # Find product by SKU/barcode
-                product = db.query(Product).filter(
-                    (Product.sku == zoho_item.get('sku')) |
-                    (Product.barcode == zoho_item.get('sku'))
-                ).first()
+                # Update products directly by zoho_item_id
+                update_query = text("""
+                    UPDATE products
+                    SET actual_available_stock = :stock,
+                        stock_quantity = :stock,
+                        price = :price,
+                        last_zoho_sync = NOW(),
+                        updated_at = NOW()
+                    WHERE zoho_item_id = :item_id
+                """)
+                result = db.execute(update_query, {
+                    "stock": zoho_item.get('stock_on_hand', 0),
+                    "price": zoho_item.get('rate', 0),
+                    "item_id": zoho_item.get('item_id')
+                })
 
-                if product:
-                    # Find inventory item for this product
-                    inventory_item = db.query(InventoryItem).filter(
-                        InventoryItem.product_id == product.id
-                    ).first()
-
-                    if inventory_item:
-                        # Update existing inventory
-                        inventory_item.quantity_on_hand = zoho_item.get('stock_on_hand', 0)
-                        product.unit_price = zoho_item.get('rate', 0)
-                        updated_count += 1
+                if result.rowcount > 0:
+                    updated_count += 1
 
             db.commit()
 
@@ -366,17 +417,24 @@ async def sync_inventory_from_zoho(db: Session = Depends(get_db)):
 async def get_sync_status(db: Session = Depends(get_db)):
     """Get the current sync status and last sync time"""
     try:
-        total_products = db.query(InventoryItem).count()
-        in_stock_products = db.query(InventoryItem).filter(
-            InventoryItem.quantity_on_hand > 0
-        ).count()
+        # Get product counts from products table
+        count_query = text("""
+            SELECT
+                COUNT(*) as total_products,
+                SUM(CASE WHEN actual_available_stock > 0 THEN 1 ELSE 0 END) as in_stock_products,
+                SUM(CASE WHEN actual_available_stock = 0 THEN 1 ELSE 0 END) as out_of_stock_products,
+                MAX(last_zoho_sync) as last_sync
+            FROM products
+            WHERE is_active = true
+        """)
+        result = db.execute(count_query).first()
 
         return {
             'status': 'success',
-            'total_products': total_products,
-            'in_stock_products': in_stock_products,
-            'out_of_stock_products': total_products - in_stock_products,
-            'last_sync': datetime.now().isoformat()
+            'total_products': int(result.total_products) if result.total_products else 0,
+            'in_stock_products': int(result.in_stock_products) if result.in_stock_products else 0,
+            'out_of_stock_products': int(result.out_of_stock_products) if result.out_of_stock_products else 0,
+            'last_sync': result.last_sync.isoformat() if result.last_sync else None
         }
 
     except Exception as e:
