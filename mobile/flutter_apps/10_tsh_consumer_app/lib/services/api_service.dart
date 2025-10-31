@@ -37,29 +37,55 @@ class ApiService {
   }
 
   // Products API
-  static Future<List<Product>> getProducts({
+  static Future<Map<String, dynamic>> getProductsWithTotal({
     int page = 1,
     int limit = 100,
   }) async {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/shop/products/?limit=$limit&skip=${(page - 1) * limit}'),
+        Uri.parse('$baseUrl/consumer/products?limit=$limit&skip=${(page - 1) * limit}'),
         headers: headers,
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final products = (data['products'] as List)
-            .map((json) => Product.fromJson(json))
-            .toList();
-        return products;
+
+        // Handle both response formats
+        List<Product> products;
+        if (data.containsKey('items')) {
+          // New format: {status: "success", count: 5, items: [...]}
+          products = (data['items'] as List)
+              .map((json) => Product.fromJson(json))
+              .toList();
+        } else if (data.containsKey('products')) {
+          // Old format: {products: [...], total: 100}
+          products = (data['products'] as List)
+              .map((json) => Product.fromJson(json))
+              .toList();
+        } else {
+          products = [];
+        }
+
+        final total = data['total'] as int? ?? data['count'] as int? ?? products.length;
+        return {
+          'products': products,
+          'total': total,
+        };
       } else {
         throw Exception('Failed to load products: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching products: $e');
     }
+  }
+
+  static Future<List<Product>> getProducts({
+    int page = 1,
+    int limit = 100,
+  }) async {
+    final result = await getProductsWithTotal(page: page, limit: limit);
+    return result['products'] as List<Product>;
   }
 
   static Future<Product> getProductById(String id) async {
@@ -85,7 +111,7 @@ class ApiService {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/products/categories'),
+        Uri.parse('$baseUrl/consumer/categories'),
         headers: headers,
       );
 
@@ -243,8 +269,12 @@ class ApiService {
       return product.cdnImageUrl!;
     }
 
-    // Then image_url
+    // Then image_url - prepend baseUrl if it's a relative path
     if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
+      // If imageUrl starts with /, prepend the base URL
+      if (product.imageUrl!.startsWith('/')) {
+        return '$baseUrl${product.imageUrl}';
+      }
       return product.imageUrl!;
     }
 
