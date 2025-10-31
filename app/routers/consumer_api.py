@@ -125,16 +125,32 @@ async def get_products(
             # Use CDN image URL if available, otherwise fallback to placeholder
             image_url = row.image_url if row.image_url else f"{base_url}/static/placeholder-product.png"
 
+            # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
             products.append({
+                # Primary fields (Flutter model expects these)
                 'id': str(row.id),
+                'zoho_item_id': str(row.zoho_item_id),
+                'sku': row.sku,
+                'name': row.name,
+                'description': None,  # Not available in this query
+                'image_url': image_url,
+                'cdn_image_url': row.image_url if row.image_url else None,
+                'category': row.category or 'Uncategorized',
+                'stock_quantity': int(row.actual_available_stock) if row.actual_available_stock else 0,
+                'actual_available_stock': int(row.actual_available_stock) if row.actual_available_stock else 0,
+                'warehouse_id': '',  # Not needed for consumer app
+                'is_active': True,
+                'price': float(row.price) if row.price else 0,
+                'currency': 'IQD',
+
+                # Legacy fields for backward compatibility (can be removed later)
                 'item_id': str(row.zoho_item_id),
                 'product_id': str(row.id),
                 'product_name': row.name,
                 'category_name': row.category or 'Uncategorized',
                 'selling_price': float(row.price) if row.price else 0,
                 'quantity': float(row.actual_available_stock) if row.actual_available_stock else 0,
-                'barcode': row.sku,  # Using SKU as barcode
-                'sku': row.sku,
+                'barcode': row.sku,
                 'image_path': image_url,
                 'in_stock': (row.actual_available_stock or 0) > 0,
                 'has_image': bool(row.image_url)
@@ -196,22 +212,40 @@ async def get_product_details(
 
         image_url = result.image_url if result.image_url else f"{base_url}/static/placeholder-product.png"
 
+        # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
+        product_data = {
+            # Primary fields (Flutter model expects these)
+            'id': str(result.id),
+            'zoho_item_id': str(result.zoho_item_id),
+            'sku': result.sku,
+            'name': result.name,
+            'description': result.description,
+            'image_url': image_url,
+            'cdn_image_url': result.image_url if result.image_url else None,
+            'category': result.category or 'Uncategorized',
+            'stock_quantity': int(result.actual_available_stock) if result.actual_available_stock else 0,
+            'actual_available_stock': int(result.actual_available_stock) if result.actual_available_stock else 0,
+            'warehouse_id': '',
+            'is_active': result.is_active,
+            'price': float(result.price) if result.price else 0,
+            'currency': 'IQD',
+            'created_at': result.created_at.isoformat() if result.created_at else None,
+
+            # Legacy fields for backward compatibility
+            'product_id': str(result.id),
+            'product_name': result.name,
+            'category_name': result.category or 'Uncategorized',
+            'selling_price': float(result.price) if result.price else 0,
+            'cost_price': 0,
+            'quantity': float(result.actual_available_stock) if result.actual_available_stock else 0,
+            'barcode': result.sku,
+            'image_path': image_url,
+            'in_stock': (result.actual_available_stock or 0) > 0
+        }
+
         return {
             'status': 'success',
-            'product': {
-                'id': str(result.id),
-                'product_id': str(result.id),
-                'product_name': result.name,
-                'category_name': result.category or 'Uncategorized',
-                'selling_price': float(result.price) if result.price else 0,
-                'cost_price': 0,  # Not tracked in this schema
-                'quantity': float(result.actual_available_stock) if result.actual_available_stock else 0,
-                'barcode': result.sku,
-                'sku': result.sku,
-                'image_path': image_url,
-                'in_stock': (result.actual_available_stock or 0) > 0,
-                'created_at': result.created_at.isoformat() if result.created_at else None
-            }
+            'product': product_data
         }
 
     except HTTPException:
