@@ -1,0 +1,32 @@
+[Unit]
+Description=TDS Core Sync Worker
+After=network.target postgresql.service tds-core-api.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/tds_core
+
+# Load environment variables
+EnvironmentFile=/opt/tds_core/.env
+
+# Run the worker
+ExecStart=/usr/bin/python3.11 /opt/tds_core/run_worker.py
+
+# Restart policy
+Restart=always
+RestartSec=10s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tds-core-worker
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
