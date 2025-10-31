@@ -8,6 +8,7 @@ class Product {
   final String? cdnImageUrl;
   final String? category;
   final int stockQuantity;
+  final int actualAvailableStock;
   final String warehouseId;
   final bool isActive;
   final DateTime lastSynced;
@@ -27,6 +28,7 @@ class Product {
     this.cdnImageUrl,
     this.category,
     required this.stockQuantity,
+    required this.actualAvailableStock,
     required this.warehouseId,
     required this.isActive,
     required this.lastSynced,
@@ -39,17 +41,18 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['id'] as String,
-      zohoItemId: json['zoho_item_id'] as String,
-      sku: json['sku'] as String,
-      name: json['name'] as String,
+      id: json['id'] as String? ?? json['product_id'] as String,
+      zohoItemId: json['zoho_item_id'] as String? ?? json['item_id'] as String,
+      sku: json['sku'] as String? ?? json['barcode'] as String? ?? '',
+      name: json['name'] as String? ?? json['product_name'] as String,
       description: json['description'] as String?,
-      imageUrl: json['image_url'] as String?,
+      imageUrl: json['image_url'] as String? ?? json['image_path'] as String?,
       cdnImageUrl: json['cdn_image_url'] as String?,
-      category: json['category'] as String?,
-      stockQuantity: json['stock_quantity'] as int? ?? 0,
+      category: json['category'] as String? ?? json['category_name'] as String?,
+      stockQuantity: json['stock_quantity'] as int? ?? (json['quantity'] as num?)?.toInt() ?? 0,
+      actualAvailableStock: json['actual_available_stock'] as int? ?? (json['quantity'] as num?)?.toInt() ?? 0,
       warehouseId: json['warehouse_id'] as String? ?? '',
-      isActive: json['is_active'] as bool? ?? true,
+      isActive: json['is_active'] as bool? ?? json['in_stock'] as bool? ?? true,
       lastSynced: json['last_synced'] != null
           ? DateTime.parse(json['last_synced'] as String)
           : DateTime.now(),
@@ -59,7 +62,7 @@ class Product {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      price: (json['price'] as num?)?.toDouble() ?? (json['selling_price'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'IQD',
       pricelistName: json['pricelist_name'] as String?,
     );
@@ -76,6 +79,7 @@ class Product {
       'cdn_image_url': cdnImageUrl,
       'category': category,
       'stock_quantity': stockQuantity,
+      'actual_available_stock': actualAvailableStock,
       'warehouse_id': warehouseId,
       'is_active': isActive,
       'last_synced': lastSynced.toIso8601String(),
@@ -97,6 +101,7 @@ class Product {
     String? cdnImageUrl,
     String? category,
     int? stockQuantity,
+    int? actualAvailableStock,
     String? warehouseId,
     bool? isActive,
     DateTime? lastSynced,
@@ -116,6 +121,7 @@ class Product {
       cdnImageUrl: cdnImageUrl ?? this.cdnImageUrl,
       category: category ?? this.category,
       stockQuantity: stockQuantity ?? this.stockQuantity,
+      actualAvailableStock: actualAvailableStock ?? this.actualAvailableStock,
       warehouseId: warehouseId ?? this.warehouseId,
       isActive: isActive ?? this.isActive,
       lastSynced: lastSynced ?? this.lastSynced,
@@ -127,7 +133,13 @@ class Product {
     );
   }
 
-  bool get inStock => stockQuantity > 0;
-  bool get lowStock => stockQuantity > 0 && stockQuantity <= 10;
+  bool get inStock => actualAvailableStock > 0;
+  bool get lowStock => actualAvailableStock > 0 && actualAvailableStock <= 10;
   bool get hasPrice => price > 0;
+
+  String get stockStatusText {
+    if (actualAvailableStock == 0) return 'Out of Stock';
+    if (actualAvailableStock <= 10) return 'Low Stock';
+    return 'In Stock';
+  }
 }
