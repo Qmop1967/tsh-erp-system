@@ -116,7 +116,7 @@ class WebhookHealthService:
         # Total queued
         total_result = await self.db.execute(
             select(func.count(TDSSyncQueue.id))
-            .where(TDSSyncQueue.queued_at >= since)
+            .where(TDSSyncQueue.created_at >= since)
         )
         total = total_result.scalar() or 0
 
@@ -126,7 +126,7 @@ class WebhookHealthService:
                 TDSSyncQueue.status,
                 func.count(TDSSyncQueue.id)
             )
-            .where(TDSSyncQueue.queued_at >= since)
+            .where(TDSSyncQueue.created_at >= since)
             .group_by(TDSSyncQueue.status)
         )
         by_status = {str(row[0]): row[1] for row in status_result.all()}
@@ -139,12 +139,12 @@ class WebhookHealthService:
         avg_time_result = await self.db.execute(
             select(
                 func.avg(
-                    func.extract('epoch', TDSSyncQueue.completed_at - TDSSyncQueue.queued_at)
+                    func.extract('epoch', TDSSyncQueue.completed_at - TDSSyncQueue.created_at)
                 )
             )
             .where(
                 and_(
-                    TDSSyncQueue.queued_at >= since,
+                    TDSSyncQueue.created_at >= since,
                     TDSSyncQueue.status == EventStatus.COMPLETED,
                     TDSSyncQueue.completed_at.isnot(None)
                 )
@@ -166,7 +166,7 @@ class WebhookHealthService:
             select(func.count(TDSSyncQueue.id))
             .where(
                 and_(
-                    TDSSyncQueue.queued_at >= since,
+                    TDSSyncQueue.created_at >= since,
                     TDSSyncQueue.status == EventStatus.FAILED
                 )
             )
@@ -188,7 +188,7 @@ class WebhookHealthService:
             )
             .where(
                 and_(
-                    TDSSyncQueue.queued_at >= since,
+                    TDSSyncQueue.created_at >= since,
                     TDSSyncQueue.status.in_([EventStatus.FAILED, EventStatus.DEAD_LETTER]),
                     TDSSyncQueue.last_error.isnot(None)
                 )
