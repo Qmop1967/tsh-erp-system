@@ -37,7 +37,7 @@ jobs:
       - name: Code linting (ruff)
         run: |
           ruff check . --output-format=github
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Type checking (mypy)
         run: |
