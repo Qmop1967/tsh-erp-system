@@ -1,0 +1,52 @@
+[Unit]
+Description=TSH ERP FastAPI Application (Green Deployment)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/tsh_erp/releases/green
+EnvironmentFile=/opt/tsh_erp/shared/env/prod.env
+
+# Start command - using uvicorn
+ExecStart=/opt/tsh_erp/venvs/green/bin/python -m uvicorn main:app \
+    --host 0.0.0.0 \
+    --port 8002 \
+    --workers 4 \
+    --log-level info \
+    --access-log \
+    --proxy-headers \
+    --forwarded-allow-ips='*'
+
+# Graceful shutdown
+ExecStop=/bin/kill -TERM $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+# Resource limits (adjust based on your server)
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Memory limit (optional - adjust as needed)
+# MemoryMax=2G
+# CPUQuota=200%
+
+# Security hardening (optional)
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tsh_erp-green
+
+[Install]
+WantedBy=multi-user.target

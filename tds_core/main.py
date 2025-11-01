@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -255,6 +255,12 @@ async def health_check(db: AsyncSession = Depends(get_db)):
 async def ping():
     """Simple ping endpoint for load balancers"""
     return {"status": "ok", "timestamp": time.time()}
+
+
+@app.get("/ready", tags=["Status"])
+async def ready():
+    """Simple readiness check for deployment health checks"""
+    return Response(content="ok", media_type="text/plain", status_code=200)
 
 
 # ============================================================================
