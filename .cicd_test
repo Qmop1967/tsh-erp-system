@@ -1,0 +1,23 @@
+CI/CD Pipeline Test
+===================
+
+Test Date: November 2, 2025
+Purpose: Testing GitHub Actions automated deployment workflow
+
+This file was created to trigger the CI/CD pipeline and verify:
+1. GitHub Actions workflow executes
+2. Tests run successfully (linting, type checking, security scan)
+3. Automated deployment to production server (167.71.39.50)
+4. Blue/green deployment switching
+5. Health checks pass
+6. Zero-downtime deployment verified
+
+Expected Results:
+- Workflow runs on push to main branch
+- All tests pass
+- Deployment script executes on production server
+- Health endpoint remains responsive
+- No downtime during deployment
+
+Test initiated by: CI/CD test request
+Workflow file: .github/workflows/ci-deploy.yml
