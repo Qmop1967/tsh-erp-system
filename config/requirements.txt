@@ -15,7 +15,7 @@ requests==2.31.0
 openpyxl==3.1.2
 aiohttp==3.9.1
 aiofiles==23.2.0
-cryptography==41.0.8
+cryptography>=41.0.0
 # Additional security and monitoring dependencies
 psutil==5.9.6
 schedule==1.2.0

@@ -30,7 +30,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         
     - name: Install dependencies
       run: |
@@ -82,15 +82,15 @@ jobs:
       with:
         flutter-version: '3.16.0'
         
-    - name: Test Admin Dashboard App
+    - name: Test Admin App
       run: |
-        cd mobile/flutter_apps/admin_dashboard
+        cd mobile/flutter_apps/01_tsh_admin_app
         flutter pub get
         flutter test
-        
+
     - name: Test Salesperson App
       run: |
-        cd mobile/flutter_apps/salesperson
+        cd mobile/flutter_apps/06_tsh_salesperson_app
         flutter pub get
         flutter test
 
