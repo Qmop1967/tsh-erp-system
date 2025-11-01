@@ -293,14 +293,27 @@ async def process_webhook_helper(
 
     except ValueError as e:
         # Duplicate or validation error
-        logger.warning(f"{webhook.entity_type} webhook rejected: {e}")
-        return WebhookResponse(
-            success=False,
-            message=str(e),
-            event_id=None,
-            idempotency_key=f"zoho:{webhook.entity_type}:{webhook.entity_id}:{webhook.event_type}",
-            queued=False
-        )
+        error_msg = str(e)
+        if "Duplicate event" in error_msg:
+            # Return success for duplicates to prevent Zoho from retrying
+            logger.info(f"{webhook.entity_type} webhook duplicate - returning success: {e}")
+            return WebhookResponse(
+                success=True,
+                message=f"Duplicate event already processed: {webhook.entity_type}",
+                event_id=None,
+                idempotency_key=f"zoho:{webhook.entity_type}:{webhook.entity_id}:{webhook.event_type}",
+                queued=False
+            )
+        else:
+            # Other validation errors
+            logger.warning(f"{webhook.entity_type} webhook validation failed: {e}")
+            return WebhookResponse(
+                success=False,
+                message=str(e),
+                event_id=None,
+                idempotency_key=f"zoho:{webhook.entity_type}:{webhook.entity_id}:{webhook.event_type}",
+                queued=False
+            )
 
     except Exception as e:
         logger.error(f"{webhook.entity_type} webhook processing failed: {e}", exc_info=True)

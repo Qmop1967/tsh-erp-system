@@ -9,6 +9,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from models.tds_models import TDSInboxEvent, SourceType, EntityType
 from utils.hashing import generate_content_hash, generate_idempotency_key
@@ -95,6 +96,15 @@ class InboxService:
 
             return inbox_event
 
+        except IntegrityError as e:
+            # Database caught a duplicate that slipped through our check (race condition)
+            await self.db.rollback()
+            if "idempotency_key" in str(e):
+                logger.info(f"Duplicate event caught by database: {idempotency_key}")
+                raise ValueError(f"Duplicate event: {idempotency_key}")
+            else:
+                logger.error(f"Database integrity error: {e}")
+                raise
         except Exception as e:
             await self.db.rollback()
             logger.error(f"Failed to store inbox event: {e}")
