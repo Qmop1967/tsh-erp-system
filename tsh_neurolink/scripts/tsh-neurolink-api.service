@@ -1,0 +1,41 @@
+[Unit]
+Description=TSH NeuroLink API Server
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=notify
+User=root
+Group=root
+WorkingDirectory=/opt/tsh_neurolink
+
+# Environment
+EnvironmentFile=/opt/tsh_neurolink/.env
+
+# Start command
+ExecStart=/opt/tsh_neurolink/venv/bin/uvicorn app.main:app \
+    --host 0.0.0.0 \
+    --port 8002 \
+    --workers 4 \
+    --log-level info \
+    --access-log \
+    --use-colors
+
+# Restart policy
+Restart=always
+RestartSec=5s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tsh-neurolink-api
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
