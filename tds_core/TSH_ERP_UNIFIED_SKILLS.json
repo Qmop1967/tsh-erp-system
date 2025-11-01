@@ -1,0 +1,238 @@
+{
+  "name": "TSH ERP Unified Skills",
+  "description": "A comprehensive set of skills to keep all operations unified, centralized, and to ensure smooth integration with Zoho and the TDS Core",
+  "version": "2.0.0",
+  "last_updated": "2025-11-01",
+  "capabilities": [
+    {
+      "command": "tds_monitor",
+      "description": "Monitor TDS Core for errors and automatically correct data flow issues",
+      "script": "python3 /opt/tds_core/scripts/tds_monitor.py",
+      "schedule": "*/15 * * * *",
+      "features": [
+        "Real-time health monitoring",
+        "Automatic duplicate cleanup",
+        "Dead letter queue retry",
+        "Issue detection and alerting",
+        "Auto-fix capabilities"
+      ],
+      "usage": {
+        "manual": "python3 /opt/tds_core/scripts/tds_monitor.py",
+        "cron": "*/15 * * * * /opt/tds_core/scripts/tds_monitor.py >> /var/log/tds-core/tds_monitor.log 2>&1",
+        "output": "JSON report with health metrics and corrections applied"
+      },
+      "auto_fixes": [
+        "clear_old_duplicates: Removes duplicate inbox events older than 24 hours",
+        "retry_dead_letter: Automatically retries events in dead letter queue"
+      ]
+    },
+    {
+      "command": "unify_endpoints",
+      "description": "Ensure all API endpoints and authentication remain centralized and consistent",
+      "script": "bash /opt/tds_core/scripts/unify_endpoints.sh",
+      "schedule": "0 */6 * * *",
+      "features": [
+        "API availability checks",
+        "Database connectivity verification",
+        "Critical table existence validation",
+        "Service status monitoring",
+        "Reverse proxy configuration check",
+        "Webhook health verification"
+      ],
+      "usage": {
+        "manual": "bash /opt/tds_core/scripts/unify_endpoints.sh",
+        "cron": "0 */6 * * * /opt/tds_core/scripts/unify_endpoints.sh >> /var/log/tds-core/endpoint-unification.log 2>&1",
+        "output": "Detailed status report with pass/fail for each check"
+      },
+      "checks_performed": [
+        "TDS Core API availability",
+        "Main ERP API availability",
+        "Webhook endpoint validation",
+        "Database connectivity",
+        "Critical table existence",
+        "API documentation availability",
+        "Service status (systemd)",
+        "Nginx/reverse proxy configuration",
+        "Webhook health score",
+        "Log file integrity"
+      ]
+    },
+    {
+      "command": "monitor_webhooks",
+      "description": "Monitor webhook health and send alerts for critical issues",
+      "script": "bash /opt/tds_core/scripts/monitor_webhooks.sh",
+      "schedule": "*/5 * * * *",
+      "features": [
+        "Health score monitoring (0-100)",
+        "Duplicate rate tracking",
+        "Success rate monitoring",
+        "Email alerts for critical issues",
+        "Detailed issue reporting"
+      ],
+      "usage": {
+        "manual": "bash /opt/tds_core/scripts/monitor_webhooks.sh",
+        "cron": "*/5 * * * * /opt/tds_core/scripts/monitor_webhooks.sh >> /var/log/tds-core/webhook-monitor.log 2>&1",
+        "environment": "ALERT_EMAIL=your-email@example.com ALERT_THRESHOLD=70"
+      },
+      "alerts_triggered_when": [
+        "Health score < 70",
+        "Duplicate rate > 10%",
+        "Multiple issues detected",
+        "Processing failures accumulating"
+      ]
+    },
+    {
+      "command": "sync_with_zoho",
+      "description": "Perform gradual data synchronization from Zoho to the central database without disrupting operations",
+      "script": "python3 /opt/tds_core/scripts/sync_zoho.py",
+      "schedule": "0 2 * * *",
+      "status": "planned",
+      "features": [
+        "Incremental product sync",
+        "Customer data sync",
+        "Price list synchronization",
+        "Stock level updates",
+        "Invoice sync",
+        "Conflict resolution"
+      ],
+      "usage": {
+        "manual": "python3 /opt/tds_core/scripts/sync_zoho.py --entity products --mode incremental",
+        "cron": "0 2 * * * /opt/tds_core/scripts/sync_zoho.py --full-sync >> /var/log/tds-core/zoho-sync.log 2>&1"
+      },
+      "note": "This script is planned for future implementation"
+    }
+  ],
+  "setup_instructions": {
+    "step_1": {
+      "title": "Make scripts executable",
+      "commands": [
+        "chmod +x /opt/tds_core/scripts/tds_monitor.py",
+        "chmod +x /opt/tds_core/scripts/unify_endpoints.sh",
+        "chmod +x /opt/tds_core/scripts/monitor_webhooks.sh"
+      ]
+    },
+    "step_2": {
+      "title": "Install dependencies",
+      "commands": [
+        "apt-get install -y jq postgresql-client",
+        "pip install requests psycopg2-binary"
+      ]
+    },
+    "step_3": {
+      "title": "Create log directory",
+      "commands": [
+        "mkdir -p /var/log/tds-core",
+        "chown -R www-data:www-data /var/log/tds-core"
+      ]
+    },
+    "step_4": {
+      "title": "Set up cron jobs",
+      "commands": [
+        "crontab -e",
+        "# Add these lines:",
+        "*/5 * * * * /opt/tds_core/scripts/monitor_webhooks.sh >> /var/log/tds-core/webhook-monitor.log 2>&1",
+        "*/15 * * * * /opt/tds_core/scripts/tds_monitor.py >> /var/log/tds-core/tds_monitor.log 2>&1",
+        "0 */6 * * * /opt/tds_core/scripts/unify_endpoints.sh >> /var/log/tds-core/endpoint-unification.log 2>&1"
+      ]
+    },
+    "step_5": {
+      "title": "Configure environment variables",
+      "commands": [
+        "export ALERT_EMAIL='your-email@example.com'",
+        "export TDS_API_URL='http://localhost:8001'",
+        "export MAIN_ERP_URL='http://localhost:8000'",
+        "# Add to ~/.bashrc to persist"
+      ]
+    }
+  },
+  "monitoring_dashboard": {
+    "endpoints": {
+      "webhook_health": "https://erp.tsh.sale/api/tds/webhooks/health",
+      "duplicate_analysis": "https://erp.tsh.sale/api/tds/webhooks/duplicates",
+      "queue_stats": "https://erp.tsh.sale/api/tds/queue/stats",
+      "api_docs": "https://erp.tsh.sale/api/tds/docs"
+    },
+    "health_metrics": {
+      "health_score": {
+        "excellent": "90-100",
+        "good": "70-89",
+        "degraded": "50-69",
+        "critical": "0-49"
+      },
+      "duplicate_rate": {
+        "normal": "<5%",
+        "elevated": "5-10%",
+        "high": ">10%"
+      },
+      "success_rate": {
+        "excellent": ">95%",
+        "good": "90-95%",
+        "poor": "<90%"
+      }
+    }
+  },
+  "troubleshooting": {
+    "documentation": "/opt/tds_core/WEBHOOK_TROUBLESHOOTING.md",
+    "prevention_guide": "/opt/tds_core/PREVENTING_WEBHOOK_FAILURES.md",
+    "common_issues": [
+      {
+        "issue": "High duplicate rate",
+        "solution": "Run tds_monitor to auto-cleanup old duplicates"
+      },
+      {
+        "issue": "Low health score",
+        "solution": "Check logs and run unify_endpoints to verify system status"
+      },
+      {
+        "issue": "Dead letter accumulation",
+        "solution": "Run tds_monitor to auto-retry failed events"
+      },
+      {
+        "issue": "API unavailable",
+        "solution": "Check service status: systemctl status tds-core-api.service"
+      }
+    ]
+  },
+  "integration_points": {
+    "zoho_books": {
+      "webhook_endpoints": [
+        "/webhooks/products",
+        "/webhooks/customers",
+        "/webhooks/invoices",
+        "/webhooks/bills",
+        "/webhooks/credit-notes",
+        "/webhooks/stock",
+        "/webhooks/prices"
+      ],
+      "sync_direction": "Zoho → TDS Core → Central Database",
+      "authentication": "X-Webhook-Key header (configured in settings)"
+    },
+    "main_erp": {
+      "shared_database": "tsh_erp (PostgreSQL)",
+      "shared_tables": [
+        "products",
+        "product_prices",
+        "pricelists",
+        "customers",
+        "invoices",
+        "users",
+        "branches"
+      ]
+    }
+  },
+  "best_practices": [
+    "Run tds_monitor every 15 minutes for proactive issue detection",
+    "Run monitor_webhooks every 5 minutes for real-time alerting",
+    "Run unify_endpoints every 6 hours to verify system consistency",
+    "Review logs daily: /var/log/tds-core/*.log",
+    "Check webhook health dashboard daily",
+    "Run automated tests monthly: pytest tests/test_webhook_handling.py",
+    "Keep health score above 90",
+    "Keep duplicate rate below 5%",
+    "Keep success rate above 95%"
+  ],
+  "contact": {
+    "documentation": "https://github.com/Qmop1967/tsh-erp-system",
+    "support": "admin@tsh.sale"
+  }
+}
