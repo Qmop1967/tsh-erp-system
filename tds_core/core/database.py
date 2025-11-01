@@ -141,7 +141,7 @@ async def check_db_health() -> dict:
         start_time = time.time()
 
         async with AsyncSessionLocal() as session:
-            result = await session.execute("SELECT 1")
+            result = await session.execute(text("SELECT 1"))
             result.scalar()
 
         latency_ms = (time.time() - start_time) * 1000
