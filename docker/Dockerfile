@@ -16,7 +16,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # نسخ ملف المتطلبات وتثبيتها
-COPY requirements.txt .
+COPY config/requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # نسخ كود التطبيق
