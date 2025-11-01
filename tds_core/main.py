@@ -543,6 +543,63 @@ async def get_queue_stats(db: AsyncSession = Depends(get_db)):
 
 
 # ============================================================================
+# WEBHOOK HEALTH MONITORING ENDPOINTS
+# ============================================================================
+
+@app.get("/webhooks/health", tags=["Webhooks", "Monitoring"])
+async def get_webhook_health(
+    hours: int = 24,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get comprehensive webhook health metrics
+
+    Returns:
+        - Health score (0-100)
+        - Webhook statistics
+        - Detected issues
+        - Recommendations
+
+    Use this endpoint to proactively monitor webhook health
+    """
+    from services.webhook_health_service import WebhookHealthService
+
+    health_service = WebhookHealthService(db)
+    metrics = await health_service.get_health_metrics(hours=hours)
+
+    return {
+        "success": True,
+        "metrics": metrics
+    }
+
+
+@app.get("/webhooks/duplicates", tags=["Webhooks", "Monitoring"])
+async def get_duplicate_webhook_analysis(
+    hours: int = 24,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Analyze duplicate webhook attempts
+
+    Helps identify if Zoho or other sources are retrying webhooks excessively
+
+    Returns:
+        - List of events with multiple delivery attempts
+        - Retry counts and time spans
+        - Patterns in duplicate deliveries
+    """
+    from services.webhook_health_service import WebhookHealthService
+
+    health_service = WebhookHealthService(db)
+    stats = await health_service.get_duplicate_webhook_stats(hours=hours)
+
+    return {
+        "success": True,
+        "analysis": stats
+    }
+
+
+# ============================================================================
 # ADMIN ENDPOINTS
 # ============================================================================
 
