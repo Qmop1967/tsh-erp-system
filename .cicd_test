@@ -2,10 +2,12 @@ CI/CD Pipeline Test
 ===================
 
 Test Date: November 2, 2025
-Purpose: Testing GitHub Actions automated deployment workflow
+Purpose: Testing GitHub Actions automated deployment workflow with unlimited minutes
+
+Status: Repository is now PUBLIC - unlimited free Actions minutes enabled!
 
 This file was created to trigger the CI/CD pipeline and verify:
-1. GitHub Actions workflow executes
+1. GitHub Actions workflow executes (with unlimited minutes)
 2. Tests run successfully (linting, type checking, security scan)
 3. Automated deployment to production server (167.71.39.50)
 4. Blue/green deployment switching
@@ -19,5 +21,6 @@ Expected Results:
 - Health endpoint remains responsive
 - No downtime during deployment
 
-Test initiated by: CI/CD test request
+Test initiated by: CI/CD test with public repository
 Workflow file: .github/workflows/ci-deploy.yml
+Repository: https://github.com/Qmop1967/tsh-erp-system (PUBLIC)
