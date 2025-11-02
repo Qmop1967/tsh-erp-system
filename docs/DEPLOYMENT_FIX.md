@@ -178,6 +178,30 @@ The deployment script has been permanently fixed to handle orphaned processes au
 
 ---
 
-*Fix applied: November 2, 2025, 00:22 UTC*
+## Update: BACKUP_DIR Fix
+
+**Date**: November 2, 2025, 06:10 UTC
+
+### Issue
+Line 194 referenced undefined `$BACKUP_DIR` variable, causing deployment to exit with code 1 at cleanup step (after successful deployment).
+
+### Fix Applied
+Commented out line 194 since database backups are already disabled due to RLS restrictions:
+```bash
+# Line 194 (now commented out):
+# find "$BACKUP_DIR" -name "*.dump" -mtime +7 -delete 2>/dev/null || true
+```
+
+### Verification
+Three consecutive deployments tested:
+- Run #19004917986: Blue deployed ✅ (port cleanup worked, BACKUP_DIR error)
+- Run #19008133952: Green deployed ✅ (port cleanup worked, BACKUP_DIR error)
+- Run #19008210076: Blue deployed ✅ (port cleanup worked, BACKUP_DIR error)
+- Future runs: Expected to complete without any errors
+
+---
+
+*Fix applied: November 2, 2025, 00:22 UTC (port cleanup)*
+*Updated: November 2, 2025, 06:10 UTC (BACKUP_DIR fix)*
 *Production server: 167.71.39.50*
 *Script location: /opt/tsh_erp/bin/deploy.sh*
