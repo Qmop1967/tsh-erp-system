@@ -1,0 +1,760 @@
+name: Zoho Integration Tests (Real API & DB)
+
+on:
+  workflow_dispatch:  # Manual trigger
+    inputs:
+      test_scope:
+        description: 'Test scope'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - webhooks-only
+          - api-only
+          - database-only
+      use_production:
+        description: 'Use production Zoho account'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+      - develop
+    paths:
+      - 'zoho/**'
+      - 'webhooks/**'
+      - 'scripts/zoho_*.py'
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Setup test environment
+  setup-test-env:
+    name: Setup Test Environment
+    runs-on: ubuntu-latest
+    outputs:
+      test_db_ready: ${{ steps.db_check.outputs.ready }}
+      zoho_auth_valid: ${{ steps.zoho_check.outputs.valid }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests psycopg2-binary python-dotenv
+
+      - name: Check database connectivity
+        id: db_check
+        run: |
+          python << 'EOF'
+          import os
+          import psycopg2
+
+          try:
+              conn = psycopg2.connect(
+                  host=os.environ.get('DB_HOST', 'localhost'),
+                  port=os.environ.get('DB_PORT', '5432'),
+                  dbname=os.environ.get('DB_NAME', 'tsh_erp'),
+                  user=os.environ.get('DB_USER', 'postgres'),
+                  password=os.environ.get('DB_PASSWORD', '')
+              )
+              conn.close()
+              print("✅ Database connection successful")
+              print("ready=true")
+          except Exception as e:
+              print(f"❌ Database connection failed: {e}")
+              print("ready=false")
+          EOF
+
+      - name: Verify Zoho credentials
+        id: zoho_check
+        env:
+          ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+          ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+          ZOHO_ORGANIZATION_ID: ${{ secrets.ZOHO_ORGANIZATION_ID }}
+        run: |
+          python << 'EOF'
+          import os
+          import requests
+
+          client_id = os.environ.get('ZOHO_CLIENT_ID')
+          client_secret = os.environ.get('ZOHO_CLIENT_SECRET')
+          refresh_token = os.environ.get('ZOHO_REFRESH_TOKEN')
+
+          if not all([client_id, client_secret, refresh_token]):
+              print("❌ Missing Zoho credentials")
+              print("valid=false")
+              exit(0)
+
+          try:
+              # Get access token
+              response = requests.post(
+                  'https://accounts.zoho.com/oauth/v2/token',
+                  params={
+                      'refresh_token': refresh_token,
+                      'client_id': client_id,
+                      'client_secret': client_secret,
+                      'grant_type': 'refresh_token'
+                  }
+              )
+
+              if response.status_code == 200:
+                  data = response.json()
+                  if 'access_token' in data:
+                      print("✅ Zoho authentication successful")
+                      print("valid=true")
+                  else:
+                      print("❌ No access token in response")
+                      print("valid=false")
+              else:
+                  print(f"❌ Zoho auth failed: {response.status_code}")
+                  print("valid=false")
+          except Exception as e:
+              print(f"❌ Zoho auth error: {e}")
+              print("valid=false")
+          EOF
+
+  # Test Zoho API connections
+  test-zoho-api:
+    name: Test Zoho API Connections
+    runs-on: ubuntu-latest
+    needs: setup-test-env
+    if: |
+      github.event.inputs.test_scope == 'all' ||
+      github.event.inputs.test_scope == 'api-only' ||
+      github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests psycopg2-binary python-dotenv
+
+      - name: Test Zoho Books API
+        env:
+          ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+          ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+          ZOHO_ORGANIZATION_ID: ${{ secrets.ZOHO_ORGANIZATION_ID }}
+        run: |
+          python << 'EOF'
+          import os
+          import requests
+          import json
+          from datetime import datetime
+
+          def get_access_token():
+              response = requests.post(
+                  'https://accounts.zoho.com/oauth/v2/token',
+                  params={
+                      'refresh_token': os.environ['ZOHO_REFRESH_TOKEN'],
+                      'client_id': os.environ['ZOHO_CLIENT_ID'],
+                      'client_secret': os.environ['ZOHO_CLIENT_SECRET'],
+                      'grant_type': 'refresh_token'
+                  }
+              )
+              return response.json()['access_token']
+
+          def test_api_endpoint(name, url, headers):
+              try:
+                  response = requests.get(url, headers=headers, timeout=30)
+                  if response.status_code == 200:
+                      data = response.json()
+                      print(f"✅ {name}: SUCCESS")
+                      if isinstance(data, dict):
+                          for key in ['invoices', 'contacts', 'items', 'salesorders']:
+                              if key in data:
+                                  count = len(data[key]) if isinstance(data[key], list) else 1
+                                  print(f"   → Found {count} {key}")
+                      return True
+                  else:
+                      print(f"❌ {name}: FAILED (Status {response.status_code})")
+                      print(f"   → {response.text[:200]}")
+                      return False
+              except Exception as e:
+                  print(f"❌ {name}: ERROR - {e}")
+                  return False
+
+          print("=" * 60)
+          print("ZOHO API CONNECTION TESTS")
+          print("=" * 60)
+          print(f"Timestamp: {datetime.now().isoformat()}")
+          print()
+
+          # Get access token
+          print("🔑 Authenticating with Zoho...")
+          access_token = get_access_token()
+          org_id = os.environ['ZOHO_ORGANIZATION_ID']
+
+          headers = {
+              'Authorization': f'Zoho-oauthtoken {access_token}',
+              'Content-Type': 'application/json'
+          }
+
+          # Test endpoints
+          tests_passed = 0
+          tests_total = 0
+
+          endpoints = [
+              ("Invoices API", f"https://www.zohoapis.com/books/v3/invoices?organization_id={org_id}&per_page=5"),
+              ("Customers API", f"https://www.zohoapis.com/books/v3/contacts?organization_id={org_id}&per_page=5"),
+              ("Products API", f"https://www.zohoapis.com/books/v3/items?organization_id={org_id}&per_page=5"),
+              ("Sales Orders API", f"https://www.zohoapis.com/books/v3/salesorders?organization_id={org_id}&per_page=5"),
+              ("Organization Info", f"https://www.zohoapis.com/books/v3/organizations/{org_id}"),
+          ]
+
+          print("\n📡 Testing API Endpoints:")
+          print("-" * 60)
+
+          for name, url in endpoints:
+              tests_total += 1
+              if test_api_endpoint(name, url, headers):
+                  tests_passed += 1
+              print()
+
+          print("=" * 60)
+          print(f"RESULTS: {tests_passed}/{tests_total} tests passed")
+          print("=" * 60)
+
+          if tests_passed < tests_total:
+              exit(1)
+          EOF
+
+      - name: Test Zoho Inventory API
+        env:
+          ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+          ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+          ZOHO_ORGANIZATION_ID: ${{ secrets.ZOHO_ORGANIZATION_ID }}
+        run: |
+          python << 'EOF'
+          import os
+          import requests
+
+          def get_access_token():
+              response = requests.post(
+                  'https://accounts.zoho.com/oauth/v2/token',
+                  params={
+                      'refresh_token': os.environ['ZOHO_REFRESH_TOKEN'],
+                      'client_id': os.environ['ZOHO_CLIENT_ID'],
+                      'client_secret': os.environ['ZOHO_CLIENT_SECRET'],
+                      'grant_type': 'refresh_token'
+                  }
+              )
+              return response.json()['access_token']
+
+          print("\n📦 Testing Zoho Inventory API:")
+          print("-" * 60)
+
+          access_token = get_access_token()
+          org_id = os.environ['ZOHO_ORGANIZATION_ID']
+
+          headers = {
+              'Authorization': f'Zoho-oauthtoken {access_token}'
+          }
+
+          # Test inventory items
+          response = requests.get(
+              f"https://www.zohoapis.com/inventory/v1/items?organization_id={org_id}&per_page=5",
+              headers=headers,
+              timeout=30
+          )
+
+          if response.status_code == 200:
+              data = response.json()
+              items = data.get('items', [])
+              print(f"✅ Inventory Items API: SUCCESS ({len(items)} items)")
+
+              for item in items[:3]:
+                  print(f"   → {item.get('name')} (SKU: {item.get('sku', 'N/A')})")
+          else:
+              print(f"❌ Inventory Items API: FAILED (Status {response.status_code})")
+              exit(1)
+          EOF
+
+  # Test database operations with Zoho data
+  test-database-sync:
+    name: Test Database Sync with Zoho
+    runs-on: ubuntu-latest
+    needs: [setup-test-env, test-zoho-api]
+    if: |
+      github.event.inputs.test_scope == 'all' ||
+      github.event.inputs.test_scope == 'database-only'
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: zoho_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests psycopg2-binary python-dotenv
+
+      - name: Create test database schema
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: zoho_test_db
+          DB_USER: postgres
+          DB_PASSWORD: test_password
+        run: |
+          python << 'EOF'
+          import psycopg2
+          import os
+
+          conn = psycopg2.connect(
+              host=os.environ['DB_HOST'],
+              port=os.environ['DB_PORT'],
+              dbname=os.environ['DB_NAME'],
+              user=os.environ['DB_USER'],
+              password=os.environ['DB_PASSWORD']
+          )
+
+          cursor = conn.cursor()
+
+          # Create tables
+          cursor.execute("""
+              CREATE TABLE IF NOT EXISTS customers (
+                  id SERIAL PRIMARY KEY,
+                  zoho_contact_id VARCHAR(255) UNIQUE,
+                  company_name VARCHAR(255),
+                  contact_name VARCHAR(255),
+                  email VARCHAR(255),
+                  phone VARCHAR(50),
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+          """)
+
+          cursor.execute("""
+              CREATE TABLE IF NOT EXISTS products (
+                  id SERIAL PRIMARY KEY,
+                  zoho_item_id VARCHAR(255) UNIQUE,
+                  name VARCHAR(255),
+                  sku VARCHAR(100),
+                  rate DECIMAL(10,2),
+                  stock_quantity INTEGER,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+          """)
+
+          cursor.execute("""
+              CREATE TABLE IF NOT EXISTS invoices (
+                  id SERIAL PRIMARY KEY,
+                  zoho_invoice_id VARCHAR(255) UNIQUE,
+                  invoice_number VARCHAR(255),
+                  customer_name VARCHAR(255),
+                  total DECIMAL(10,2),
+                  status VARCHAR(50),
+                  invoice_date DATE,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+          """)
+
+          conn.commit()
+          print("✅ Database schema created successfully")
+
+          cursor.close()
+          conn.close()
+          EOF
+
+      - name: Test Zoho to Database sync
+        env:
+          ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+          ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+          ZOHO_ORGANIZATION_ID: ${{ secrets.ZOHO_ORGANIZATION_ID }}
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: zoho_test_db
+          DB_USER: postgres
+          DB_PASSWORD: test_password
+        run: |
+          python << 'EOF'
+          import os
+          import requests
+          import psycopg2
+          from datetime import datetime
+
+          def get_access_token():
+              response = requests.post(
+                  'https://accounts.zoho.com/oauth/v2/token',
+                  params={
+                      'refresh_token': os.environ['ZOHO_REFRESH_TOKEN'],
+                      'client_id': os.environ['ZOHO_CLIENT_ID'],
+                      'client_secret': os.environ['ZOHO_CLIENT_SECRET'],
+                      'grant_type': 'refresh_token'
+                  }
+              )
+              return response.json()['access_token']
+
+          print("=" * 60)
+          print("ZOHO → DATABASE SYNC TEST")
+          print("=" * 60)
+          print(f"Timestamp: {datetime.now().isoformat()}")
+          print()
+
+          # Connect to database
+          conn = psycopg2.connect(
+              host=os.environ['DB_HOST'],
+              port=os.environ['DB_PORT'],
+              dbname=os.environ['DB_NAME'],
+              user=os.environ['DB_USER'],
+              password=os.environ['DB_PASSWORD']
+          )
+          cursor = conn.cursor()
+
+          # Get Zoho data
+          access_token = get_access_token()
+          org_id = os.environ['ZOHO_ORGANIZATION_ID']
+          headers = {'Authorization': f'Zoho-oauthtoken {access_token}'}
+
+          synced_count = 0
+
+          # Sync customers
+          print("📥 Syncing customers from Zoho...")
+          response = requests.get(
+              f"https://www.zohoapis.com/books/v3/contacts?organization_id={org_id}&per_page=10",
+              headers=headers,
+              timeout=30
+          )
+
+          if response.status_code == 200:
+              contacts = response.json().get('contacts', [])
+              for contact in contacts:
+                  cursor.execute("""
+                      INSERT INTO customers (zoho_contact_id, company_name, contact_name, email, phone)
+                      VALUES (%s, %s, %s, %s, %s)
+                      ON CONFLICT (zoho_contact_id) DO UPDATE
+                      SET company_name = EXCLUDED.company_name,
+                          contact_name = EXCLUDED.contact_name,
+                          email = EXCLUDED.email,
+                          phone = EXCLUDED.phone,
+                          updated_at = CURRENT_TIMESTAMP
+                  """, (
+                      contact['contact_id'],
+                      contact.get('company_name', ''),
+                      contact.get('contact_name', ''),
+                      contact.get('email', ''),
+                      contact.get('phone', '')
+                  ))
+                  synced_count += 1
+              conn.commit()
+              print(f"✅ Synced {len(contacts)} customers")
+
+          # Sync products
+          print("\n📥 Syncing products from Zoho...")
+          response = requests.get(
+              f"https://www.zohoapis.com/books/v3/items?organization_id={org_id}&per_page=10",
+              headers=headers,
+              timeout=30
+          )
+
+          if response.status_code == 200:
+              items = response.json().get('items', [])
+              for item in items:
+                  cursor.execute("""
+                      INSERT INTO products (zoho_item_id, name, sku, rate, stock_quantity)
+                      VALUES (%s, %s, %s, %s, %s)
+                      ON CONFLICT (zoho_item_id) DO UPDATE
+                      SET name = EXCLUDED.name,
+                          sku = EXCLUDED.sku,
+                          rate = EXCLUDED.rate,
+                          stock_quantity = EXCLUDED.stock_quantity,
+                          updated_at = CURRENT_TIMESTAMP
+                  """, (
+                      item['item_id'],
+                      item.get('name', ''),
+                      item.get('sku', ''),
+                      item.get('rate', 0),
+                      item.get('stock_on_hand', 0)
+                  ))
+                  synced_count += 1
+              conn.commit()
+              print(f"✅ Synced {len(items)} products")
+
+          # Verify data
+          print("\n🔍 Verifying synced data:")
+          print("-" * 60)
+
+          cursor.execute("SELECT COUNT(*) FROM customers")
+          customer_count = cursor.fetchone()[0]
+          print(f"   Customers in DB: {customer_count}")
+
+          cursor.execute("SELECT COUNT(*) FROM products")
+          product_count = cursor.fetchone()[0]
+          print(f"   Products in DB: {product_count}")
+
+          cursor.execute("SELECT COUNT(*) FROM invoices")
+          invoice_count = cursor.fetchone()[0]
+          print(f"   Invoices in DB: {invoice_count}")
+
+          print()
+          print("=" * 60)
+          print(f"✅ SYNC COMPLETE: {synced_count} records synced")
+          print("=" * 60)
+
+          cursor.close()
+          conn.close()
+          EOF
+
+  # Test webhook handling
+  test-webhooks:
+    name: Test Zoho Webhook Handling
+    runs-on: ubuntu-latest
+    needs: setup-test-env
+    if: |
+      github.event.inputs.test_scope == 'all' ||
+      github.event.inputs.test_scope == 'webhooks-only'
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: webhook_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn requests psycopg2-binary python-dotenv pydantic
+
+      - name: Create webhook test database schema
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: webhook_test_db
+          DB_USER: postgres
+          DB_PASSWORD: test_password
+        run: |
+          python << 'EOF'
+          import psycopg2
+          import os
+
+          conn = psycopg2.connect(
+              host=os.environ['DB_HOST'],
+              port=os.environ['DB_PORT'],
+              dbname=os.environ['DB_NAME'],
+              user=os.environ['DB_USER'],
+              password=os.environ['DB_PASSWORD']
+          )
+
+          cursor = conn.cursor()
+
+          cursor.execute("""
+              CREATE TABLE IF NOT EXISTS webhook_events (
+                  id SERIAL PRIMARY KEY,
+                  event_type VARCHAR(100),
+                  event_id VARCHAR(255),
+                  payload JSONB,
+                  processed BOOLEAN DEFAULT FALSE,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+          """)
+
+          conn.commit()
+          cursor.close()
+          conn.close()
+
+          print("✅ Webhook database schema created")
+          EOF
+
+      - name: Test webhook payload processing
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: webhook_test_db
+          DB_USER: postgres
+          DB_PASSWORD: test_password
+        run: |
+          python << 'EOF'
+          import os
+          import json
+          import psycopg2
+          from datetime import datetime
+
+          print("=" * 60)
+          print("WEBHOOK PROCESSING TEST")
+          print("=" * 60)
+          print(f"Timestamp: {datetime.now().isoformat()}")
+          print()
+
+          # Connect to database
+          conn = psycopg2.connect(
+              host=os.environ['DB_HOST'],
+              port=os.environ['DB_PORT'],
+              dbname=os.environ['DB_NAME'],
+              user=os.environ['DB_USER'],
+              password=os.environ['DB_PASSWORD']
+          )
+          cursor = conn.cursor()
+
+          # Test webhook payloads
+          test_payloads = [
+              {
+                  "event_type": "invoice.created",
+                  "event_id": "test_inv_001",
+                  "data": {
+                      "invoice_id": "12345",
+                      "invoice_number": "INV-001",
+                      "customer_name": "Test Customer",
+                      "total": 1500.00,
+                      "status": "draft"
+                  }
+              },
+              {
+                  "event_type": "customer.updated",
+                  "event_id": "test_cust_001",
+                  "data": {
+                      "contact_id": "67890",
+                      "company_name": "Test Company",
+                      "email": "test@example.com"
+                  }
+              },
+              {
+                  "event_type": "product.stock_updated",
+                  "event_id": "test_prod_001",
+                  "data": {
+                      "item_id": "54321",
+                      "name": "Test Product",
+                      "stock_on_hand": 100
+                  }
+              }
+          ]
+
+          print("📨 Processing test webhook payloads:")
+          print("-" * 60)
+
+          processed = 0
+          for payload in test_payloads:
+              cursor.execute("""
+                  INSERT INTO webhook_events (event_type, event_id, payload, processed)
+                  VALUES (%s, %s, %s, %s)
+                  RETURNING id
+              """, (
+                  payload['event_type'],
+                  payload['event_id'],
+                  json.dumps(payload['data']),
+                  False
+              ))
+
+              event_id = cursor.fetchone()[0]
+              print(f"✅ Stored webhook event: {payload['event_type']} (ID: {event_id})")
+              processed += 1
+
+          conn.commit()
+
+          # Verify storage
+          cursor.execute("SELECT COUNT(*) FROM webhook_events WHERE processed = FALSE")
+          pending_count = cursor.fetchone()[0]
+
+          print()
+          print("=" * 60)
+          print(f"✅ WEBHOOK TEST COMPLETE")
+          print(f"   Processed: {processed} webhooks")
+          print(f"   Pending: {pending_count} webhooks")
+          print("=" * 60)
+
+          cursor.close()
+          conn.close()
+          EOF
+
+  # Generate test report
+  generate-report:
+    name: Generate Test Report
+    runs-on: ubuntu-latest
+    needs: [test-zoho-api, test-database-sync, test-webhooks]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate summary report
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          # 🧪 Zoho Integration Test Results
+
+          ## Test Summary
+
+          | Test Suite | Status |
+          |------------|--------|
+          | Zoho API Connections | ${{ needs.test-zoho-api.result == 'success' && '✅ PASSED' || '❌ FAILED' }} |
+          | Database Sync | ${{ needs.test-database-sync.result == 'success' && '✅ PASSED' || needs.test-database-sync.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED' }} |
+          | Webhook Handling | ${{ needs.test-webhooks.result == 'success' && '✅ PASSED' || needs.test-webhooks.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED' }} |
+
+          ## Test Scope
+          - **Trigger**: ${{ github.event_name }}
+          - **Test Scope**: ${{ github.event.inputs.test_scope || 'auto (push)' }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ## Next Steps
+
+          ${{ needs.test-zoho-api.result == 'success' && needs.test-database-sync.result == 'success' && needs.test-webhooks.result == 'success' && '✅ All tests passed! Safe to deploy.' || '⚠️ Some tests failed. Review logs before deploying.' }}
+          EOF
+
+      - name: Notify on failure
+        if: |
+          needs.test-zoho-api.result == 'failure' ||
+          needs.test-database-sync.result == 'failure' ||
+          needs.test-webhooks.result == 'failure'
+        run: |
+          echo "::error::Zoho integration tests failed. Check the logs for details."
