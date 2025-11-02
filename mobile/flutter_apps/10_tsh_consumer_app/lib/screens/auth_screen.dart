@@ -39,8 +39,8 @@ class _AuthScreenState extends State<AuthScreen> {
       if (_isLogin) {
         // Login
         final result = await ApiService.login(
-          _emailController.text.trim(),
-          _passwordController.text,
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
 
         if (result['success']) {

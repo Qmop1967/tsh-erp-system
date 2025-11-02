@@ -189,6 +189,21 @@ class ApiService {
     }
   }
 
+  // Alias for register to match auth_screen.dart usage
+  static Future<Map<String, dynamic>> signup({
+    required String name,
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
+    return register(
+      email: email,
+      password: password,
+      fullName: name,
+      phone: phone,
+    );
+  }
+
   static Future<User?> getUserProfile() async {
     try {
       final headers = await _getHeaders();

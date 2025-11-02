@@ -38,4 +38,9 @@ class CurrencyFormatter {
     final cleaned = value.replaceAll(RegExp(r'[^\d.]'), '');
     return double.tryParse(cleaned) ?? 0.0;
   }
+
+  /// Generic format method - delegates to appropriate formatter
+  static String format(double amount, [String currency = 'IQD']) {
+    return formatCurrency(amount, currency);
+  }
 }

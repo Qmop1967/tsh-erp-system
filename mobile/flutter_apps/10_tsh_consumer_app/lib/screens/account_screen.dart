@@ -621,7 +621,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AuthScreen(isLogin: isLogin),
+        builder: (context) => const AuthScreen(),
       ),
     ).then((_) {
       // Refresh user data after auth

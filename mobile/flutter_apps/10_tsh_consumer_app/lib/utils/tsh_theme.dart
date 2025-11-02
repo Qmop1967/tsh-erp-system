@@ -13,8 +13,10 @@ class TSHTheme {
 
   // Status Colors
   static const Color successGreen = Color(0xFF10B981); // Emerald green
+  static const Color success = Color(0xFF10B981); // Alias for successGreen
   static const Color warningOrange = Color(0xFFF59E0B); // Amber
   static const Color errorRed = Color(0xFFEF4444); // Red
+  static const Color destructive = Color(0xFFEF4444); // Alias for errorRed
 
   // Legacy colors for backward compatibility
   static const Color primaryTeal = Color(0xFF06B6D4);
@@ -23,6 +25,7 @@ class TSHTheme {
 
   // Surface Colors - Matching Next.js light/dark modes
   static const Color background = Color(0xFFFFFFFF);
+  static const Color backgroundLight = Color(0xFFF8FAFC); // Slate 50
   static const Color foreground = Color(0xFF0F172A); // Slate 900
   static const Color card = Color(0xFFFFFFFF);
   static const Color cardForeground = Color(0xFF0F172A);
