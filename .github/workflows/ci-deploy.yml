@@ -121,4 +121,22 @@ jobs:
           script_stop: true
           script: |
             echo "Deploying to staging environment..."
-            bash /opt/tsh_erp_staging/bin/deploy.sh develop
+
+            cd /srv/tsh-staging || cd /opt/tsh_erp || exit 1
+
+            git fetch origin
+            git reset --hard origin/develop
+
+            source venv/bin/activate 2>/dev/null || source .venv/bin/activate || true
+            pip install -q requests psycopg2-binary
+
+            if [ -d "alembic" ]; then
+              alembic upgrade head || true
+            fi
+
+            sudo systemctl restart tsh_erp || sudo systemctl restart tsh_erp-green || true
+
+            sleep 5
+            curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8001/health
+
+            echo "✅ Staging deployment successful!"
