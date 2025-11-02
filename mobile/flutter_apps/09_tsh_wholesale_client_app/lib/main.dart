@@ -4,20 +4,74 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-// Import TSH Core Design System
-import 'package:tsh_core_package/tsh_core_package.dart';
+// Import TSH Theme and Utilities
+import 'utils/tsh_theme.dart';
+import 'utils/tsh_localizations.dart';
+import 'utils/language_service.dart';
 
-void main() {
-  runApp(const TSHWholesaleClientApp());
+// Import TSH ERP Services
+import 'services/storage_service.dart';
+import 'services/api_service.dart';
+import 'services/auth_service.dart';
+import 'services/product_service.dart';
+import 'services/cart_service.dart';
+
+// Import Screens
+import 'screens/support/support_tickets_screen.dart';
+import 'screens/payments/payments_screen.dart';
+import 'screens/invoices/invoices_screen.dart';
+import 'screens/account/credit_notes_screen.dart';
+import 'screens/account/account_statement_screen.dart';
+import 'screens/products/enhanced_product_catalog_screen.dart';
+
+void main() async {
+  // Ensure Flutter bindings are initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize services
+  final storageService = StorageService();
+  await storageService.init();
+
+  final apiService = ApiService(storageService);
+  final authService = AuthService(apiService, storageService);
+  final productService = ProductService(apiService);
+
+  runApp(TSHWholesaleClientApp(
+    storageService: storageService,
+    apiService: apiService,
+    authService: authService,
+    productService: productService,
+  ));
 }
 
 class TSHWholesaleClientApp extends StatelessWidget {
-  const TSHWholesaleClientApp({super.key});
+  final StorageService storageService;
+  final ApiService apiService;
+  final AuthService authService;
+  final ProductService productService;
+
+  const TSHWholesaleClientApp({
+    super.key,
+    required this.storageService,
+    required this.apiService,
+    required this.authService,
+    required this.productService,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => LanguageService(),
+    return MultiProvider(
+      providers: [
+        // Core Services
+        Provider<StorageService>.value(value: storageService),
+        Provider<ApiService>.value(value: apiService),
+        ChangeNotifierProvider<AuthService>.value(value: authService),
+        Provider<ProductService>.value(value: productService),
+
+        // UI Services
+        ChangeNotifierProvider(create: (context) => LanguageService()),
+        ChangeNotifierProvider(create: (context) => CartService()),
+      ],
       child: Consumer<LanguageService>(
         builder: (context, languageService, child) {
           return MaterialApp(
@@ -63,7 +117,7 @@ class _WholesaleMainScreenState extends State<WholesaleMainScreen> {
 
   final List<Widget> _screens = [
     const WholesaleDashboardScreen(),
-    const ProductCatalogScreen(),
+    const EnhancedProductCatalogScreen(),
     const OrderManagementScreen(),
     const AccountManagementScreen(),
     const WholesaleSettingsScreen(),
@@ -73,22 +127,81 @@ class _WholesaleMainScreenState extends State<WholesaleMainScreen> {
   Widget build(BuildContext context) {
     final localizations = TSHLocalizations.of(context)!;
     final languageService = Provider.of<LanguageService>(context);
+    final cartService = Provider.of<CartService>(context);
 
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: CircleAvatar(
+              backgroundColor: Colors.white24,
+              child: Icon(Icons.person, color: TSHTheme.surfaceWhite),
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: localizations.translate('my_profile'),
+          ),
+        ),
         title: Row(
           children: [
             TSHTheme.tshLogo(height: 35),
             const SizedBox(width: 12),
-            Text(localizations.translate('wholesale_client')),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(localizations.translate('wholesale_client')),
+                Text(
+                  'B2B Electronics Trading',
+                  style: TSHTheme.bodySmall.copyWith(color: TSHTheme.surfaceWhite.withOpacity(0.9)),
+                ),
+              ],
+            ),
           ],
         ),
-        subtitle: Text(
-          'B2B Electronics Trading',
-          style: TSHTheme.bodySmall.copyWith(color: TSHTheme.surfaceWhite.withOpacity(0.9)),
-        ),
         actions: [
+          // Shopping Cart
+          IconButton(
+            icon: Stack(
+              children: [
+                const Icon(Icons.shopping_cart),
+                if (cartService.itemCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: TSHTheme.successGreen,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '${cartService.itemCount}',
+                        style: const TextStyle(
+                          color: TSHTheme.surfaceWhite,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () {
+              // TODO: Navigate to cart screen
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(cartService.isEmpty
+                    ? 'Cart is empty'
+                    : 'Cart: ${cartService.itemCount} items'),
+                ),
+              );
+            },
+          ),
           // Order History Quick Access
           IconButton(
             icon: Stack(
@@ -119,7 +232,7 @@ class _WholesaleMainScreenState extends State<WholesaleMainScreen> {
                 ),
               ],
             ),
-            onPressed: () => setState(() => _selectedIndex = 2),
+            onPressed: () {},
           ),
           // Language Toggle
           Container(
@@ -149,9 +262,9 @@ class _WholesaleMainScreenState extends State<WholesaleMainScreen> {
           ),
         ],
       ),
-      
+      drawer: _buildProfileDrawer(context, localizations),
       body: _screens[_selectedIndex],
-      
+
       // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -180,6 +293,86 @@ class _WholesaleMainScreenState extends State<WholesaleMainScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Profile Drawer Menu
+  Widget _buildProfileDrawer(BuildContext context, TSHLocalizations loc) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(gradient: TSHTheme.primaryGradient),
+            accountName: const Text('Baghdad Electronics Center'),
+            accountEmail: const Text('Price Tier: Wholesale A'),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.business, size: 40, color: TSHTheme.primary),
+            ),
+          ),
+          _drawerItem(Icons.person, loc.translate('my_profile'), () {
+            Navigator.pop(context);
+            // Navigate to profile screen
+          }),
+          _drawerItem(Icons.business, loc.translate('business_info'), () {
+            Navigator.pop(context);
+            // Navigate to business info screen
+          }),
+          const Divider(),
+          _drawerItem(Icons.receipt, loc.translate('invoices'), () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const InvoicesScreen()),
+            );
+          }),
+          _drawerItem(Icons.payment, loc.translate('payments'), () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PaymentsScreen()),
+            );
+          }),
+          _drawerItem(Icons.note, loc.translate('credit_notes'), () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreditNotesScreen()),
+            );
+          }),
+          _drawerItem(Icons.account_balance_wallet, loc.translate('account_statement'), () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AccountStatementScreen()),
+            );
+          }),
+          const Divider(),
+          _drawerItem(Icons.support_agent, loc.translate('support_tickets'), () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SupportTicketsScreen()),
+            );
+          }),
+          const Divider(),
+          _drawerItem(Icons.logout, loc.translate('logout'), () {
+            Navigator.pop(context);
+            // Show logout confirmation dialog
+          }, color: Colors.red),
+        ],
+      ),
+    );
+  }
+
+  // Helper method for drawer items
+  ListTile _drawerItem(IconData icon, String title, VoidCallback onTap, {Color? color}) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? TSHTheme.primary),
+      title: Text(title, style: TextStyle(color: color)),
+      onTap: onTap,
+      trailing: const Icon(Icons.chevron_right, size: 16),
     );
   }
 }
@@ -435,7 +628,7 @@ class _WholesaleDashboardScreenState extends State<WholesaleDashboardScreen> {
             TSHTheme.quickActionButton(
               icon: Icons.shopping_cart,
               label: 'New Order',
-              onTap: () => setState(() => _selectedIndex = 1),
+              onTap: () {},
             ),
             TSHTheme.quickActionButton(
               icon: Icons.refresh,
@@ -496,7 +689,7 @@ class _WholesaleDashboardScreenState extends State<WholesaleDashboardScreen> {
               style: TSHTheme.headingSmall,
             ),
             TextButton(
-              onPressed: () => setState(() => _selectedIndex = 1),
+              onPressed: () {},
               child: Text('View Catalog'),
             ),
           ],
@@ -577,7 +770,7 @@ class _WholesaleDashboardScreenState extends State<WholesaleDashboardScreen> {
                   style: TSHTheme.headingSmall,
                 ),
                 TextButton(
-                  onPressed: () => setState(() => _selectedIndex = 2),
+                  onPressed: () {},
                   child: Text('View All'),
                 ),
               ],
