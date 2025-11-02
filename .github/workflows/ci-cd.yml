@@ -135,14 +135,76 @@ jobs:
       continue-on-error: true
 
   deploy:
-    needs: [backend-tests, frontend-tests, mobile-tests]
+    needs: [backend-tests, frontend-tests, mobile-tests, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+    timeout-minutes: 15
+
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Deploy to production
+      with:
+        fetch-depth: 0  # Full history for proper deployment
+
+    - name: Setup SSH
       run: |
-        echo "Deploying TSH ERP System to production..."
-        # Add your deployment commands here
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy to VPS
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+      run: |
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << 'ENDSSH'
+          set -e
+
+          echo "=========================================="
+          echo "Starting TSH ERP System Deployment"
+          echo "=========================================="
+
+          # Navigate to application directory
+          cd /opt/tsh_erp
+
+          # Pull latest code
+          echo "Pulling latest code from GitHub..."
+          git fetch origin
+          git checkout main
+          git pull origin main
+
+          # Run deployment script (blue-green deployment)
+          echo "Running deployment script..."
+          bash /opt/tsh_erp/bin/deploy.sh
+
+          echo "=========================================="
+          echo "Deployment completed successfully!"
+          echo "=========================================="
+        ENDSSH
+
+    - name: Verify Deployment
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+      run: |
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << 'ENDSSH'
+          # Check which service is active
+          ACTIVE_PORT=$(cat /opt/tsh_erp/current_deployment.txt 2>/dev/null || echo "8001")
+
+          echo "Checking health endpoint on port ${ACTIVE_PORT}..."
+          HEALTH_CHECK=$(curl -s http://127.0.0.1:${ACTIVE_PORT}/health || echo "failed")
+
+          if echo "$HEALTH_CHECK" | grep -q "ok"; then
+            echo "✓ Health check passed"
+            echo "✓ Deployment verified successfully"
+          else
+            echo "✗ Health check failed"
+            echo "Response: $HEALTH_CHECK"
+            exit 1
+          fi
+        ENDSSH
+
+    - name: Cleanup SSH
+      if: always()
+      run: |
+        rm -f ~/.ssh/deploy_key
