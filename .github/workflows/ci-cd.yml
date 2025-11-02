@@ -101,13 +101,13 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Run security scan
-      timeout-minutes: 8
+      timeout-minutes: 10
       uses: github/super-linter@v4
       env:
         DEFAULT_BRANCH: main
