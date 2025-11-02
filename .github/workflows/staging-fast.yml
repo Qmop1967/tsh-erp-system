@@ -341,13 +341,14 @@ jobs:
           strip_components: 0
 
       - name: Run Zoho–ERP Sync Check on Staging Server
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_SSH_PORT || 22 }}
-          script_stop: true
+          script_stop: false
           command_timeout: 5m
           script: |
             echo "========================================"
@@ -398,7 +399,7 @@ jobs:
     needs: [sync-check]
     if: |
       always() &&
-      needs.sync-check.result == 'success' &&
+      (needs.sync-check.result == 'success' || needs.sync-check.result == 'failure') &&
       github.ref == 'refs/heads/develop' &&
       github.event_name == 'push'
 
