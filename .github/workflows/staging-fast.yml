@@ -371,7 +371,7 @@ jobs:
             export DB_NAME="tsh_erp"
             export DB_USER="postgres"
 
-            python scripts/run_data_sync_check.py --mode=staging --limit=100
+            python3 scripts/run_data_sync_check.py --mode=staging --limit=100
 
             SYNC_RESULT=$?
 
