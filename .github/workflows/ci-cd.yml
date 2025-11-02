@@ -135,7 +135,7 @@ jobs:
       continue-on-error: true
 
   deploy:
-    needs: [backend-tests, frontend-tests, mobile-tests, security-scan]
+    needs: [backend-tests, frontend-tests, flutter-tests, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 15
