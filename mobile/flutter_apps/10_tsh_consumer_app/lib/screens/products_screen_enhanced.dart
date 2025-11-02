@@ -23,6 +23,7 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
     with SingleTickerProviderStateMixin {
   String _searchQuery = '';
   String _selectedCategory = 'الكل';
+  String _sortBy = 'default'; // default, price_low, price_high, name
   List<String> _categories = ['الكل'];
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _animationController;
@@ -76,6 +77,22 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
       }).toList();
     }
 
+    // Apply sorting
+    switch (_sortBy) {
+      case 'price_low':
+        filtered.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'price_high':
+        filtered.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      case 'name':
+        filtered.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      default:
+        // Keep default order
+        break;
+    }
+
     return filtered;
   }
 
@@ -96,6 +113,9 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
 
             // Category Filter with scrolling
             _buildCategoryFilter(),
+
+            // Sort/Filter Bar
+            _buildSortBar(),
 
             const SizedBox(height: 8),
 
@@ -127,7 +147,7 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.store, color: Colors.white, size: 24),
+            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 12),
           const Text(
@@ -238,9 +258,45 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
     );
   }
 
+  // Helper method to get icon for each category
+  IconData _getCategoryIcon(String category) {
+    final categoryLower = category.toLowerCase();
+
+    if (categoryLower == 'الكل' || categoryLower == 'all') {
+      return Icons.grid_view_rounded;
+    } else if (categoryLower.contains('laptop') || categoryLower.contains('لابتوب')) {
+      return Icons.laptop_mac_rounded;
+    } else if (categoryLower.contains('mobile') || categoryLower.contains('phone') || categoryLower.contains('موبايل') || categoryLower.contains('هاتف')) {
+      return Icons.smartphone_rounded;
+    } else if (categoryLower.contains('tablet') || categoryLower.contains('تابلت')) {
+      return Icons.tablet_mac_rounded;
+    } else if (categoryLower.contains('printer') || categoryLower.contains('طابعة')) {
+      return Icons.print_rounded;
+    } else if (categoryLower.contains('camera') || categoryLower.contains('كاميرا')) {
+      return Icons.camera_alt_rounded;
+    } else if (categoryLower.contains('network') || categoryLower.contains('router') || categoryLower.contains('شبكة')) {
+      return Icons.router_rounded;
+    } else if (categoryLower.contains('storage') || categoryLower.contains('تخزين')) {
+      return Icons.storage_rounded;
+    } else if (categoryLower.contains('accessory') || categoryLower.contains('accessories') || categoryLower.contains('إكسسوار')) {
+      return Icons.headphones_rounded;
+    } else if (categoryLower.contains('monitor') || categoryLower.contains('شاشة')) {
+      return Icons.monitor_rounded;
+    } else if (categoryLower.contains('keyboard') || categoryLower.contains('لوحة مفاتيح')) {
+      return Icons.keyboard_rounded;
+    } else if (categoryLower.contains('mouse') || categoryLower.contains('ماوس')) {
+      return Icons.mouse_rounded;
+    } else if (categoryLower.contains('uncategorized') || categoryLower.contains('غير مصنف')) {
+      return Icons.category_rounded;
+    }
+
+    // Default icon
+    return Icons.inventory_2_rounded;
+  }
+
   Widget _buildCategoryFilter() {
     return SizedBox(
-      height: 52,
+      height: 56,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -248,6 +304,8 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = category == _selectedCategory;
+          final categoryIcon = _getCategoryIcon(category);
+
           return Padding(
             padding: const EdgeInsets.only(left: 10),
             child: GestureDetector(
@@ -255,7 +313,7 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeInOut,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   gradient: isSelected
                       ? LinearGradient(
@@ -282,21 +340,75 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
                         ]
                       : [],
                 ),
-                child: Center(
-                  child: Text(
-                    category,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : TSHTheme.textPrimary,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      fontSize: 14,
-                      letterSpacing: 0.2,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      categoryIcon,
+                      size: 20,
+                      color: isSelected ? Colors.white : TSHTheme.primary,
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Text(
+                      category,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : TSHTheme.textPrimary,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 14,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSortBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'المنتجات المتوفرة',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: TSHTheme.textSecondary,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            ),
+            child: DropdownButton<String>(
+              value: _sortBy,
+              isDense: true,
+              underline: const SizedBox(),
+              icon: Icon(Icons.sort, size: 18, color: TSHTheme.primary),
+              style: TextStyle(fontSize: 13, color: TSHTheme.textPrimary),
+              items: const [
+                DropdownMenuItem(value: 'default', child: Text('الافتراضي')),
+                DropdownMenuItem(value: 'price_low', child: Text('السعر: من الأقل')),
+                DropdownMenuItem(value: 'price_high', child: Text('السعر: من الأعلى')),
+                DropdownMenuItem(value: 'name', child: Text('الاسم: أ-ي')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _sortBy = value);
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -322,44 +434,33 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
           if (constraints.maxWidth < 600) {
             // Mobile: 2 columns
             crossAxisCount = 2;
-            childAspectRatio = 0.68;
+            childAspectRatio = 0.75;
           } else if (constraints.maxWidth < 900) {
             // Tablet: 3 columns
             crossAxisCount = 3;
-            childAspectRatio = 0.70;
+            childAspectRatio = 0.78;
           } else if (constraints.maxWidth < 1200) {
             // Small Desktop: 4 columns
             crossAxisCount = 4;
-            childAspectRatio = 0.68;
+            childAspectRatio = 0.76;
           } else {
-            // Large Desktop: 4 columns (can increase to 5 or 6 if needed)
-            crossAxisCount = 4;
-            childAspectRatio = 0.70;
+            // Large Desktop: 5 columns for more products visible
+            crossAxisCount = 5;
+            childAspectRatio = 0.75;
           }
 
           return GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 24,
               childAspectRatio: childAspectRatio,
             ),
             itemCount: filteredProducts.length,
             itemBuilder: (context, index) {
-              return TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 300 + (index * 50)),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: Opacity(
-                      opacity: value,
-                      child: child,
-                    ),
-                  );
-                },
-                child: EnhancedProductCard(product: filteredProducts[index]),
+              return EnhancedProductCard(
+                product: filteredProducts[index],
               );
             },
           );
@@ -367,6 +468,7 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
       ),
     );
   }
+
 
   Widget _buildEmptyState() {
     return Center(

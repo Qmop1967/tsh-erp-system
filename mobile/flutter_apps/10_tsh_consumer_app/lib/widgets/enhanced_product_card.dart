@@ -101,14 +101,9 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
   Widget build(BuildContext context) {
     final imageUrl = ApiService.getProductImageUrl(widget.product);
 
-    return ScaleTransition(
-      scale: _scaleAnimation,
-      child: GestureDetector(
-        onTapDown: _handleTapDown,
-        onTapUp: _handleTapUp,
-        onTapCancel: _handleTapCancel,
-        onTap: _navigateToDetail,
-        child: Container(
+    return GestureDetector(
+      onTap: _navigateToDetail,
+      child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -151,25 +146,45 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
 
                         const SizedBox(height: 8),
 
-                        // Product Name
-                        Text(
-                          widget.product.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                            height: 1.4,
-                            letterSpacing: -0.2,
+                        // Product Name - More Prominent
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            widget.product.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              height: 1.3,
+                              letterSpacing: -0.3,
+                              color: TSHTheme.textPrimary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.start,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
+
+                        // Product Description (if available)
+                        if (widget.product.description != null && widget.product.description!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.product.description!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: TSHTheme.textSecondary.withOpacity(0.8),
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
 
                         const Spacer(),
 
                         // Price Section
                         _buildPriceSection(),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
 
                         // Add to Cart Button
                         _buildAddToCartButton(),
@@ -181,7 +196,6 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -206,7 +220,7 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
             ),
             child: CachedNetworkImage(
               imageUrl: imageUrl,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               httpHeaders: const {
                 'Access-Control-Allow-Origin': '*',
               },
@@ -246,9 +260,12 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
               errorWidget: (context, url, error) => Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [
-                      TSHTheme.primary.withOpacity(0.05),
-                      TSHTheme.accent.withOpacity(0.05),
+                      TSHTheme.primary.withOpacity(0.08),
+                      TSHTheme.accent.withOpacity(0.08),
+                      Colors.white.withOpacity(0.95),
                     ],
                   ),
                 ),
@@ -256,33 +273,39 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
+                            color: TSHTheme.primary.withOpacity(0.15),
+                            blurRadius: 20,
+                            spreadRadius: 2,
                           ),
                         ],
                       ),
                       child: Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 40,
+                        Icons.inventory_2_outlined,
+                        size: 48,
                         color: TSHTheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.product.name.split(' ').take(2).join(' '),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        widget.product.name,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: TSHTheme.textPrimary.withOpacity(0.7),
+                          height: 1.3,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
                     ),
                   ],
                 ),
@@ -350,6 +373,12 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
   }
 
   Widget _buildCategoryBadge() {
+    // Translate "Uncategorized" to Arabic
+    String categoryText = widget.product.category!;
+    if (categoryText.toLowerCase() == 'uncategorized') {
+      categoryText = 'غير مصنف';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -366,7 +395,7 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
         ),
       ),
       child: Text(
-        widget.product.category!,
+        categoryText,
         style: TextStyle(
           color: TSHTheme.primary,
           fontSize: 11,
@@ -381,21 +410,24 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
 
   Widget _buildPriceSection() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
           colors: [
-            TSHTheme.primary.withOpacity(0.08),
-            TSHTheme.accent.withOpacity(0.08),
+            TSHTheme.primary.withOpacity(0.10),
+            TSHTheme.accent.withOpacity(0.06),
           ],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: TSHTheme.primary.withOpacity(0.15),
           width: 1,
         ),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Text(
@@ -406,10 +438,15 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
               style: TextStyle(
                 color: TSHTheme.primary,
                 fontWeight: FontWeight.w800,
-                fontSize: 17,
+                fontSize: 15,
                 letterSpacing: -0.3,
               ),
             ),
+          ),
+          Icon(
+            Icons.arrow_forward_rounded,
+            color: TSHTheme.primary.withOpacity(0.5),
+            size: 16,
           ),
         ],
       ),
@@ -419,19 +456,19 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
   Widget _buildAddToCartButton() {
     return Container(
       width: double.infinity,
-      height: 44,
+      height: 38,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [TSHTheme.primary, TSHTheme.accent],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: TSHTheme.primary.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: TSHTheme.primary.withOpacity(0.25),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -443,21 +480,21 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(Icons.add_shopping_cart_rounded, size: 18),
-            SizedBox(width: 8),
+            Icon(Icons.add_shopping_cart_rounded, size: 16),
+            SizedBox(width: 6),
             Text(
               'إضافة للسلة',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
+                letterSpacing: 0.1,
               ),
             ),
           ],

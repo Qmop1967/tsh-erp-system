@@ -211,4 +211,81 @@ class TSHTheme {
       ),
     ),
   );
+
+  // Add missing color alias
+  static const Color warningYellow = warningOrange;
+
+  // Quick Action Button widget
+  static Widget quickActionButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: primary.withOpacity(0.2)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: primary, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: bodySmall.copyWith(
+                color: textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Metric Card widget
+  static Widget metricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    Color? iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor ?? primary, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: bodySmall.copyWith(color: textSecondary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: headingMedium.copyWith(color: textPrimary),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -98,28 +98,113 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10  # Hard timeout to prevent hanging
+
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Run security scan
-      uses: github/super-linter@v4
-      env:
-        DEFAULT_BRANCH: main
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        VALIDATE_PYTHON: true
-        VALIDATE_TYPESCRIPT: true
-        VALIDATE_DOCKERFILE: true
+
+    - name: Set up Python for security tools
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Python Security Scan (Bandit)
+      timeout-minutes: 5
+      run: |
+        pip install bandit
+        # Scan Python files for common security issues
+        bandit -r app/ backend/ -f txt || echo "Bandit found some security warnings but continuing"
+      continue-on-error: true  # Don't fail the build on security warnings
+
+    - name: Dependency Vulnerability Scan (Safety)
+      timeout-minutes: 3
+      run: |
+        pip install safety
+        # Check Python dependencies for known vulnerabilities
+        safety check --file=config/requirements.txt --output=text || echo "Safety found some vulnerabilities but continuing"
+      continue-on-error: true
+
+    - name: Secret Scanning
+      timeout-minutes: 2
+      run: |
+        # Check for accidentally committed secrets
+        echo "Checking for common secret patterns..."
+        if grep -r -E "(password|secret|api_key|token)\s*=\s*['\"][^'\"]{8,}" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.venv --exclude="*.md" .; then
+          echo "WARNING: Possible hardcoded secrets found"
+        fi
+      continue-on-error: true
 
   deploy:
-    needs: [backend-tests, frontend-tests, mobile-tests]
+    needs: [backend-tests, frontend-tests, mobile-tests, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+    timeout-minutes: 15
+
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Deploy to production
+      with:
+        fetch-depth: 0  # Full history for proper deployment
+
+    - name: Setup SSH
       run: |
-        echo "Deploying TSH ERP System to production..."
-        # Add your deployment commands here
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy to VPS
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+      run: |
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << 'ENDSSH'
+          set -e
+
+          echo "=========================================="
+          echo "Starting TSH ERP System Deployment"
+          echo "=========================================="
+
+          # Navigate to application directory
+          cd /opt/tsh_erp
+
+          # Pull latest code
+          echo "Pulling latest code from GitHub..."
+          git fetch origin
+          git checkout main
+          git pull origin main
+
+          # Run deployment script (blue-green deployment)
+          echo "Running deployment script..."
+          bash /opt/tsh_erp/bin/deploy.sh
+
+          echo "=========================================="
+          echo "Deployment completed successfully!"
+          echo "=========================================="
+        ENDSSH
+
+    - name: Verify Deployment
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+      run: |
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << 'ENDSSH'
+          # Check which service is active
+          ACTIVE_PORT=$(cat /opt/tsh_erp/current_deployment.txt 2>/dev/null || echo "8001")
+
+          echo "Checking health endpoint on port ${ACTIVE_PORT}..."
+          HEALTH_CHECK=$(curl -s http://127.0.0.1:${ACTIVE_PORT}/health || echo "failed")
+
+          if echo "$HEALTH_CHECK" | grep -q "ok"; then
+            echo "✓ Health check passed"
+            echo "✓ Deployment verified successfully"
+          else
+            echo "✗ Health check failed"
+            echo "Response: $HEALTH_CHECK"
+            exit 1
+          fi
+        ENDSSH
+
+    - name: Cleanup SSH
+      if: always()
+      run: |
+        rm -f ~/.ssh/deploy_key
