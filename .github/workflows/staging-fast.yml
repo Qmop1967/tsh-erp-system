@@ -369,10 +369,12 @@ jobs:
             python3 -m pip install --quiet --upgrade pip
             python3 -m pip install --quiet requests psycopg2-binary
 
+            # DB connection uses peer authentication (no password needed for local postgres user)
             export DB_HOST="localhost"
             export DB_PORT="5432"
             export DB_NAME="tsh_erp"
             export DB_USER="postgres"
+            export DB_PASSWORD=""  # Empty for peer authentication
 
             python3 scripts/run_data_sync_check.py --mode=staging --limit=100
 
@@ -431,10 +433,12 @@ jobs:
               alembic upgrade head || true
             fi
 
-            sudo systemctl restart tsh_erp || sudo systemctl restart tsh_erp-green || true
+            # Restart service (staging uses tsh_erp-green, production uses blue/green)
+            sudo systemctl restart tsh_erp-green || sudo systemctl restart tsh_erp-blue || sudo systemctl restart tsh_erp || true
 
             sleep 5
-            curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8001/health
+            # Check health (try active port first, then fallback)
+            curl -f http://127.0.0.1:8001/health || curl -f http://127.0.0.1:8002/health
 
             echo "✅ Staging deployment successful!"
 
