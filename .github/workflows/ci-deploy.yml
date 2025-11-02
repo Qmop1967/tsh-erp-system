@@ -55,7 +55,7 @@ jobs:
           
           # Run bandit with limited scope for faster execution
           # Focus on high and medium severity issues only
-          bandit -r . -ll -f json -o bandit-report.json 2>/dev/null || true
+          bandit -r . -ll -f json -o bandit-report.json || true
           
           # Display results in screen format (limited output)
           echo "📊 Security scan results:"
