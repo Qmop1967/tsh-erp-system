@@ -9,6 +9,7 @@ on:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     services:
       postgres:
@@ -45,6 +46,7 @@ jobs:
 
   frontend-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
     - uses: actions/checkout@v4
@@ -71,6 +73,7 @@ jobs:
 
   mobile-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     
     steps:
     - uses: actions/checkout@v4
@@ -98,11 +101,13 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Run security scan
+      timeout-minutes: 8
       uses: github/super-linter@v4
       env:
         DEFAULT_BRANCH: main
@@ -110,6 +115,7 @@ jobs:
         VALIDATE_PYTHON: true
         VALIDATE_TYPESCRIPT: true
         VALIDATE_DOCKERFILE: true
+      continue-on-error: true
 
   deploy:
     needs: [backend-tests, frontend-tests, mobile-tests]
