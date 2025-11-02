@@ -364,7 +364,9 @@ jobs:
               source .venv/bin/activate
             fi
 
-            pip install -q requests psycopg2-binary 2>/dev/null || true
+            # Install required dependencies (suppress output but not errors)
+            python3 -m pip install --quiet --upgrade pip
+            python3 -m pip install --quiet requests psycopg2-binary
 
             export DB_HOST="localhost"
             export DB_PORT="5432"
