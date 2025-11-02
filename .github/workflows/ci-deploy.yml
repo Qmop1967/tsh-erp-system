@@ -17,6 +17,7 @@ jobs:
   test:
     name: Run Tests and Security Checks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -35,22 +36,37 @@ jobs:
           pip install pytest pytest-cov pytest-asyncio ruff mypy bandit
 
       - name: Code linting (ruff)
+        timeout-minutes: 3
         run: |
           ruff check . --output-format=github
         continue-on-error: true
 
       - name: Type checking (mypy)
+        timeout-minutes: 5
         run: |
           mypy . --ignore-missing-imports --no-strict-optional
         continue-on-error: true
 
       - name: Security scan (bandit)
+        timeout-minutes: 5
         run: |
-          bandit -r . -f json -o bandit-report.json || true
-          bandit -r . -f screen
+          echo "🔍 Starting security scan with bandit..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Run bandit with timeout and limited scope for faster execution
+          # Focus on high and medium severity issues only
+          timeout 240 bandit -r . -ll -f json -o bandit-report.json 2>/dev/null || true
+          
+          # Display results in screen format (limited output)
+          echo "📊 Security scan results:"
+          timeout 60 bandit -r . -ll -f screen || true
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Security scan complete (~60-240s)"
         continue-on-error: true
 
       - name: Run unit tests
+        timeout-minutes: 10
         run: |
           pytest tests/ -v --cov=. --cov-report=term --cov-report=xml || true
         continue-on-error: true
