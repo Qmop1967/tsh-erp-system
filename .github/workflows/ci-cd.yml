@@ -135,7 +135,7 @@ jobs:
       continue-on-error: true
 
   deploy:
-    needs: [backend-tests, frontend-tests, flutter-tests, security-scan]
+    needs: [backend-tests, frontend-tests, mobile-tests, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 15
@@ -144,6 +144,19 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Full history for proper deployment
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+
+    - name: Build Consumer App (Flutter Web)
+      run: |
+        echo "Building TSH Consumer App for web..."
+        cd mobile/flutter_apps/10_tsh_consumer_app
+        flutter pub get
+        flutter build web --release
+        echo "✓ Consumer app built successfully"
 
     - name: Setup SSH
       run: |
@@ -182,6 +195,34 @@ jobs:
           echo "=========================================="
         ENDSSH
 
+    - name: Deploy Consumer App (Flutter Web)
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+      run: |
+        echo "=========================================="
+        echo "Deploying TSH Consumer App to Production"
+        echo "=========================================="
+
+        # Deploy Flutter web build to VPS
+        rsync -avz --delete \
+          -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          mobile/flutter_apps/10_tsh_consumer_app/build/web/ \
+          ${VPS_USER}@${VPS_HOST}:/var/www/tsh-consumer-app/
+
+        echo "✓ Consumer app deployed to /var/www/tsh-consumer-app/"
+
+        # Set correct permissions
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << 'ENDSSH'
+          chown -R www-data:www-data /var/www/tsh-consumer-app/
+          chmod -R 755 /var/www/tsh-consumer-app/
+          echo "✓ Permissions set correctly"
+        ENDSSH
+
+        echo "=========================================="
+        echo "Consumer App Deployment Completed!"
+        echo "=========================================="
+
     - name: Verify Deployment
       env:
         VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -196,13 +237,56 @@ jobs:
 
           if echo "$HEALTH_CHECK" | grep -q "ok"; then
             echo "✓ Health check passed"
-            echo "✓ Deployment verified successfully"
+            echo "✓ Backend deployment verified successfully"
           else
             echo "✗ Health check failed"
             echo "Response: $HEALTH_CHECK"
             exit 1
           fi
         ENDSSH
+
+    - name: Verify Consumer App Deployment
+      run: |
+        echo "Verifying Consumer App at consumer.tsh.sale..."
+
+        # Wait a moment for the deployment to settle
+        sleep 5
+
+        # Check if consumer.tsh.sale is accessible
+        CONSUMER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://consumer.tsh.sale)
+
+        if [ "$CONSUMER_STATUS" = "200" ]; then
+          echo "✓ Consumer app is accessible (HTTP $CONSUMER_STATUS)"
+
+          # Check if it's the Flutter app
+          CONTENT=$(curl -s https://consumer.tsh.sale | head -30)
+          if echo "$CONTENT" | grep -q "tsh_consumer_app"; then
+            echo "✓ Consumer app content verified"
+            echo "✓ Consumer app deployment verified successfully"
+          else
+            echo "⚠ Warning: Consumer app content may not be updated"
+          fi
+        else
+          echo "✗ Consumer app accessibility check failed (HTTP $CONSUMER_STATUS)"
+          exit 1
+        fi
+
+    - name: Deployment Summary
+      if: success()
+      run: |
+        echo "=========================================="
+        echo "🎉 TSH ERP DEPLOYMENT SUCCESSFUL!"
+        echo "=========================================="
+        echo ""
+        echo "✅ Backend API deployed and verified"
+        echo "✅ Consumer App deployed and verified"
+        echo ""
+        echo "Production URLs:"
+        echo "  • Backend API: https://erp.tsh.sale"
+        echo "  • Consumer App: https://consumer.tsh.sale"
+        echo ""
+        echo "Deployment completed at: $(date -u)"
+        echo "=========================================="
 
     - name: Cleanup SSH
       if: always()

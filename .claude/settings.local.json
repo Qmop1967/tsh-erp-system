@@ -12,9 +12,17 @@
       "Bash(gh copilot:*)",
       "Bash(npm start)",
       "Bash(npx:*)",
-      "Bash(flutter doctor:*)"
+      "Bash(flutter doctor:*)",
+      "Bash(gh run:*)",
+      "Bash(gh workflow:*)",
+      "Bash(git push origin main)"
     ],
-    "deny": [],
-    "ask": []
+    "deny": [
+      "Bash(rsync:*root@167.71.39.50:*)",
+      "Bash(scp:*root@167.71.39.50:*)"
+    ],
+    "ask": [
+      "Bash(ssh root@167.71.39.50:*)"
+    ]
   }
 }
