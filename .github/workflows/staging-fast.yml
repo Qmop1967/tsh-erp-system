@@ -443,7 +443,7 @@ jobs:
 
             sleep 5
             # Check health (try active port first, then fallback)
-            curl -f http://127.0.0.1:8001/health || curl -f http://127.0.0.1:8002/health
+            curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8000/health
 
             echo "✅ Staging deployment successful!"
 
