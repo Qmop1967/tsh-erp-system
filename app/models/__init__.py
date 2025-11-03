@@ -83,8 +83,11 @@ from .migration import (
 # Zoho Sync Models (unified from TDS Core)
 from .zoho_sync import (
     TDSInboxEvent, TDSSyncQueue, TDSDeadLetterQueue, TDSSyncLog, TDSAlert,
-    EventStatus, SourceType, EntityType, AlertLevel
+    EventStatus, SourceType, EntityType, AlertSeverity
 )
+
+# Backward compatibility alias
+AlertLevel = AlertSeverity
 
 # Aliases for backward compatibility
 Item = MigrationItem  # Alias for backward compatibility

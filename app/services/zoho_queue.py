@@ -17,8 +17,8 @@ from app.models.zoho_sync import (
     EntityType,
     OperationType
 )
-from tds_core.core.config import settings
-from utils.retry import calculate_next_retry_time
+from app.core.config import settings
+from app.utils.retry import calculate_next_retry_time
 
 logger = logging.getLogger(__name__)
 

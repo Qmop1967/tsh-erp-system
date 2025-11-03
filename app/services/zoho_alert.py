@@ -11,7 +11,7 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.zoho_sync import TDSAlert, TDSSyncQueue, TDSDeadLetterQueue, EventStatus
-from tds_core.core.config import settings
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
