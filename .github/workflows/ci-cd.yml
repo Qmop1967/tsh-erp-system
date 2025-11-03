@@ -71,14 +71,15 @@ jobs:
 
   mobile-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0'
+        flutter-version: '3.35.5'
+        channel: 'stable'
         
     - name: Test Admin App
       run: |
@@ -148,7 +149,8 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0'
+        flutter-version: '3.35.5'
+        channel: 'stable'
 
     - name: Build Consumer App (Flutter Web)
       run: |
