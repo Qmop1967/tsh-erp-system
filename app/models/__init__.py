@@ -80,6 +80,12 @@ from .migration import (
     MigrationCustomer, MigrationVendor, MigrationStock
 )
 
+# Zoho Sync Models (unified from TDS Core)
+from .zoho_sync import (
+    TDSInboxEvent, TDSSyncQueue, TDSDeadLetterQueue, TDSSyncLog, TDSAlert,
+    EventStatus, SourceType, EntityType, AlertLevel
+)
+
 # Aliases for backward compatibility
 Item = MigrationItem  # Alias for backward compatibility
 PriceList = MigrationPriceList  # Alias for backward compatibility
