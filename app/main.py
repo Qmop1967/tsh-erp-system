@@ -113,14 +113,31 @@ async def log_requests(request: Request, call_next):
 # Startup event
 @app.on_event("startup")
 async def startup_event():
-    """Log application startup"""
+    """Log application startup and start background workers"""
     logger.info("application_startup", message="TSH ERP System starting up...")
+
+    # Start Zoho sync workers
+    try:
+        from app.background.worker_manager import init_worker_manager, start_workers
+        init_worker_manager(num_workers=2)  # Start 2 concurrent workers
+        await start_workers()
+        logger.info("background_workers_started", message="Zoho sync workers started successfully")
+    except Exception as e:
+        logger.error("background_workers_failed", error=str(e), message="Failed to start background workers")
 
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Log application shutdown"""
+    """Log application shutdown and stop background workers"""
     logger.info("application_shutdown", message="TSH ERP System shutting down...")
+
+    # Stop Zoho sync workers
+    try:
+        from app.background.worker_manager import stop_workers
+        await stop_workers()
+        logger.info("background_workers_stopped", message="Zoho sync workers stopped successfully")
+    except Exception as e:
+        logger.error("background_workers_stop_failed", error=str(e), message="Failed to stop background workers")
 
 # إعدادات CORS
 app.add_middleware(
