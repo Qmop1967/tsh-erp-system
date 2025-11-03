@@ -172,6 +172,10 @@ from app.routers.consumer_api import router as consumer_api_router  # Consumer A
 from app.routers.dashboard import router as dashboard_router  # Dashboard Statistics
 from app.routers.notifications import router as notifications_router  # Unified Notification System
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
+# Zoho Integration Routers (unified from TDS Core)
+from app.routers.zoho_webhooks import router as zoho_webhooks_router
+from app.routers.zoho_dashboard import router as zoho_dashboard_router
+from app.routers.zoho_admin import router as zoho_admin_router
 
 # إضافة الـ routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])  # Enable authentication
@@ -218,6 +222,10 @@ app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])
 # 🛒 CONSUMER APP: Modern E-commerce with Zoho Integration
 app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
+# 🔄 ZOHO INTEGRATION: Unified Zoho Books Integration (from TDS Core)
+app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["Zoho Integration - Webhooks"])
+app.include_router(zoho_dashboard_router, prefix="/api/zoho/dashboard", tags=["Zoho Integration - Dashboard"])
+app.include_router(zoho_admin_router, prefix="/api/zoho/admin", tags=["Zoho Integration - Admin"])
 # 🔔 UNIFIED NOTIFICATION SYSTEM: Enterprise-grade Notification Center
 app.include_router(notifications_router, prefix="/api", tags=["Notifications - Real-time & Push Notifications"])
 # 🔒 ENHANCED SECURITY SYSTEM: Advanced RBAC/ABAC, Multi-tenancy, Audit & Monitoring
