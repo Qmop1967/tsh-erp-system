@@ -134,7 +134,7 @@ jobs:
               alembic upgrade head || true
             fi
 
-            sudo systemctl restart tsh_erp || sudo systemctl restart tsh_erp-green || true
+            sudo systemctl restart tsh-erp || sudo systemctl restart tsh_erp-green || true
 
             sleep 5
             curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8001/health

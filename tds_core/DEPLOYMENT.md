@@ -45,8 +45,8 @@ Zoho Books Webhooks → TDS Core API → Inbox Storage
 
 ### Database Access
 - PostgreSQL connection to TSH ERP database
-- Database: `tsh_erp`
-- Host: VPS PostgreSQL (localhost)
+- Database: `tsh_erp_production`
+- Host: localhost or production database server
 - Port: 5432
 
 ---
@@ -107,11 +107,11 @@ API_HOST=0.0.0.0
 API_PORT=8001
 API_WORKERS=4
 
-# Database (TSH ERP - Supabase)
+# Database (TSH ERP - Production)
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
-DATABASE_NAME=postgres
-DATABASE_USER=postgres.trjjglxhteqnzmyakxhe
+DATABASE_NAME=tsh_erp_production
+DATABASE_USER=tsh_app_user
 DATABASE_PASSWORD=<your-password>
 
 # Connection Pooling
@@ -468,7 +468,7 @@ BACKUP_DIR=/opt/backups/tds_core
 mkdir -p $BACKUP_DIR
 
 # Backup TDS tables only
-pg_dump -h localhost \
+pg_dump -h aws-1-eu-north-1.pooler.supabase.com \
     -U postgres.trjjglxhteqnzmyakxhe \
     -d postgres \
     -t 'tds_*' \
@@ -494,7 +494,7 @@ tar -czf /opt/backups/tds_core_app_$(date +%Y%m%d).tar.gz \
 
 ```bash
 # Restore database
-pg_restore -h localhost \
+pg_restore -h aws-1-eu-north-1.pooler.supabase.com \
     -U postgres.trjjglxhteqnzmyakxhe \
     -d postgres \
     -c \

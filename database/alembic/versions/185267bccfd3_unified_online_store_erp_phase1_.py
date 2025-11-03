@@ -13,7 +13,7 @@ Phase 1: Foundation Tables
 - Enhanced security tables (login_attempts, security_events)
 
 Revision ID: 185267bccfd3
-Revises: None (standalone - works with existing Supabase schema)
+Revises: None (standalone migration)
 Create Date: 2025-10-30 15:13:26.531579
 
 """
@@ -31,7 +31,7 @@ depends_on = None
 def upgrade() -> None:
     """
     Phase 1: Create foundation tables for unified Online Store + ERP system.
-    Safe to run on existing Supabase database - checks for existing tables.
+    Safe to run on existing database - checks for existing tables.
     """
     conn = op.get_bind()
 

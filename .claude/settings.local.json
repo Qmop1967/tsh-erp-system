@@ -15,11 +15,14 @@
       "Bash(flutter doctor:*)",
       "Bash(gh run:*)",
       "Bash(gh workflow:*)",
-      "Bash(git push origin main)"
+      "Bash(git push origin develop)"
     ],
     "deny": [
       "Bash(rsync:*root@167.71.39.50:*)",
-      "Bash(scp:*root@167.71.39.50:*)"
+      "Bash(scp:*root@167.71.39.50:*)",
+      "Bash(git push origin main)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force:*)"
     ],
     "ask": [
       "Bash(ssh root@167.71.39.50:*)"

@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp"
+      ]
+    },
+    "zoho-books": {
+      "command": "python3",
+      "args": [
+        "/Users/khaleelal-mulla/TSH Projects/tsh-online-store/.mcp/zoho-books/server.py"
+      ],
+      "env": {
+        "ZOHO_CLIENT_ID": "1000.RYRPK7578ZRKN6K4HKNF4LKL2CC9IQ",
+        "ZOHO_CLIENT_SECRET": "a39a5dcdc057a8490cb7960d1400f62ce14edd6455",
+        "ZOHO_REFRESH_TOKEN": "1000.2e358f3c53d3e22ac2d134c5c93d9c5b.118c5e88cd0a4ed2a1143056f2d09e68",
+        "ZOHO_ORGANIZATION_ID": "748369814",
+        "ZOHO_REGION": "US",
+        "ZOHO_API_DOMAIN": "https://www.zohoapis.com"
+      }
+    },
+    "tsh-auto-healing": {
+      "command": "python3.11",
+      "args": [
+        "/Users/khaleelal-mulla/TSH_ERP_Ecosystem/.mcp/tsh-auto-healing/server.py"
+      ],
+      "env": {
+        "TSH_PROJECT_ROOT": "/Users/khaleelal-mulla/TSH_ERP_Ecosystem",
+        "TSH_VPS_HOST": "167.71.39.50",
+        "TSH_VPS_USER": "root"
+      }
+    }
+  }
+}
