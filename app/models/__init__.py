@@ -86,6 +86,12 @@ from .zoho_sync import (
     EventStatus, SourceType, EntityType, AlertSeverity
 )
 
+# Mobile BFF Models
+from .promotion import Promotion
+from .cart import Cart, CartItem
+from .review import Review
+from .customer_address import CustomerAddress
+
 # Backward compatibility alias
 AlertLevel = AlertSeverity
 
@@ -140,5 +146,7 @@ __all__ = [
     "ASOProduct", "ASOReturnRequest", "ASOInspection", "ASOMaintenanceJob",
     "ASOWarrantyPolicy", "ASODecisionRecord", "ASONotification", "ASOOutboxEvent",
     "ReturnReasonCode", "ReturnStatus", "InspectionStatus", "InspectionResult",
-    "MaintenanceStatus", "WarrantyStatus", "Decision", "InventoryZone"
+    "MaintenanceStatus", "WarrantyStatus", "Decision", "InventoryZone",
+    # Mobile BFF Models
+    "Promotion", "Cart", "CartItem", "Review", "CustomerAddress"
 ]

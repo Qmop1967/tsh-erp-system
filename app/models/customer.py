@@ -33,6 +33,8 @@ class Customer(Base):
     sales_orders = relationship("SalesOrder", back_populates="customer")
     sales_invoices = relationship("SalesInvoice", back_populates="customer")
     salesperson = relationship("User", foreign_keys=[salesperson_id])
+    addresses = relationship("CustomerAddress", back_populates="customer")
+    carts = relationship("Cart", back_populates="customer")
 
 
 class Supplier(Base):

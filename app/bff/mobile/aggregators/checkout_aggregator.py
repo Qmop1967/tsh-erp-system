@@ -18,7 +18,8 @@ from app.bff.mobile.schemas import (
     MobilePromotion
 )
 from app.models.cart import Cart, CartItem
-from app.models.customer import Customer, CustomerAddress
+from app.models.customer import Customer
+from app.models.customer_address import CustomerAddress
 from app.models.product import Product
 from app.models.promotion import Promotion
 

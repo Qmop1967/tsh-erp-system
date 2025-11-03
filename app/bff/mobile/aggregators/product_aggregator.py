@@ -15,7 +15,7 @@ from app.bff.mobile.schemas import (
     MobileCategory
 )
 from app.models.product import Product
-from app.models.category import Category
+from app.models.product import Category
 from app.models.review import Review
 
 logger = logging.getLogger(__name__)
