@@ -13,7 +13,7 @@ from app.db.database import get_db
 from app.core.config import settings
 
 # Import schemas from TDS Core (will be moved to app/schemas in Phase 3)
-from tds_core.schemas.webhook_schemas import (
+from app.schemas.webhook_schemas import (
     WebhookEvent,
     ProductWebhook,
     ZohoItemWebhook,
@@ -24,7 +24,7 @@ from tds_core.schemas.webhook_schemas import (
     StockWebhook,
     PriceListWebhook,
 )
-from tds_core.schemas.response_schemas import WebhookResponse
+from app.schemas.response_schemas import WebhookResponse
 
 # Import services from unified location
 from app.services.zoho_processor import ProcessorService

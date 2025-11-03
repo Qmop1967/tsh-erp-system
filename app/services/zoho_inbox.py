@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.zoho_sync import TDSInboxEvent, SourceType, EntityType
 from app.utils.hashing import generate_content_hash, generate_idempotency_key
-from tds_core.schemas.webhook_schemas import WebhookEvent
+from app.schemas.webhook_schemas import WebhookEvent
 
 logger = logging.getLogger(__name__)
 

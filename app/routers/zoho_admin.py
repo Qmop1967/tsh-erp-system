@@ -13,7 +13,7 @@ from app.db.database import get_db
 from app.core.config import settings
 
 # Import schemas from TDS Core (will be moved to app/schemas in Phase 3)
-from tds_core.schemas.webhook_schemas import ManualSyncRequest
+from app.schemas.webhook_schemas import ManualSyncRequest
 
 logger = logging.getLogger(__name__)
 

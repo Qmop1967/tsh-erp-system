@@ -18,7 +18,7 @@ from app.db.database import get_db
 from app.models.zoho_sync import TDSSyncQueue, TDSDeadLetterQueue, EventStatus
 
 # Import schemas from TDS Core (will be moved to app/schemas in Phase 3)
-from tds_core.schemas.response_schemas import QueueStatsResponse
+from app.schemas.response_schemas import QueueStatsResponse
 
 # Import services from unified location
 from app.services.zoho_queue import QueueService

@@ -14,7 +14,7 @@ from app.services.zoho_inbox import InboxService
 from app.services.zoho_queue import QueueService
 
 # Import from TDS Core schemas (temporary - will be moved to app/schemas later)
-from tds_core.schemas.webhook_schemas import WebhookEvent
+from app.schemas.webhook_schemas import WebhookEvent
 
 # Import from unified models
 from app.models.zoho_sync import TDSInboxEvent, TDSSyncQueue

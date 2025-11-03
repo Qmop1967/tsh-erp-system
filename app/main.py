@@ -194,7 +194,7 @@ from app.routers.zoho_webhooks import router as zoho_webhooks_router
 from app.routers.zoho_dashboard import router as zoho_dashboard_router
 from app.routers.zoho_admin import router as zoho_admin_router
 # BFF (Backend For Frontend) - Mobile Optimization Layer
-from app.bff.mobile import router as mobile_bff_router
+# from app.bff.mobile import router as mobile_bff_router  # Temporarily disabled - models not ready
 
 # إضافة الـ routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])  # Enable authentication
@@ -246,7 +246,7 @@ app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["Zoh
 app.include_router(zoho_dashboard_router, prefix="/api/zoho/dashboard", tags=["Zoho Integration - Dashboard"])
 app.include_router(zoho_admin_router, prefix="/api/zoho/admin", tags=["Zoho Integration - Admin"])
 # 📱 MOBILE BFF: Optimized API Layer for Flutter Apps (Consumer & Salesperson)
-app.include_router(mobile_bff_router, prefix="/api/mobile", tags=["Mobile BFF - Optimized for Flutter Apps"])
+# app.include_router(mobile_bff_router, prefix="/api/mobile", tags=["Mobile BFF - Optimized for Flutter Apps"])  # Temporarily disabled
 # 🔔 UNIFIED NOTIFICATION SYSTEM: Enterprise-grade Notification Center
 app.include_router(notifications_router, prefix="/api", tags=["Notifications - Real-time & Push Notifications"])
 # 🔒 ENHANCED SECURITY SYSTEM: Advanced RBAC/ABAC, Multi-tenancy, Audit & Monitoring
