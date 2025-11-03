@@ -111,12 +111,13 @@ print_header "CREATING BACKUPS"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # 1. Backup database
-print_warning "Creating database backup..."
+print_warning "Creating database backup (public schema only)..."
 PGPASSWORD="$DB_PASSWORD" pg_dump \
     -h "$DB_HOST" \
     -p "$DB_PORT" \
     -U "$DB_USER" \
     -d "$DB_NAME" \
+    --schema=public \
     --no-owner --no-acl \
     > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
 
