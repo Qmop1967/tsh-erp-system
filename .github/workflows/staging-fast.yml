@@ -439,7 +439,7 @@ jobs:
             fi
 
             # Restart service (staging uses tsh_erp-green, production uses blue/green)
-            sudo systemctl restart tsh_erp-green || sudo systemctl restart tsh_erp-blue || sudo systemctl restart tsh_erp || true
+            sudo systemctl restart tsh_erp-green || sudo systemctl restart tsh_erp-blue || sudo systemctl restart tsh-erp || true
 
             sleep 5
             # Check health (try active port first, then fallback)
