@@ -71,6 +71,17 @@ class ZohoItemWebhook(BaseModel):
         extra = "allow"  # Allow additional fields Zoho might send
 
 
+class ZohoInvoiceWebhook(BaseModel):
+    """
+    Raw Zoho Books Invoice webhook format
+    Zoho sends: {"invoice": {...}}
+    """
+    invoice: Dict[str, Any] = Field(..., description="Invoice data from Zoho")
+
+    class Config:
+        extra = "allow"  # Allow additional fields Zoho might send
+
+
 class ProductWebhook(WebhookEvent):
     """Product/Item webhook from Zoho Books"""
 

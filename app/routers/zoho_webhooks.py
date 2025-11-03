@@ -17,6 +17,7 @@ from app.schemas.webhook_schemas import (
     WebhookEvent,
     ProductWebhook,
     ZohoItemWebhook,
+    ZohoInvoiceWebhook,
     CustomerWebhook,
     InvoiceWebhook,
     BillWebhook,
@@ -183,7 +184,7 @@ async def receive_customer_webhook(
     status_code=status.HTTP_202_ACCEPTED
 )
 async def receive_invoice_webhook(
-    webhook: InvoiceWebhook,
+    zoho_webhook: ZohoInvoiceWebhook,
     request: Request,
     db: AsyncSession = Depends(get_db),
     authenticated: bool = Depends(verify_webhook_key)
@@ -192,7 +193,19 @@ async def receive_invoice_webhook(
     Receive invoice webhook from Zoho Books
 
     Accepts invoice creation, update, or deletion events
+    Zoho sends: {"invoice": {...}}
     """
+    # Transform Zoho format to internal format
+    invoice_data = zoho_webhook.invoice
+    invoice_id = invoice_data.get('invoice_id') or invoice_data.get('invoice_number') or 'unknown'
+
+    webhook = InvoiceWebhook(
+        event_type="update",  # Zoho doesn't specify, assume update
+        entity_type="invoice",
+        entity_id=str(invoice_id),
+        data=invoice_data
+    )
+
     logger.info(f"Invoice webhook received: {webhook.entity_id}")
     return await process_webhook_helper(webhook, request, db, authenticated)
 
