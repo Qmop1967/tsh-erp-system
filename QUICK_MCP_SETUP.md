@@ -35,7 +35,6 @@ python3.11 -c "import mcp; print('✅ MCP installed successfully!')"
 ```json
 {
   "mcpServers": {
-    "supabase": { ... },
     "playwright": { ... },
     "zoho-books": { ... }
   }
@@ -62,14 +61,6 @@ python3.11 -c "import mcp; print('✅ MCP installed successfully!')"
 ```json
 {
   "mcpServers": {
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:6543/postgres"
-      ]
-    },
     "playwright": {
       "command": "npx",
       "args": [

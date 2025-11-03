@@ -34,14 +34,6 @@ Add the `tsh-auto-healing` server to the `mcpServers` section:
 ```json
 {
   "mcpServers": {
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:6543/postgres"
-      ]
-    },
     "playwright": {
       "command": "npx",
       "args": [

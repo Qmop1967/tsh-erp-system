@@ -104,7 +104,7 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
                 detail="User account is inactive"
             )
 
-        # Verify password (from Supabase auth.users)
+        # Verify password (from auth.users)
         if not encrypted_password:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

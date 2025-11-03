@@ -286,9 +286,9 @@ curl -s https://api.tsh.sale/tds/dashboard/queue-stats | jq .
 
 # Via Database
 ssh root@167.71.39.50
-psql -h aws-1-eu-north-1.pooler.supabase.com \
-     -U postgres.trjjglxhteqnzmyakxhe \
-     -d postgres \
+psql -h localhost \
+     -U tsh_app_user \
+     -d tsh_erp_production \
      -c "SELECT status, COUNT(*) FROM tds_sync_queue GROUP BY status;"
 ```
 
@@ -441,9 +441,9 @@ done
 ssh root@167.71.39.50
 
 PGPASSWORD="your-password" psql \
-  -h aws-1-eu-north-1.pooler.supabase.com \
-  -U postgres.trjjglxhteqnzmyakxhe \
-  -d postgres
+  -h localhost \
+  -U tsh_app_user \
+  -d tsh_erp_production
 
 -- Delete old completed events
 DELETE FROM tds_sync_queue
@@ -594,7 +594,7 @@ curl -s https://api.tsh.sale/tds/dashboard/dead-letter | jq 'group_by(.last_erro
 1. **Database connection issues:**
    ```bash
    # Check database connectivity
-   psql -h aws-1-eu-north-1.pooler.supabase.com ... -c "SELECT 1;"
+   psql -h localhost -U tsh_app_user -d tsh_erp_production -c "SELECT 1;"
 
    # Check connection pool
    curl -s https://api.tsh.sale/tds/dashboard/metrics | jq '.database'
@@ -744,7 +744,7 @@ ssh root@167.71.39.50
 systemctl status tds-core-api tds-core-worker
 
 # 2. Check database connectivity
-psql -h aws-1-eu-north-1.pooler.supabase.com ... -c "SELECT 1;"
+psql -h localhost -U tsh_app_user -d tsh_erp_production -c "SELECT 1;"
 
 # 3. Check logs for errors
 journalctl -u tds-core-api -n 50
