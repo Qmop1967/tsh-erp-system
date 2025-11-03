@@ -286,7 +286,7 @@ curl -s https://api.tsh.sale/tds/dashboard/queue-stats | jq .
 
 # Via Database
 ssh root@167.71.39.50
-psql -h aws-1-eu-north-1.pooler.supabase.com \
+psql -h localhost \
      -U postgres.trjjglxhteqnzmyakxhe \
      -d postgres \
      -c "SELECT status, COUNT(*) FROM tds_sync_queue GROUP BY status;"
@@ -441,7 +441,7 @@ done
 ssh root@167.71.39.50
 
 PGPASSWORD="your-password" psql \
-  -h aws-1-eu-north-1.pooler.supabase.com \
+  -h localhost \
   -U postgres.trjjglxhteqnzmyakxhe \
   -d postgres
 
