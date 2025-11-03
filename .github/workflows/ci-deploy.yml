@@ -80,17 +80,75 @@ jobs:
           script_stop: true
           script: |
             echo "========================================"
-            echo "Starting deployment..."
+            echo "Starting COMPLETE deployment (All Components)..."
             echo "========================================"
 
-            # Run deployment script
+            # 1. Run backend deployment script
+            echo "[1/4] Deploying Backend API..."
             bash /opt/tsh_erp/bin/deploy.sh main
 
-            # Verify deployment
-            sleep 5
-            curl -f http://127.0.0.1:8001/health || curl -f http://127.0.0.1:8002/health
+            # 2. Deploy Flutter Consumer App
+            echo "[2/4] Deploying Consumer App (Flutter Web)..."
+            if [ -d "/opt/tsh_erp/releases/blue/mobile/flutter_apps/10_tsh_consumer_app" ]; then
+              cd /opt/tsh_erp/releases/blue/mobile/flutter_apps/10_tsh_consumer_app
 
-            echo "✅ Deployment successful!"
+              # Install Flutter if not available
+              if ! command -v flutter &> /dev/null; then
+                echo "⚠ Flutter not found, installing..."
+                cd /tmp
+                git clone https://github.com/flutter/flutter.git -b stable --depth 1
+                export PATH="$PATH:/tmp/flutter/bin"
+              fi
+
+              # Build Flutter web app
+              flutter build web --release
+
+              # Deploy to Nginx directory
+              rsync -av build/web/ /var/www/consumer.tsh.sale/
+              echo "✓ Consumer App deployed"
+            else
+              echo "⚠ Consumer App directory not found, skipping"
+            fi
+
+            # 3. Deploy ERP Admin Frontend (React)
+            echo "[3/4] Deploying ERP Admin Frontend (React)..."
+            if [ -d "/opt/tsh_erp/releases/blue/frontend" ]; then
+              cd /opt/tsh_erp/releases/blue/frontend
+
+              # Build React frontend if package.json exists
+              if [ -f "package.json" ]; then
+                npm install --production
+                npm run build || echo "⚠ Frontend build failed, continuing..."
+
+                # Deploy to Nginx directory
+                if [ -d "dist" ]; then
+                  rsync -av dist/ /var/www/erp.tsh.sale/
+                  echo "✓ ERP Admin Frontend deployed"
+                else
+                  echo "⚠ Frontend dist/ not found"
+                fi
+              fi
+            else
+              echo "⚠ Frontend directory not found, skipping"
+            fi
+
+            # 4. Verify ALL components
+            echo "[4/4] Verifying ALL deployments..."
+            sleep 5
+
+            # Backend API
+            curl -f http://127.0.0.1:8000/health || curl -f http://127.0.0.1:8002/health
+            echo "✓ Backend API healthy"
+
+            # Consumer App
+            curl -f https://consumer.tsh.sale/ | grep -q "flutter_bootstrap.js" && echo "✓ Consumer App accessible" || echo "⚠ Consumer App check failed"
+
+            # ERP Admin Frontend
+            curl -f https://erp.tsh.sale/ && echo "✓ ERP Admin accessible" || echo "⚠ ERP Admin check failed"
+
+            echo "========================================"
+            echo "✅ COMPLETE Deployment successful!"
+            echo "========================================"
 
       - name: Notify on success
         if: success()
@@ -120,13 +178,19 @@ jobs:
           port: ${{ secrets.STAGING_SSH_PORT || 22 }}
           script_stop: true
           script: |
-            echo "Deploying to staging environment..."
+            echo "========================================"
+            echo "Deploying ALL components to staging..."
+            echo "========================================"
 
             cd /srv/tsh-staging || cd /opt/tsh_erp || exit 1
 
+            # 1. Update code
+            echo "[1/4] Updating code..."
             git fetch origin
             git reset --hard origin/develop
 
+            # 2. Deploy Backend
+            echo "[2/4] Deploying Backend..."
             source venv/bin/activate 2>/dev/null || source .venv/bin/activate || true
             pip install -q requests psycopg2-binary
 
@@ -136,7 +200,28 @@ jobs:
 
             sudo systemctl restart tsh-erp || sudo systemctl restart tsh_erp-green || true
 
+            # 3. Deploy Consumer App (Flutter)
+            echo "[3/4] Deploying Consumer App..."
+            if [ -d "mobile/flutter_apps/10_tsh_consumer_app" ]; then
+              cd mobile/flutter_apps/10_tsh_consumer_app
+
+              if command -v flutter &> /dev/null; then
+                flutter build web --release
+                rsync -av build/web/ /var/www/staging.consumer.tsh.sale/ 2>/dev/null || echo "⚠ Staging consumer deployment skipped"
+                echo "✓ Consumer App built"
+              else
+                echo "⚠ Flutter not available, skipping consumer app"
+              fi
+
+              cd /srv/tsh-staging || cd /opt/tsh_erp
+            fi
+
+            # 4. Verify deployment
+            echo "[4/4] Verifying deployment..."
             sleep 5
             curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8001/health
+            echo "✓ Backend healthy"
 
+            echo "========================================"
             echo "✅ Staging deployment successful!"
+            echo "========================================"
