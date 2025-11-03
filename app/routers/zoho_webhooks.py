@@ -26,8 +26,8 @@ from tds_core.schemas.webhook_schemas import (
 )
 from tds_core.schemas.response_schemas import WebhookResponse
 
-# Import services from TDS Core (will be moved to app/services in Phase 3)
-from tds_core.services.processor_service import ProcessorService
+# Import services from unified location
+from app.services.zoho_processor import ProcessorService
 
 logger = logging.getLogger(__name__)
 

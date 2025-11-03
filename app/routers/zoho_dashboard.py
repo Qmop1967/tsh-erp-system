@@ -20,8 +20,8 @@ from app.models.zoho_sync import TDSSyncQueue, TDSDeadLetterQueue, EventStatus
 # Import schemas from TDS Core (will be moved to app/schemas in Phase 3)
 from tds_core.schemas.response_schemas import QueueStatsResponse
 
-# Import services from TDS Core (will be moved to app/services in Phase 3)
-from tds_core.services.queue_service import QueueService
+# Import services from unified location
+from app.services.zoho_queue import QueueService
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +81,8 @@ async def get_dashboard_metrics(
         - Database metrics
         - Recent alerts
     """
-    from tds_core.services.monitoring_service import MonitoringService
-    from tds_core.services.alert_service import AlertService
+    from app.services.zoho_monitoring import MonitoringService
+    from app.services.zoho_alert import AlertService
 
     try:
         monitoring = MonitoringService()
@@ -215,7 +215,7 @@ async def acknowledge_alert(
     db: AsyncSession = Depends(get_db)
 ):
     """Mark an alert as acknowledged"""
-    from tds_core.services.alert_service import AlertService
+    from app.services.zoho_alert import AlertService
 
     try:
         alert_service = AlertService(db)
@@ -311,7 +311,7 @@ async def get_webhook_health(
 
     Use this endpoint to proactively monitor webhook health
     """
-    from tds_core.services.webhook_health_service import WebhookHealthService
+    from app.services.zoho_webhook_health import WebhookHealthService
 
     health_service = WebhookHealthService(db)
     metrics = await health_service.get_health_metrics(hours=hours)
@@ -337,7 +337,7 @@ async def get_duplicate_webhook_analysis(
         - Retry counts and time spans
         - Patterns in duplicate deliveries
     """
-    from tds_core.services.webhook_health_service import WebhookHealthService
+    from app.services.zoho_webhook_health import WebhookHealthService
 
     health_service = WebhookHealthService(db)
     stats = await health_service.get_duplicate_webhook_stats(hours=hours)
