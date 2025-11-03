@@ -1,0 +1,14 @@
+{
+  "comment": "Add this to your ~/.config/claude/claude_desktop_config.json under 'mcpServers'",
+  "tsh-auto-healing": {
+    "command": "python3.11",
+    "args": [
+      "/Users/khaleelal-mulla/TSH_ERP_Ecosystem/.mcp/tsh-auto-healing/server.py"
+    ],
+    "env": {
+      "TSH_PROJECT_ROOT": "/Users/khaleelal-mulla/TSH_ERP_Ecosystem",
+      "TSH_VPS_HOST": "167.71.39.50",
+      "TSH_VPS_USER": "root"
+    }
+  }
+}
