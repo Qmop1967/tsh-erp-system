@@ -19,7 +19,11 @@ NC='\033[0m' # No Color
 PROJECT_DIR="/home/deploy/TSH_ERP_Ecosystem"
 BACKUP_DIR="/home/deploy/backups"
 SERVICE_NAME="tsh-erp"
-DB_CONNECTION="postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres"
+DB_HOST="localhost"
+DB_PORT="5432"
+DB_NAME="tsh_erp"
+DB_USER="tsh_app_user"
+DB_PASSWORD="TSH@2025Secure!Production"
 
 # =====================================================
 # FUNCTIONS
@@ -149,7 +153,7 @@ if [ "$ROLLBACK_OPTION" == "2" ]; then
 
             # Drop new tables
             print_warning "Dropping new BFF tables..."
-            PGPASSWORD="Zcbbm.97531tsh" psql "$DB_CONNECTION" <<EOF
+            PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" <<EOF
 BEGIN;
 DROP TABLE IF EXISTS cart_items CASCADE;
 DROP TABLE IF EXISTS carts CASCADE;

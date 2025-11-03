@@ -19,7 +19,11 @@ NC='\033[0m' # No Color
 PROJECT_DIR="/home/deploy/TSH_ERP_Ecosystem"
 BACKUP_DIR="/home/deploy/backups"
 SERVICE_NAME="tsh-erp"
-DB_CONNECTION="postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres"
+DB_HOST="localhost"
+DB_PORT="5432"
+DB_NAME="tsh_erp"
+DB_USER="tsh_app_user"
+DB_PASSWORD="TSH@2025Secure!Production"
 
 # =====================================================
 # FUNCTIONS
@@ -108,10 +112,11 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # 1. Backup database
 print_warning "Creating database backup..."
-PGPASSWORD="Zcbbm.97531tsh" pg_dump \
-    -h aws-1-eu-north-1.pooler.supabase.com \
-    -U postgres.trjjglxhteqnzmyakxhe \
-    -d postgres \
+PGPASSWORD="$DB_PASSWORD" pg_dump \
+    -h "$DB_HOST" \
+    -p "$DB_PORT" \
+    -U "$DB_USER" \
+    -d "$DB_NAME" \
     --no-owner --no-acl \
     > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
 
@@ -227,7 +232,7 @@ MIGRATION_FILE="migrations/create_bff_models.sql"
 if [ -f "$MIGRATION_FILE" ]; then
     print_warning "Running database migration..."
 
-    PGPASSWORD="Zcbbm.97531tsh" psql "$DB_CONNECTION" -f "$MIGRATION_FILE" 2>&1 | tee /tmp/migration_log.txt
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$MIGRATION_FILE" 2>&1 | tee /tmp/migration_log.txt
 
     # Check if migration had errors (but tables might already exist)
     if grep -qi "error" /tmp/migration_log.txt && ! grep -qi "already exists" /tmp/migration_log.txt; then
@@ -243,7 +248,7 @@ fi
 
 # Verify new tables exist
 print_warning "Verifying new tables..."
-PGPASSWORD="Zcbbm.97531tsh" psql "$DB_CONNECTION" -c \
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c \
     "SELECT table_name FROM information_schema.tables
      WHERE table_schema = 'public'
      AND table_name IN ('promotions', 'carts', 'cart_items', 'reviews', 'customer_addresses')
