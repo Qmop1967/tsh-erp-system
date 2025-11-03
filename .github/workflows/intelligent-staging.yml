@@ -71,7 +71,7 @@ jobs:
         continue-on-error: true
 
       - name: 📤 Upload Security Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: |
@@ -344,7 +344,7 @@ jobs:
         continue-on-error: true
 
       - name: 📤 Upload Zoho Sync Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zoho-consistency-report
           path: zoho_sync_report.txt
@@ -442,7 +442,7 @@ jobs:
         continue-on-error: true
 
       - name: 📤 Upload Timestamp Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zoho-timestamp-report
           path: zoho_timestamp_report.txt
@@ -557,7 +557,7 @@ jobs:
         continue-on-error: true
 
       - name: 📤 Upload Webhook Health Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zoho-webhook-report
           path: zoho_webhook_report.txt
@@ -573,7 +573,7 @@ jobs:
 
     steps:
       - name: 📥 Download All Reports
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: reports/
 
@@ -683,7 +683,7 @@ jobs:
           PYTHON_SCRIPT
 
       - name: 📤 Upload Auto-Healing Suggestions
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: auto-healing-suggestions
           path: auto_healing_suggestions.txt
