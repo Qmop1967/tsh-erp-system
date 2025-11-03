@@ -1,5 +1,9 @@
 name: 🧠 Intelligent Staging CI/CD with Auto-Healing
 
+# NOTE: Deployment to staging is currently DISABLED (line 725)
+# Enable it after VPS is properly configured with /opt/tsh_erp directory
+# To enable: Change "if: false" to "if: github.ref == 'refs/heads/develop' && github.event_name == 'push'"
+
 on:
   push:
     branches:
@@ -722,7 +726,7 @@ jobs:
     name: 🚀 Deploy to Staging Server
     runs-on: ubuntu-latest
     needs: [code-quality, database-validation, api-integration-tests, auto-healing-analysis]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    if: false  # Disabled - Enable after VPS setup complete
 
     steps:
       - name: 🎯 Deploy to Staging via SSH
