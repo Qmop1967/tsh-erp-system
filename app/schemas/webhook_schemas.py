@@ -150,8 +150,10 @@ class InvoiceWebhook(WebhookEvent):
     @field_validator('data')
     @classmethod
     def validate_invoice_data(cls, v):
-        """Validate required invoice fields"""
-        required_fields = ['invoice_id', 'invoice_number', 'customer_id']
+        """Validate required invoice fields - flexible for Zoho format variations"""
+        # Only require invoice_id and invoice_number as essential fields
+        # customer_id may not always be present in all Zoho webhook variants
+        required_fields = ['invoice_id', 'invoice_number']
         for field in required_fields:
             if field not in v:
                 raise ValueError(f"Invoice data missing required field: {field}")
