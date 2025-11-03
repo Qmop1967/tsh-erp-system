@@ -16,9 +16,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_DIR="/root/TSH_ERP_Ecosystem"
-BACKUP_DIR="/root/backups"
-SERVICE_NAME="tsh_erp"
+PROJECT_DIR="/home/deploy/TSH_ERP_Ecosystem"
+BACKUP_DIR="/home/deploy/backups"
+SERVICE_NAME="tsh-erp"
 DB_CONNECTION="postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres"
 
 # =====================================================
