@@ -9,7 +9,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_db
+from app.db.database import get_async_db
 from app.core.config import settings
 
 # Import schemas from TDS Core (will be moved to app/schemas in Phase 3)
@@ -132,7 +132,7 @@ async def process_webhook_helper(
 async def receive_product_webhook(
     zoho_webhook: ZohoItemWebhook,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     authenticated: bool = Depends(verify_webhook_key)
 ):
     """
@@ -165,7 +165,7 @@ async def receive_product_webhook(
 async def receive_customer_webhook(
     webhook: CustomerWebhook,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     authenticated: bool = Depends(verify_webhook_key)
 ):
     """
@@ -186,7 +186,7 @@ async def receive_customer_webhook(
 async def receive_invoice_webhook(
     zoho_webhook: ZohoInvoiceWebhook,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     authenticated: bool = Depends(verify_webhook_key)
 ):
     """
@@ -219,7 +219,7 @@ async def receive_invoice_webhook(
 async def receive_bill_webhook(
     webhook: BillWebhook,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     authenticated: bool = Depends(verify_webhook_key)
 ):
     """
@@ -240,7 +240,7 @@ async def receive_bill_webhook(
 async def receive_credit_note_webhook(
     webhook: CreditNoteWebhook,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     authenticated: bool = Depends(verify_webhook_key)
 ):
     """
@@ -261,7 +261,7 @@ async def receive_credit_note_webhook(
 async def receive_stock_webhook(
     webhook: StockWebhook,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     authenticated: bool = Depends(verify_webhook_key)
 ):
     """
@@ -282,7 +282,7 @@ async def receive_stock_webhook(
 async def receive_pricelist_webhook(
     webhook: PriceListWebhook,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     authenticated: bool = Depends(verify_webhook_key)
 ):
     """
