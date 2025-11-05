@@ -132,13 +132,10 @@ jobs:
             pip install -q -r requirements.txt
 
             # Run database migrations if needed
-            echo "[5/6] Running database migrations..."
-            if [ -d "alembic" ] && [ -f "alembic.ini" ]; then
-              echo "ℹ️ Alembic found, attempting migrations..."
-              alembic upgrade head 2>&1 || echo "⚠️ Warning: Migration failed or not needed - continuing anyway"
-            else
-              echo "ℹ️ No Alembic migrations found, skipping..."
-            fi
+            echo "[5/6] Checking for database migrations..."
+            # Note: Migrations are managed separately via manual deployment
+            # This step reserved for future automated migration support
+            echo "ℹ️ Skipping automatic migrations (managed manually)"
 
             # Restart service
             echo "[6/6] Restarting TSH ERP service..."
