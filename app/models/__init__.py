@@ -74,7 +74,8 @@ from .after_sales import (
     MaintenanceStatus, WarrantyStatus, Decision, InventoryZone
 )
 
-# Migration models
+# Migration models - KEPT (used by items, customers, vendors routers)
+# Note: These are NOT for Zoho sync (TDS handles that), but for internal data structures
 from .migration import (
     MigrationBatch, MigrationRecord, ItemCategory, MigrationItem, PriceList as MigrationPriceList, PriceListItem,
     MigrationCustomer, MigrationVendor, MigrationStock

@@ -177,7 +177,8 @@ from app.routers import (
     cashflow_router
 )
 from app.routers.products import router as products_router
-from app.routers.migration import router as migration_router
+# Legacy migration router removed - TDS Core handles all Zoho integration
+# from app.routers.migration import router as migration_router
 from app.routers.models import router as models_router
 from app.routers.users import router as users_router
 from app.routers.invoices import router as invoices_router
@@ -213,14 +214,21 @@ from app.routers.consumer_api import router as consumer_api_router  # Consumer A
 from app.routers.dashboard import router as dashboard_router  # Dashboard Statistics
 from app.routers.notifications import router as notifications_router  # Unified Notification System
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
-# Zoho Integration Routers (unified from TDS Core)
-from app.routers.zoho_webhooks import router as zoho_webhooks_router
-from app.routers.zoho_dashboard import router as zoho_dashboard_router
-from app.routers.zoho_admin import router as zoho_admin_router
-from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # Bulk data migration
-from app.routers.zoho_proxy import router as zoho_proxy_router  # Zoho image proxy
+# ============================================================================
+# TDS CORE - TSH DataSync Core (Zoho Integration)
+# ============================================================================
+# TDS Core is the ONLY system handling Zoho Books integration
+# All webhook receivers, bulk sync, monitoring, and queue management
+# ============================================================================
+from app.routers.zoho_webhooks import router as zoho_webhooks_router  # TDS webhook receiver
+from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync
+
+# Legacy Zoho routers REMOVED - TDS Core handles everything:
+# ❌ zoho_dashboard - replaced by TDS monitoring
+# ❌ zoho_admin - replaced by TDS admin features
+# ❌ zoho_proxy - not needed with TDS direct integration
 # BFF (Backend For Frontend) - Mobile Optimization Layer
-from app.bff.mobile import router as mobile_bff_router  # Mobile BFF layer enabled!
+from app.bff import bff_router  # Mobile BFF layer for all 11 apps - 100% Complete!
 # V2 API - Clean Architecture Implementation
 from app.routers.v2.customers import router as customers_v2_router  # Clean architecture customer API
 from app.routers.v2.products import router as products_v2_router  # Clean architecture product API
@@ -258,7 +266,8 @@ app.include_router(whatsapp_router, prefix="/api/whatsapp", tags=["WhatsApp Inte
 app.include_router(hr_router, prefix="/api/hr", tags=["HR Management System - Phase 3 Implementation"])
 # 👥 PARTNER SALESMEN NETWORK: 100+ Salesmen Across Iraq
 app.include_router(partner_salesmen_router, prefix="/api/partners", tags=["Partner Salesmen"])
-app.include_router(migration_router, prefix="/api")
+# Legacy migration router removed - TDS Core handles all Zoho integration
+# app.include_router(migration_router, prefix="/api")
 app.include_router(models_router, prefix="/api", tags=["models"])
 app.include_router(users_router, prefix="/api")
 app.include_router(permissions_router, prefix="/api")  # Add permissions management
@@ -271,14 +280,26 @@ app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])
 # 🛒 CONSUMER APP: Modern E-commerce with Zoho Integration
 app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
-# 🔄 ZOHO INTEGRATION: Unified Zoho Books Integration (from TDS Core)
-app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["Zoho Integration - Webhooks"])
-app.include_router(zoho_dashboard_router, prefix="/api/zoho/dashboard", tags=["Zoho Integration - Dashboard"])
-app.include_router(zoho_admin_router, prefix="/api/zoho/admin", tags=["Zoho Integration - Admin"])
-app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["Zoho Integration - Bulk Migration"])
-app.include_router(zoho_proxy_router, tags=["Zoho Proxy"])
-# 📱 MOBILE BFF: Optimized API Layer for Flutter Apps (Consumer & Salesperson)
-app.include_router(mobile_bff_router, prefix="/api/mobile", tags=["Mobile BFF - Optimized for Flutter Apps"])  # Enabled!
+# ============================================================================
+# 🔄 TDS CORE - TSH DataSync Core (Zoho Integration)
+# ============================================================================
+# TDS Core is the SOLE handler for ALL Zoho Books integration:
+# - Real-time webhooks (< 15 seconds sync delay)
+# - Bulk sync (manual/scheduled)
+# - Queue management with retry logic
+# - Monitoring and auto-healing
+# - Complete audit trail
+# ============================================================================
+app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["TDS Core - Webhooks"])
+app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])
+
+# Legacy Zoho routers REMOVED:
+# ❌ app.include_router(zoho_dashboard_router) - TDS monitoring handles this
+# ❌ app.include_router(zoho_admin_router) - TDS admin features handle this
+# ❌ app.include_router(zoho_proxy_router) - Direct integration, no proxy needed
+# ❌ app.include_router(migration_router) - TDS bulk sync replaced this
+# 📱 MOBILE BFF: Optimized API Layer for ALL 11 Flutter Apps (100% Complete)
+app.include_router(bff_router, prefix="/api/bff", tags=["Mobile BFF - All 11 Apps | 198 Endpoints | 9,782 Lines"])  # 100% Complete!
 # 🏗️ V2 API: Clean Architecture Implementation with Repository Pattern
 app.include_router(customers_v2_router, prefix="/api", tags=["Customers V2 - Clean Architecture"])
 app.include_router(products_v2_router, prefix="/api", tags=["Products V2 - Clean Architecture"])

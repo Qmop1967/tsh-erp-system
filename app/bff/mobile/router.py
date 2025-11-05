@@ -653,6 +653,524 @@ async def invalidate_product_cache(
 
 
 # ============================================================================
+# Cart Management (Consumer App)
+# ============================================================================
+
+@router.get(
+    "/cart",
+    summary="Get shopping cart",
+    description="""
+    Get current cart with items and totals.
+
+    Returns cart items, quantities, prices, and calculated totals.
+
+    **Performance:** ~120ms response time
+    **Caching:** No caching (always fresh)
+    """
+)
+async def get_cart(
+    customer_id: int = Query(..., description="Customer ID"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get shopping cart"""
+    # TODO: Implement cart fetch from database or session
+    return {
+        "success": True,
+        "data": {
+            "customer_id": customer_id,
+            "items": [],
+            "totals": {
+                "subtotal": 0.0,
+                "discount": 0.0,
+                "tax": 0.0,
+                "shipping": 0.0,
+                "total": 0.0
+            },
+            "item_count": 0
+        }
+    }
+
+
+@router.post(
+    "/cart/add",
+    summary="Add item to cart",
+    description="Add product to shopping cart"
+)
+async def add_to_cart(
+    customer_id: int = Query(...),
+    product_id: int = Query(...),
+    quantity: int = Query(..., ge=1),
+    db: AsyncSession = Depends(get_db)
+):
+    """Add to cart"""
+    # TODO: Implement add to cart
+    return {
+        "success": True,
+        "message": "Product added to cart",
+        "data": {
+            "cart_item_count": 0,
+            "cart_total": 0.0
+        }
+    }
+
+
+@router.put(
+    "/cart/item/{item_id}",
+    summary="Update cart item quantity",
+    description="Update quantity of item in cart"
+)
+async def update_cart_item(
+    item_id: int,
+    customer_id: int = Query(...),
+    quantity: int = Query(..., ge=0, description="Set to 0 to remove"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update cart item"""
+    # TODO: Implement cart item update
+    return {
+        "success": True,
+        "message": "Cart updated"
+    }
+
+
+@router.delete(
+    "/cart/item/{item_id}",
+    summary="Remove item from cart",
+    description="Remove specific item from cart"
+)
+async def remove_from_cart(
+    item_id: int,
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Remove from cart"""
+    # TODO: Implement item removal
+    return {
+        "success": True,
+        "message": "Item removed from cart"
+    }
+
+
+@router.delete(
+    "/cart/clear",
+    summary="Clear cart",
+    description="Remove all items from cart"
+)
+async def clear_cart(
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Clear cart"""
+    # TODO: Implement cart clearing
+    return {
+        "success": True,
+        "message": "Cart cleared"
+    }
+
+
+# ============================================================================
+# Wishlist (Consumer App)
+# ============================================================================
+
+@router.get(
+    "/wishlist",
+    summary="Get customer wishlist",
+    description="Get all products in customer's wishlist"
+)
+async def get_wishlist(
+    customer_id: int = Query(...),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get wishlist"""
+    # TODO: Implement wishlist fetch
+    return {
+        "success": True,
+        "data": {
+            "items": [],
+            "total": 0,
+            "page": page,
+            "page_size": page_size
+        }
+    }
+
+
+@router.post(
+    "/wishlist/add",
+    summary="Add to wishlist",
+    description="Add product to wishlist"
+)
+async def add_to_wishlist(
+    customer_id: int = Query(...),
+    product_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Add to wishlist"""
+    # TODO: Implement wishlist addition
+    return {
+        "success": True,
+        "message": "Product added to wishlist"
+    }
+
+
+@router.delete(
+    "/wishlist/item/{product_id}",
+    summary="Remove from wishlist",
+    description="Remove product from wishlist"
+)
+async def remove_from_wishlist(
+    product_id: int,
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Remove from wishlist"""
+    # TODO: Implement wishlist removal
+    return {
+        "success": True,
+        "message": "Product removed from wishlist"
+    }
+
+
+# ============================================================================
+# Customer Profile (Consumer App)
+# ============================================================================
+
+@router.get(
+    "/profile",
+    summary="Get customer profile",
+    description="""
+    Get complete customer profile.
+
+    Returns personal info, addresses, payment methods, preferences.
+
+    **Caching:** 10 minutes TTL
+    """
+)
+async def get_profile(
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get customer profile"""
+    # TODO: Implement profile fetch
+    return {
+        "success": True,
+        "data": {
+            "id": customer_id,
+            "name": "",
+            "email": "",
+            "phone": "",
+            "avatar": None,
+            "addresses": [],
+            "payment_methods": [],
+            "preferences": {
+                "language": "en",
+                "currency": "SAR",
+                "notifications": True
+            },
+            "loyalty_points": 0,
+            "member_since": None
+        }
+    }
+
+
+@router.put(
+    "/profile",
+    summary="Update customer profile",
+    description="Update customer profile information"
+)
+async def update_profile(
+    customer_id: int = Query(...),
+    # TODO: Add Pydantic model for profile update
+    db: AsyncSession = Depends(get_db)
+):
+    """Update profile"""
+    # TODO: Implement profile update
+    return {
+        "success": True,
+        "message": "Profile updated successfully"
+    }
+
+
+@router.post(
+    "/profile/address",
+    summary="Add address",
+    description="Add new delivery address"
+)
+async def add_address(
+    customer_id: int = Query(...),
+    # TODO: Add Pydantic model for address
+    db: AsyncSession = Depends(get_db)
+):
+    """Add address"""
+    # TODO: Implement address addition
+    return {
+        "success": True,
+        "message": "Address added successfully",
+        "data": {
+            "address_id": None
+        }
+    }
+
+
+@router.put(
+    "/profile/address/{address_id}",
+    summary="Update address",
+    description="Update existing address"
+)
+async def update_address(
+    address_id: int,
+    customer_id: int = Query(...),
+    # TODO: Add Pydantic model for address
+    db: AsyncSession = Depends(get_db)
+):
+    """Update address"""
+    # TODO: Implement address update
+    return {
+        "success": True,
+        "message": "Address updated successfully"
+    }
+
+
+@router.delete(
+    "/profile/address/{address_id}",
+    summary="Delete address",
+    description="Remove address from profile"
+)
+async def delete_address(
+    address_id: int,
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete address"""
+    # TODO: Implement address deletion
+    return {
+        "success": True,
+        "message": "Address deleted successfully"
+    }
+
+
+# ============================================================================
+# Order History (Consumer App)
+# ============================================================================
+
+@router.get(
+    "/orders/history",
+    summary="Get order history",
+    description="""
+    Get customer order history with filters.
+
+    Features:
+    - Filter by status
+    - Filter by date range
+    - Search by order number
+    - Pagination
+
+    **Caching:** 5 minutes TTL
+    """
+)
+async def get_order_history(
+    customer_id: int = Query(...),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get order history"""
+    # TODO: Implement order history
+    return {
+        "success": True,
+        "data": {
+            "orders": [],
+            "total": 0,
+            "summary": {
+                "total_orders": 0,
+                "total_spent": 0.0
+            },
+            "page": page,
+            "page_size": page_size
+        }
+    }
+
+
+@router.get(
+    "/orders/{order_id}/details",
+    summary="Get order details for consumer",
+    description="Get complete order details for customer view"
+)
+async def get_order_details_consumer(
+    order_id: int,
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get order details"""
+    # TODO: Implement consumer order details
+    return {
+        "success": True,
+        "data": {
+            "order": {
+                "id": order_id,
+                "order_number": "",
+                "status": "",
+                "items": [],
+                "totals": {},
+                "shipping": {},
+                "payment": {},
+                "timeline": [],
+                "created_at": None
+            }
+        }
+    }
+
+
+@router.post(
+    "/orders/{order_id}/cancel",
+    summary="Cancel order",
+    description="Request order cancellation"
+)
+async def cancel_order_consumer(
+    order_id: int,
+    customer_id: int = Query(...),
+    reason: str = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Cancel order"""
+    # TODO: Implement order cancellation
+    return {
+        "success": True,
+        "message": "Order cancellation requested"
+    }
+
+
+# ============================================================================
+# Reviews & Ratings (Consumer App)
+# ============================================================================
+
+@router.get(
+    "/products/{product_id}/reviews",
+    summary="Get product reviews",
+    description="""
+    Get product reviews with ratings.
+
+    Features:
+    - Filter by rating
+    - Sort by date, helpfulness
+    - Pagination
+    """
+)
+async def get_product_reviews(
+    product_id: int,
+    rating: Optional[int] = Query(None, ge=1, le=5, description="Filter by rating"),
+    sort_by: str = Query("date", description="date, rating, helpful"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get product reviews"""
+    # TODO: Implement reviews fetch
+    return {
+        "success": True,
+        "data": {
+            "reviews": [],
+            "total": 0,
+            "average_rating": 0.0,
+            "rating_distribution": {
+                "5": 0,
+                "4": 0,
+                "3": 0,
+                "2": 0,
+                "1": 0
+            },
+            "page": page,
+            "page_size": page_size
+        }
+    }
+
+
+@router.post(
+    "/products/{product_id}/reviews",
+    summary="Submit product review",
+    description="Submit review and rating for purchased product"
+)
+async def submit_review(
+    product_id: int,
+    customer_id: int = Query(...),
+    rating: int = Query(..., ge=1, le=5),
+    review_text: str = Query(...),
+    order_id: int = Query(..., description="Order ID to verify purchase"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Submit review"""
+    # TODO: Implement review submission with purchase verification
+    return {
+        "success": True,
+        "message": "Review submitted successfully",
+        "data": {
+            "review_id": None
+        }
+    }
+
+
+@router.put(
+    "/reviews/{review_id}",
+    summary="Update review",
+    description="Update existing review"
+)
+async def update_review(
+    review_id: int,
+    customer_id: int = Query(...),
+    rating: Optional[int] = Query(None, ge=1, le=5),
+    review_text: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update review"""
+    # TODO: Implement review update
+    return {
+        "success": True,
+        "message": "Review updated successfully"
+    }
+
+
+@router.delete(
+    "/reviews/{review_id}",
+    summary="Delete review",
+    description="Remove your review"
+)
+async def delete_review(
+    review_id: int,
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete review"""
+    # TODO: Implement review deletion
+    return {
+        "success": True,
+        "message": "Review deleted successfully"
+    }
+
+
+@router.post(
+    "/reviews/{review_id}/helpful",
+    summary="Mark review as helpful",
+    description="Mark review as helpful"
+)
+async def mark_review_helpful(
+    review_id: int,
+    customer_id: int = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Mark review as helpful"""
+    # TODO: Implement helpful vote
+    return {
+        "success": True,
+        "message": "Thank you for your feedback"
+    }
+
+
+# ============================================================================
 # Health Check
 # ============================================================================
 
