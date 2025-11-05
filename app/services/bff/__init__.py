@@ -15,10 +15,12 @@ from .base_bff import BaseBFFService
 from .product_bff import ProductBFFService
 from .customer_bff import CustomerBFFService
 from .order_bff import OrderBFFService
+from .dashboard_bff import DashboardBFFService
 
 __all__ = [
     "BaseBFFService",
     "ProductBFFService",
     "CustomerBFFService",
     "OrderBFFService",
+    "DashboardBFFService",
 ]
