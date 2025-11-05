@@ -134,14 +134,20 @@ jobs:
             # Run database migrations if needed
             echo "[5/6] Running database migrations..."
             if [ -d "alembic" ] && [ -f "alembic.ini" ]; then
-              alembic upgrade head || echo "⚠️ Warning: Migration failed or not needed"
+              echo "ℹ️ Alembic found, attempting migrations..."
+              alembic upgrade head 2>&1 || echo "⚠️ Warning: Migration failed or not needed - continuing anyway"
             else
               echo "ℹ️ No Alembic migrations found, skipping..."
             fi
 
             # Restart service
             echo "[6/6] Restarting TSH ERP service..."
-            systemctl restart tsh-erp || { echo "❌ Failed to restart service"; exit 1; }
+            systemctl restart tsh-erp
+            if [ $? -ne 0 ]; then
+              echo "❌ Failed to restart service"
+              systemctl status tsh-erp --no-pager || true
+              exit 1
+            fi
 
             echo "✅ Service restarted successfully"
 
