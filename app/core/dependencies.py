@@ -8,7 +8,7 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 
-from app.core.database import get_db
+from app.db.database import get_db
 from app.infrastructure.repositories.sqlalchemy.customer_repository import CustomerRepository
 from app.infrastructure.repositories.sqlalchemy.product_repository import ProductRepository
 from app.infrastructure.repositories.sqlalchemy.order_repository import OrderRepository
