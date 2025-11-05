@@ -26,6 +26,7 @@ from fastapi import APIRouter
 
 # Import all app-specific routers
 from app.bff.mobile.router import router as mobile_base_router
+from app.bff.routers.tds import router as tds_bff_router
 
 # Create main BFF router
 bff_router = APIRouter()
@@ -35,6 +36,12 @@ bff_router.include_router(
     mobile_base_router,
     prefix="/mobile",
     tags=["Mobile BFF"]
+)
+
+# Include TDS BFF router
+bff_router.include_router(
+    tds_bff_router,
+    tags=["TDS BFF"]
 )
 
 __all__ = ["bff_router"]
