@@ -176,6 +176,17 @@ class Settings(BaseSettings):
         password_part = f":{self.redis_password}@" if self.redis_password else ""
         return f"redis://{password_part}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
+    # Convenience property for cache module
+    @property
+    def REDIS_URL(self) -> str:
+        """Alias for get_redis_url for cache module compatibility"""
+        return self.get_redis_url
+
+    @property
+    def REDIS_ENABLED(self) -> bool:
+        """Alias for redis_enabled for cache module compatibility"""
+        return self.redis_enabled
+
     # ========================================================================
     # MONITORING
     # ========================================================================
