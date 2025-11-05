@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc
 from app.services.bff.base_bff import BaseBFFService
 from app.models import (
-    SalesOrder, SalesOrderItem, Customer, User, Product,
-    SalesInvoice, InvoicePayment, DeliveryNote
+    SalesOrder, SalesItem, Customer, User, Product,
+    SalesInvoice, InvoicePayment
 )
 from datetime import datetime
 import logging
@@ -136,7 +136,7 @@ class OrderBFFService(BaseBFFService):
         """Get order basic information"""
         result = await self.db.execute(
             select(SalesOrder, User)
-            .outerjoin(User, SalesOrder.salesperson_id == User.id)
+            .outerjoin(User, SalesOrder.created_by == User.id)
             .where(SalesOrder.id == order_id)
         )
         row = result.first()
@@ -190,10 +190,10 @@ class OrderBFFService(BaseBFFService):
     async def _get_order_items(self, order_id: int) -> List[Dict[str, Any]]:
         """Get order items with product details"""
         result = await self.db.execute(
-            select(SalesOrderItem, Product)
-            .join(Product, SalesOrderItem.product_id == Product.id)
-            .where(SalesOrderItem.order_id == order_id)
-            .order_by(SalesOrderItem.id)
+            select(SalesItem, Product)
+            .join(Product, SalesItem.product_id == Product.id)
+            .where(SalesItem.sales_order_id == order_id)
+            .order_by(SalesItem.id)
         )
 
         items = []
@@ -206,9 +206,10 @@ class OrderBFFService(BaseBFFService):
                 "product_name_ar": getattr(product, "name_ar", None),
                 "quantity": float(order_item.quantity),
                 "unit_price": float(order_item.unit_price),
-                "discount": float(getattr(order_item, "discount", 0)),
-                "tax": float(getattr(order_item, "tax", 0)),
-                "total": float(getattr(order_item, "total", 0)),
+                "discount_percentage": float(order_item.discount_percentage),
+                "discount_amount": float(order_item.discount_amount),
+                "line_total": float(order_item.line_total),
+                "delivered_quantity": float(order_item.delivered_quantity),
                 "notes": getattr(order_item, "notes", None)
             })
 
@@ -273,45 +274,31 @@ class OrderBFFService(BaseBFFService):
         }
 
     async def _get_delivery_status(self, order_id: int) -> Dict[str, Any]:
-        """Get delivery status information"""
-        # Get delivery notes for this order
+        """Get delivery status information from order"""
+        # Get order delivery status
         result = await self.db.execute(
-            select(DeliveryNote)
-            .where(DeliveryNote.order_id == order_id)
-            .order_by(desc(DeliveryNote.created_at))
+            select(SalesOrder).where(SalesOrder.id == order_id)
         )
-        delivery_notes = result.scalars().all()
+        order = result.scalar_one_or_none()
 
-        if not delivery_notes:
+        if not order:
             return {
                 "has_delivery": False,
                 "is_delivered": False,
-                "delivery_notes": []
+                "status": "unknown"
             }
 
-        # Check if any delivery note is completed
-        is_delivered = any(
-            getattr(dn, "status", "pending") == "delivered"
-            for dn in delivery_notes
-        )
+        # Check if order is shipped or delivered
+        status = getattr(order, "status", "DRAFT")
+        is_delivered = status in ["DELIVERED", "COMPLETED"]
+        is_shipped = status in ["SHIPPED", "DELIVERED", "COMPLETED"]
 
         return {
-            "has_delivery": True,
+            "has_delivery": is_shipped,
             "is_delivered": is_delivered,
-            "delivery_count": len(delivery_notes),
-            "delivery_notes": [
-                {
-                    "id": dn.id,
-                    "delivery_number": getattr(dn, "delivery_number", f"DN-{dn.id}"),
-                    "delivery_date": dn.created_at.isoformat() if dn.created_at else None,
-                    "status": getattr(dn, "status", "pending"),
-                    "driver": getattr(dn, "driver_name", None),
-                    "tracking_number": getattr(dn, "tracking_number", None),
-                    "notes": getattr(dn, "notes", None)
-                }
-                for dn in delivery_notes
-            ],
-            "latest_status": delivery_notes[0].status if delivery_notes else "pending"
+            "status": status,
+            "expected_delivery_date": order.expected_delivery_date.isoformat() if order.expected_delivery_date else None,
+            "actual_delivery_date": order.actual_delivery_date.isoformat() if order.actual_delivery_date else None
         }
 
     async def invalidate_order_cache(self, order_id: int):

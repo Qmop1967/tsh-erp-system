@@ -169,7 +169,7 @@ class DashboardBFFService(BaseBFFService):
                 func.avg(SalesOrder.total_amount).label('average_order_value')
             ).where(
                 and_(
-                    SalesOrder.salesperson_id == salesperson_id,
+                    SalesOrder.created_by == salesperson_id,
                     SalesOrder.created_at >= start_date,
                     SalesOrder.created_at <= end_date
                 )
@@ -184,7 +184,7 @@ class DashboardBFFService(BaseBFFService):
                 func.count(SalesOrder.id).label('count')
             ).where(
                 and_(
-                    SalesOrder.salesperson_id == salesperson_id,
+                    SalesOrder.created_by == salesperson_id,
                     SalesOrder.created_at >= start_date,
                     SalesOrder.created_at <= end_date
                 )
@@ -211,7 +211,7 @@ class DashboardBFFService(BaseBFFService):
         result = await self.db.execute(
             select(SalesOrder, Customer)
             .join(Customer, SalesOrder.customer_id == Customer.id)
-            .where(SalesOrder.salesperson_id == salesperson_id)
+            .where(SalesOrder.created_by == salesperson_id)
             .order_by(desc(SalesOrder.created_at))
             .limit(limit)
         )
@@ -237,7 +237,7 @@ class DashboardBFFService(BaseBFFService):
             .join(Customer, SalesOrder.customer_id == Customer.id)
             .where(
                 and_(
-                    SalesOrder.salesperson_id == salesperson_id,
+                    SalesOrder.created_by == salesperson_id,
                     or_(
                         SalesOrder.status == "pending",
                         SalesOrder.status == "draft"
@@ -280,7 +280,7 @@ class DashboardBFFService(BaseBFFService):
             .join(SalesOrder, Customer.id == SalesOrder.customer_id)
             .where(
                 and_(
-                    SalesOrder.salesperson_id == salesperson_id,
+                    SalesOrder.created_by == salesperson_id,
                     SalesOrder.created_at >= start_date,
                     SalesOrder.created_at <= end_date
                 )
@@ -309,21 +309,21 @@ class DashboardBFFService(BaseBFFService):
         limit: int = 5
     ) -> List[Dict[str, Any]]:
         """Get top selling products"""
-        from app.models import SalesOrderItem
+        from app.models import SalesItem
 
         result = await self.db.execute(
             select(
                 Product.id,
                 Product.name,
                 Product.sku,
-                func.sum(SalesOrderItem.quantity).label('total_quantity'),
-                func.sum(SalesOrderItem.total).label('total_value')
+                func.sum(SalesItem.quantity).label('total_quantity'),
+                func.sum(SalesItem.line_total).label('total_value')
             )
-            .join(SalesOrderItem, Product.id == SalesOrderItem.product_id)
-            .join(SalesOrder, SalesOrderItem.order_id == SalesOrder.id)
+            .join(SalesItem, Product.id == SalesItem.product_id)
+            .join(SalesOrder, SalesItem.sales_order_id == SalesOrder.id)
             .where(
                 and_(
-                    SalesOrder.salesperson_id == salesperson_id,
+                    SalesOrder.created_by == salesperson_id,
                     SalesOrder.created_at >= start_date,
                     SalesOrder.created_at <= end_date
                 )
@@ -367,7 +367,7 @@ class DashboardBFFService(BaseBFFService):
             .join(SalesOrder, SalesInvoice.order_id == SalesOrder.id)
             .where(
                 and_(
-                    SalesOrder.salesperson_id == salesperson_id,
+                    SalesOrder.created_by == salesperson_id,
                     SalesInvoice.created_at >= start_date,
                     SalesInvoice.created_at <= end_date
                 )
