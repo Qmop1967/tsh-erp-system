@@ -93,22 +93,22 @@ jobs:
           script_stop: true
           script: |
             echo "========================================"
-            echo "Starting Monolithic Backend Deployment..."
+            echo "Starting TSH ERP Backend Deployment..."
             echo "========================================"
 
             # Check if deployment directory exists
-            if [ ! -d "/opt/tsh_erp" ]; then
-              echo "❌ Error: /opt/tsh_erp directory not found"
+            if [ ! -d "/home/deploy/TSH_ERP_Ecosystem" ]; then
+              echo "❌ Error: /home/deploy/TSH_ERP_Ecosystem directory not found"
               echo "Please set up the application directory first:"
-              echo "  1. SSH to server: ssh root@erp.tsh.sale"
-              echo "  2. Clone repository: git clone <repo-url> /opt/tsh_erp"
-              echo "  3. Set up application (see DEPLOY_NOW.md)"
+              echo "  1. SSH to server: ssh root@167.71.39.50"
+              echo "  2. Clone repository: git clone <repo-url> /home/deploy/TSH_ERP_Ecosystem"
+              echo "  3. Set up application and systemd service"
               exit 1
             fi
 
             # Navigate to application directory
-            echo "[1/3] Navigating to application directory..."
-            cd /opt/tsh_erp || exit 1
+            echo "[1/6] Navigating to application directory..."
+            cd /home/deploy/TSH_ERP_Ecosystem || exit 1
 
             # Check if it's a git repository
             if [ ! -d ".git" ]; then
@@ -118,49 +118,75 @@ jobs:
             fi
 
             # Pull latest code
-            echo "[2/3] Pulling latest code..."
+            echo "[2/6] Pulling latest code..."
             git fetch origin
             git reset --hard origin/main
 
-            # Run automated deployment script
-            echo "[3/3] Running deployment script..."
-            if [ -f "deployment/deploy_phase1.sh" ]; then
-              bash deployment/deploy_phase1.sh
-            elif [ -f "bin/deploy.sh" ]; then
-              bash bin/deploy.sh main
+            # Activate virtual environment
+            echo "[3/6] Activating virtual environment..."
+            source venv/bin/activate || { echo "❌ Failed to activate venv"; exit 1; }
+
+            # Install/update dependencies
+            echo "[4/6] Installing dependencies..."
+            pip install -q --upgrade pip
+            pip install -q -r requirements.txt
+
+            # Run database migrations if needed
+            echo "[5/6] Running database migrations..."
+            if [ -d "alembic" ] && [ -f "alembic.ini" ]; then
+              alembic upgrade head || echo "⚠️ Warning: Migration failed or not needed"
             else
-              echo "⚠️  Warning: No deployment script found, performing basic deployment"
-
-              # Basic deployment steps
-              source venv/bin/activate 2>/dev/null || source .venv/bin/activate || true
-              pip install -q -r requirements.txt
-
-              # Restart service
-              sudo systemctl restart tsh_erp || sudo systemctl restart tsh_erp-blue || true
+              echo "ℹ️ No Alembic migrations found, skipping..."
             fi
+
+            # Restart service
+            echo "[6/6] Restarting TSH ERP service..."
+            systemctl restart tsh-erp || { echo "❌ Failed to restart service"; exit 1; }
+
+            echo "✅ Service restarted successfully"
 
             # Verify deployment
-            echo "Verifying deployment..."
-            sleep 5
+            echo ""
+            echo "========================================"
+            echo "Verifying Deployment..."
+            echo "========================================"
 
-            # Backend API
+            # Wait for service to start
+            sleep 7
+
+            # Check systemd service status
+            echo "Checking service status..."
+            if systemctl is-active --quiet tsh-erp; then
+              echo "✓ TSH ERP service is active"
+            else
+              echo "❌ Service not active!"
+              systemctl status tsh-erp --no-pager || true
+              exit 1
+            fi
+
+            # Backend API health check
+            echo "Checking API health..."
             if curl -f http://127.0.0.1:8000/health >/dev/null 2>&1; then
-              echo "✓ Backend API healthy"
+              echo "✓ Backend API healthy (http://127.0.0.1:8000/health)"
             else
-              echo "⚠️  Warning: Backend API health check failed"
+              echo "❌ Backend API health check failed"
+              exit 1
             fi
 
-            # Check Redis
-            if redis-cli ping >/dev/null 2>&1; then
-              echo "✓ Redis healthy"
+            # Check public endpoint
+            if curl -f https://erp.tsh.sale/health >/dev/null 2>&1; then
+              echo "✓ Public endpoint healthy (https://erp.tsh.sale/health)"
             else
-              echo "⚠️  Redis not available"
+              echo "⚠️  Warning: Public endpoint not accessible (nginx might need restart)"
             fi
 
+            echo ""
             echo "========================================"
-            echo "✅ Deployment completed!"
+            echo "✅ Deployment Successful!"
             echo "========================================"
-            echo "Note: Flutter apps are mobile-only (no web deployment)"
+            echo "Backend: https://erp.tsh.sale"
+            echo "API Docs: https://erp.tsh.sale/docs"
+            echo "Health: https://erp.tsh.sale/health"
             echo "========================================"
 
       - name: Notify on success
