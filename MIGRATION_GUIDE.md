@@ -58,8 +58,8 @@ git pull origin feature/monolithic-unification
 pip install -r requirements.txt
 
 # 3. Run database migration
-PGPASSWORD="Zcbbm.97531tsh" psql \
-  "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres" \
+PGPASSWORD="TSH@2025Secure!Production" psql \
+  "postgresql://tsh_app_user:TSH@2025Secure!Production@localhost:5432/postgres" \
   -f migrations/create_bff_models.sql
 
 # 4. Test application
@@ -82,10 +82,10 @@ ssh root@167.71.39.50
 cd /root/TSH_ERP_Ecosystem
 
 # Backup database first!
-PGPASSWORD="Zcbbm.97531tsh" pg_dump \
-  -h aws-1-eu-north-1.pooler.supabase.com \
-  -U postgres.trjjglxhteqnzmyakxhe \
-  -d postgres \
+PGPASSWORD="TSH@2025Secure!Production" pg_dump \
+  -h localhost \
+  -U tsh_app_user \
+  -d tsh_erp \
   > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Merge to main
@@ -98,7 +98,7 @@ git push origin main
 pip install -r requirements.txt
 
 # Run migration
-PGPASSWORD="Zcbbm.97531tsh" psql \
+PGPASSWORD="TSH@2025Secure!Production" psql \
   "postgresql://..." \
   -f migrations/create_bff_models.sql
 
@@ -340,7 +340,7 @@ systemctl restart tsh_erp
 git reset --hard <commit-hash>
 
 # 2. Restore database backup
-PGPASSWORD="Zcbbm.97531tsh" psql \
+PGPASSWORD="TSH@2025Secure!Production" psql \
   "postgresql://..." \
   < backup_YYYYMMDD_HHMMSS.sql
 

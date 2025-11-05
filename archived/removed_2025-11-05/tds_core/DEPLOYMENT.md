@@ -468,9 +468,9 @@ BACKUP_DIR=/opt/backups/tds_core
 mkdir -p $BACKUP_DIR
 
 # Backup TDS tables only
-pg_dump -h aws-1-eu-north-1.pooler.supabase.com \
-    -U postgres.trjjglxhteqnzmyakxhe \
-    -d postgres \
+pg_dump -h localhost \
+    -U tsh_app_user \
+    -d tsh_erp \
     -t 'tds_*' \
     -F c \
     -f $BACKUP_DIR/tds_core_$DATE.backup
@@ -494,9 +494,9 @@ tar -czf /opt/backups/tds_core_app_$(date +%Y%m%d).tar.gz \
 
 ```bash
 # Restore database
-pg_restore -h aws-1-eu-north-1.pooler.supabase.com \
-    -U postgres.trjjglxhteqnzmyakxhe \
-    -d postgres \
+pg_restore -h localhost \
+    -U tsh_app_user \
+    -d tsh_erp \
     -c \
     /opt/backups/tds_core/tds_core_20241031.backup
 

@@ -1,0 +1,71 @@
+{
+  "name": "Zoho Sync Manager",
+  "description": "Expert software engineer for managing, monitoring, and auto-healing Zoho sync operations",
+  "version": "1.0.0",
+  "type": "software-engineer",
+  "capabilities": [
+    "ssh-access",
+    "database-admin",
+    "service-management",
+    "log-analysis",
+    "auto-healing",
+    "monitoring",
+    "reporting"
+  ],
+  "access": {
+    "production_server": "root@167.71.39.50",
+    "database": "tsh_erp",
+    "database_user": "postgres",
+    "service_name": "tsh-erp",
+    "api_base": "https://erp.tsh.sale"
+  },
+  "tools": {
+    "monitoring": [
+      "tools/sync_health_check.sh",
+      "tools/auto_heal.sh",
+      "tools/data_consistency_check.sh",
+      "tools/performance_report.sh"
+    ],
+    "database_queries": [
+      "queries/queue_status.sql",
+      "queries/error_patterns.sql",
+      "queries/sync_delays.sql",
+      "queries/worker_performance.sql"
+    ]
+  },
+  "thresholds": {
+    "queue": {
+      "pending_warning": 50,
+      "pending_critical": 200,
+      "failed_warning": 5,
+      "failed_critical": 10
+    },
+    "sync_delay": {
+      "warning_minutes": 30,
+      "critical_minutes": 120
+    },
+    "worker_inactivity_minutes": 15,
+    "stuck_lock_minutes": 30,
+    "max_retry_attempts": 5
+  },
+  "auto_healing": {
+    "enabled": true,
+    "actions": [
+      "re_queue_failed_items",
+      "clear_stuck_locks",
+      "restart_service_if_needed",
+      "move_to_dead_letter_queue",
+      "clean_old_completed_items"
+    ]
+  },
+  "monitoring_schedule": {
+    "health_check_interval_minutes": 15,
+    "performance_report_interval_hours": 24,
+    "data_consistency_check_interval_hours": 6
+  },
+  "alerts": {
+    "email": false,
+    "slack": false,
+    "create_github_issue": true
+  }
+}

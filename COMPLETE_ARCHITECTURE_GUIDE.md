@@ -591,14 +591,15 @@ ZOHO_REFRESH_TOKEN=***
 ZOHO_ACCESS_TOKEN=***
 ```
 
-#### 2. Supabase Integration (Deprecated)
+#### 2. Supabase Integration (REMOVED)
 
 Previously used for:
-- Storage (product images)
-- Authentication
-- Real-time subscriptions
+- Storage (product images) - NOW: Self-hosted + AWS S3
+- Authentication - NOW: Custom JWT auth
+- Database - NOW: Self-hosted PostgreSQL 14
+- Real-time subscriptions - NOW: WebSocket
 
-**Status:** Migrated to self-hosted PostgreSQL
+**Status:** Completely removed and migrated to 100% self-hosted infrastructure
 
 #### 3. AWS S3 Integration
 
@@ -940,8 +941,8 @@ Expiry check: Daily
 
 ```
 ✅ Zoho Books API
-✅ Supabase Storage (CDN)
-✅ AWS S3 Storage
+✅ Self-Hosted File Storage (Local + Nginx)
+✅ AWS S3 Storage (Backups)
 ✅ OpenAI ChatGPT
 ✅ Anthropic Claude
 ✅ TDS Core Sync Engine

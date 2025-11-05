@@ -186,10 +186,10 @@ ssh root@167.71.39.50
 cd /root/TSH_ERP_Ecosystem
 
 # 1. Backup database
-PGPASSWORD="Zcbbm.97531tsh" pg_dump \
-  -h aws-1-eu-north-1.pooler.supabase.com \
-  -U postgres.trjjglxhteqnzmyakxhe \
-  -d postgres \
+PGPASSWORD="TSH@2025Secure!Production" pg_dump \
+  -h localhost \
+  -U tsh_app_user \
+  -d tsh_erp \
   > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 2. Merge to main
@@ -202,8 +202,8 @@ git push origin main
 pip install -r requirements.txt
 
 # 4. Run migration
-PGPASSWORD="Zcbbm.97531tsh" psql \
-  "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres" \
+PGPASSWORD="TSH@2025Secure!Production" psql \
+  "postgresql://tsh_app_user:TSH@2025Secure!Production@localhost:5432/postgres" \
   -f migrations/create_bff_models.sql
 
 # 5. Restart service
@@ -292,7 +292,7 @@ journalctl -u tsh_erp -n 100 | grep -i "worker"
 
 ### **5. Database Tables**
 ```bash
-PGPASSWORD="Zcbbm.97531tsh" psql \
+PGPASSWORD="TSH@2025Secure!Production" psql \
   "postgresql://..." \
   -c "SELECT table_name FROM information_schema.tables
       WHERE table_schema = 'public'

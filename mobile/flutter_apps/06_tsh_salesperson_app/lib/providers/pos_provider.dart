@@ -14,7 +14,7 @@ class POSProvider with ChangeNotifier {
   bool get isLoadingProducts => _isLoadingProducts;
   String? get productsError => _productsError;
 
-  // Fetch products from Supabase REST API
+  // Fetch products from TSH ERP API (Self-Hosted)
   Future<void> fetchProducts() async {
     _isLoadingProducts = true;
     _productsError = null;
@@ -22,10 +22,9 @@ class POSProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('https://trjjglxhteqnzmyakxhe.supabase.co/rest/v1/products?select=*&limit=1000'),
+        Uri.parse('https://erp.tsh.sale/api/products?limit=1000'),
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyampnbHhodGVxbnpteWFreGhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzU4ODksImV4cCI6MjA3NTM1MTg4OX0.2bCdqhSA-Dg1hFbybh3uWfmmra5vhzENaT6dr--JIRU',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyampnbHhodGVxbnpteWFreGhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzU4ODksImV4cCI6MjA3NTM1MTg4OX0.2bCdqhSA-Dg1hFbybh3uWfmmra5vhzENaT6dr--JIRU',
+          'Content-Type': 'application/json',
         },
       );
 
@@ -47,7 +46,7 @@ class POSProvider with ChangeNotifier {
 
   // Demo products removed - using real data from API only
 
-  // Customers from Supabase
+  // Customers from TSH ERP (Self-Hosted)
   List<POSCustomer> _customers = [];
   bool _isLoadingCustomers = false;
   String? _customersError;
@@ -55,7 +54,7 @@ class POSProvider with ChangeNotifier {
   bool get isLoadingCustomers => _isLoadingCustomers;
   String? get customersError => _customersError;
 
-  // Fetch customers from Supabase REST API
+  // Fetch customers from TSH ERP API
   Future<void> fetchCustomers() async {
     _isLoadingCustomers = true;
     _customersError = null;
@@ -63,10 +62,9 @@ class POSProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('https://trjjglxhteqnzmyakxhe.supabase.co/rest/v1/customers?select=*&limit=1000'),
+        Uri.parse('https://erp.tsh.sale/api/customers?limit=1000'),
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyampnbHhodGVxbnpteWFreGhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzU4ODksImV4cCI6MjA3NTM1MTg4OX0.2bCdqhSA-Dg1hFbybh3uWfmmra5vhzENaT6dr--JIRU',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyampnbHhodGVxbnpteWFreGhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzU4ODksImV4cCI6MjA3NTM1MTg4OX0.2bCdqhSA-Dg1hFbybh3uWfmmra5vhzENaT6dr--JIRU',
+          'Content-Type': 'application/json',
         },
       );
 
@@ -210,9 +208,9 @@ class POSProvider with ChangeNotifier {
     return true;
   }
 
-  // Initialize with real data from Supabase
+  // Initialize with real data from TSH ERP API
   Future<void> initializeDemoData() async {
-    // Fetch products and customers from Supabase API
+    // Fetch products and customers from TSH ERP API
     await Future.wait([
       fetchProducts(),
       fetchCustomers(),

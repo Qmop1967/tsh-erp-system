@@ -89,17 +89,15 @@ class ProductHandler(BaseEntityHandler):
             if not zoho_item_id:
                 raise ValueError("Missing required field: item_id")
 
-            # Map Zoho fields to local database fields
+            # Map Zoho fields to local database fields (only fields that exist in the schema)
             product_data = {
                 "zoho_item_id": zoho_item_id,
                 "name": payload.get("name", ""),
                 "sku": payload.get("sku", ""),
                 "description": payload.get("description", ""),
                 "price": float(payload.get("rate", 0)),
-                "cost": float(payload.get("purchase_rate", 0)),
                 "stock_quantity": int(payload.get("stock_on_hand", 0)),
                 "is_active": payload.get("is_active", True),
-                "zoho_data": payload  # Store full payload as JSONB
             }
 
             # Execute upsert (assuming products table has zoho_item_id unique constraint)
@@ -110,18 +108,16 @@ class ProductHandler(BaseEntityHandler):
             # TODO: Replace with proper SQLAlchemy model when available
             result = await self.db.execute(
                 text("""
-                    INSERT INTO products (zoho_item_id, name, sku, description, price, cost, stock_quantity, is_active, zoho_data, updated_at)
-                    VALUES (:zoho_item_id, :name, :sku, :description, :price, :cost, :stock_quantity, :is_active, :zoho_data::jsonb, NOW())
+                    INSERT INTO products (zoho_item_id, name, sku, description, price, stock_quantity, is_active, updated_at)
+                    VALUES (:zoho_item_id, :name, :sku, :description, :price, :stock_quantity, :is_active, NOW())
                     ON CONFLICT (zoho_item_id)
                     DO UPDATE SET
                         name = EXCLUDED.name,
                         sku = EXCLUDED.sku,
                         description = EXCLUDED.description,
                         price = EXCLUDED.price,
-                        cost = EXCLUDED.cost,
                         stock_quantity = EXCLUDED.stock_quantity,
                         is_active = EXCLUDED.is_active,
-                        zoho_data = EXCLUDED.zoho_data,
                         updated_at = NOW()
                     RETURNING id
                 """),
@@ -131,10 +127,8 @@ class ProductHandler(BaseEntityHandler):
                     "sku": product_data["sku"],
                     "description": product_data["description"],
                     "price": product_data["price"],
-                    "cost": product_data["cost"],
                     "stock_quantity": product_data["stock_quantity"],
                     "is_active": product_data["is_active"],
-                    "zoho_data": str(product_data["zoho_data"])
                 }
             )
 
@@ -183,36 +177,36 @@ class CustomerHandler(BaseEntityHandler):
             if not zoho_contact_id:
                 raise ValueError("Missing required field: contact_id")
 
-            # Extract billing address
+            # Extract billing and shipping addresses
             billing_address = payload.get("billing_address", {})
+            shipping_address = payload.get("shipping_address", {})
 
             from sqlalchemy import text
+            import json
 
             result = await self.db.execute(
                 text("""
-                    INSERT INTO customers (zoho_contact_id, name, email, phone, address, city, country, zoho_data, updated_at)
-                    VALUES (:zoho_contact_id, :name, :email, :phone, :address, :city, :country, :zoho_data::jsonb, NOW())
+                    INSERT INTO customers (zoho_contact_id, contact_name, company_name, email, phone, billing_address, shipping_address, updated_at)
+                    VALUES (:zoho_contact_id, :contact_name, :company_name, :email, :phone, :billing_address, :shipping_address, NOW())
                     ON CONFLICT (zoho_contact_id)
                     DO UPDATE SET
-                        name = EXCLUDED.name,
+                        contact_name = EXCLUDED.contact_name,
+                        company_name = EXCLUDED.company_name,
                         email = EXCLUDED.email,
                         phone = EXCLUDED.phone,
-                        address = EXCLUDED.address,
-                        city = EXCLUDED.city,
-                        country = EXCLUDED.country,
-                        zoho_data = EXCLUDED.zoho_data,
+                        billing_address = EXCLUDED.billing_address,
+                        shipping_address = EXCLUDED.shipping_address,
                         updated_at = NOW()
                     RETURNING id
                 """),
                 {
                     "zoho_contact_id": zoho_contact_id,
-                    "name": payload.get("contact_name", ""),
+                    "contact_name": payload.get("contact_name", ""),
+                    "company_name": payload.get("company_name", ""),
                     "email": payload.get("email", ""),
                     "phone": payload.get("phone", ""),
-                    "address": billing_address.get("street", ""),
-                    "city": billing_address.get("city", ""),
-                    "country": billing_address.get("country", ""),
-                    "zoho_data": str(payload)
+                    "billing_address": json.dumps(billing_address) if billing_address else None,
+                    "shipping_address": json.dumps(shipping_address) if shipping_address else None,
                 }
             )
 
@@ -263,14 +257,39 @@ class InvoiceHandler(BaseEntityHandler):
                 raise ValueError("Missing required field: invoice_id")
 
             from sqlalchemy import text
+            from datetime import datetime
+            import json
+
+            # Helper function to parse date strings
+            def parse_date(date_value):
+                """Convert date string to date object, handling various formats"""
+                if date_value is None:
+                    return None
+                if isinstance(date_value, str):
+                    try:
+                        # Try ISO format (YYYY-MM-DD)
+                        return datetime.strptime(date_value, '%Y-%m-%d').date()
+                    except ValueError:
+                        try:
+                            # Try alternate format (DD-MM-YYYY)
+                            return datetime.strptime(date_value, '%d-%m-%Y').date()
+                        except ValueError:
+                            logger.warning(f"Could not parse date: {date_value}, using NULL")
+                            return None
+                return date_value  # Already a date object
+
+            # Parse date fields
+            invoice_date = parse_date(payload.get("date"))
+            due_date = parse_date(payload.get("due_date"))
 
             result = await self.db.execute(
                 text("""
-                    INSERT INTO invoices (zoho_invoice_id, invoice_number, zoho_customer_id, invoice_date, due_date, total, status, zoho_data, updated_at)
-                    VALUES (:zoho_invoice_id, :invoice_number, :zoho_customer_id, :invoice_date, :due_date, :total, :status, :zoho_data::jsonb, NOW())
+                    INSERT INTO invoices (zoho_invoice_id, invoice_number, customer_id, invoice_date, due_date, total, status, zoho_data, updated_at)
+                    VALUES (:zoho_invoice_id, :invoice_number, :customer_id, :invoice_date, :due_date, :total, :status, :zoho_data, NOW())
                     ON CONFLICT (zoho_invoice_id)
                     DO UPDATE SET
                         invoice_number = EXCLUDED.invoice_number,
+                        customer_id = EXCLUDED.customer_id,
                         invoice_date = EXCLUDED.invoice_date,
                         due_date = EXCLUDED.due_date,
                         total = EXCLUDED.total,
@@ -282,12 +301,12 @@ class InvoiceHandler(BaseEntityHandler):
                 {
                     "zoho_invoice_id": zoho_invoice_id,
                     "invoice_number": payload.get("invoice_number", ""),
-                    "zoho_customer_id": payload.get("customer_id", ""),
-                    "invoice_date": payload.get("date"),
-                    "due_date": payload.get("due_date"),
+                    "customer_id": payload.get("customer_id", ""),
+                    "invoice_date": invoice_date,
+                    "due_date": due_date,
                     "total": float(payload.get("total", 0)),
                     "status": payload.get("status", "draft"),
-                    "zoho_data": str(payload)
+                    "zoho_data": json.dumps(payload)
                 }
             )
 
@@ -322,67 +341,10 @@ class BillHandler(BaseEntityHandler):
         """
         Sync bill to local bills table
 
-        Expected payload fields:
-        - bill_id (required)
-        - bill_number (required)
-        - vendor_id (required)
-        - date
-        - due_date
-        - total
-        - status
+        NOTE: Bills table not yet implemented in database schema
         """
-        try:
-            zoho_bill_id = payload.get("bill_id")
-            if not zoho_bill_id:
-                raise ValueError("Missing required field: bill_id")
-
-            from sqlalchemy import text
-
-            result = await self.db.execute(
-                text("""
-                    INSERT INTO bills (zoho_bill_id, bill_number, zoho_vendor_id, bill_date, due_date, total, status, zoho_data, updated_at)
-                    VALUES (:zoho_bill_id, :bill_number, :zoho_vendor_id, :bill_date, :due_date, :total, :status, :zoho_data::jsonb, NOW())
-                    ON CONFLICT (zoho_bill_id)
-                    DO UPDATE SET
-                        bill_number = EXCLUDED.bill_number,
-                        bill_date = EXCLUDED.bill_date,
-                        due_date = EXCLUDED.due_date,
-                        total = EXCLUDED.total,
-                        status = EXCLUDED.status,
-                        zoho_data = EXCLUDED.zoho_data,
-                        updated_at = NOW()
-                    RETURNING id
-                """),
-                {
-                    "zoho_bill_id": zoho_bill_id,
-                    "bill_number": payload.get("bill_number", ""),
-                    "zoho_vendor_id": payload.get("vendor_id", ""),
-                    "bill_date": payload.get("date"),
-                    "due_date": payload.get("due_date"),
-                    "total": float(payload.get("total", 0)),
-                    "status": payload.get("status", "draft"),
-                    "zoho_data": str(payload)
-                }
-            )
-
-            await self.db.commit()
-
-            row = result.fetchone()
-            bill_id = row[0] if row else None
-
-            logger.info(f"Bill synced successfully: {zoho_bill_id} -> local ID {bill_id}")
-
-            return {
-                "success": True,
-                "local_entity_id": str(bill_id),
-                "operation_performed": "upsert",
-                "records_affected": 1
-            }
-
-        except Exception as e:
-            await self.db.rollback()
-            logger.error(f"Bill sync failed: {e}", exc_info=True)
-            raise
+        logger.warning("BillHandler called but bills table does not exist in database")
+        raise NotImplementedError("Bills table not yet implemented. Please create the bills table first.")
 
 
 class CreditNoteHandler(BaseEntityHandler):
@@ -392,64 +354,10 @@ class CreditNoteHandler(BaseEntityHandler):
         """
         Sync credit note to local credit_notes table
 
-        Expected payload fields:
-        - creditnote_id (required)
-        - creditnote_number (required)
-        - customer_id
-        - date
-        - total
-        - status
+        NOTE: Credit notes table not yet implemented in database schema
         """
-        try:
-            zoho_creditnote_id = payload.get("creditnote_id")
-            if not zoho_creditnote_id:
-                raise ValueError("Missing required field: creditnote_id")
-
-            from sqlalchemy import text
-
-            result = await self.db.execute(
-                text("""
-                    INSERT INTO credit_notes (zoho_creditnote_id, creditnote_number, zoho_customer_id, creditnote_date, total, status, zoho_data, updated_at)
-                    VALUES (:zoho_creditnote_id, :creditnote_number, :zoho_customer_id, :creditnote_date, :total, :status, :zoho_data::jsonb, NOW())
-                    ON CONFLICT (zoho_creditnote_id)
-                    DO UPDATE SET
-                        creditnote_number = EXCLUDED.creditnote_number,
-                        creditnote_date = EXCLUDED.creditnote_date,
-                        total = EXCLUDED.total,
-                        status = EXCLUDED.status,
-                        zoho_data = EXCLUDED.zoho_data,
-                        updated_at = NOW()
-                    RETURNING id
-                """),
-                {
-                    "zoho_creditnote_id": zoho_creditnote_id,
-                    "creditnote_number": payload.get("creditnote_number", ""),
-                    "zoho_customer_id": payload.get("customer_id", ""),
-                    "creditnote_date": payload.get("date"),
-                    "total": float(payload.get("total", 0)),
-                    "status": payload.get("status", "draft"),
-                    "zoho_data": str(payload)
-                }
-            )
-
-            await self.db.commit()
-
-            row = result.fetchone()
-            creditnote_id = row[0] if row else None
-
-            logger.info(f"Credit note synced successfully: {zoho_creditnote_id} -> local ID {creditnote_id}")
-
-            return {
-                "success": True,
-                "local_entity_id": str(creditnote_id),
-                "operation_performed": "upsert",
-                "records_affected": 1
-            }
-
-        except Exception as e:
-            await self.db.rollback()
-            logger.error(f"Credit note sync failed: {e}", exc_info=True)
-            raise
+        logger.warning("CreditNoteHandler called but credit_notes table does not exist in database")
+        raise NotImplementedError("Credit notes table not yet implemented. Please create the credit_notes table first.")
 
 
 class StockAdjustmentHandler(BaseEntityHandler):
@@ -458,86 +366,11 @@ class StockAdjustmentHandler(BaseEntityHandler):
     async def sync(self, payload: Dict[str, Any], operation: str) -> Dict[str, Any]:
         """
         Sync stock adjustment to local stock_adjustments table
-        Also updates product stock quantity
 
-        Expected payload fields:
-        - adjustment_id (required)
-        - item_id (required)
-        - quantity_adjusted (required)
-        - adjustment_type
-        - reason
-        - date
+        NOTE: Stock adjustments table not yet implemented in database schema
         """
-        try:
-            zoho_adjustment_id = payload.get("adjustment_id")
-            zoho_item_id = payload.get("item_id")
-
-            if not zoho_adjustment_id:
-                raise ValueError("Missing required field: adjustment_id")
-            if not zoho_item_id:
-                raise ValueError("Missing required field: item_id")
-
-            from sqlalchemy import text
-
-            # Store stock adjustment record
-            result = await self.db.execute(
-                text("""
-                    INSERT INTO stock_adjustments (zoho_adjustment_id, zoho_item_id, quantity_adjusted, adjustment_type, reason, adjustment_date, zoho_data, updated_at)
-                    VALUES (:zoho_adjustment_id, :zoho_item_id, :quantity_adjusted, :adjustment_type, :reason, :adjustment_date, :zoho_data::jsonb, NOW())
-                    ON CONFLICT (zoho_adjustment_id)
-                    DO UPDATE SET
-                        quantity_adjusted = EXCLUDED.quantity_adjusted,
-                        adjustment_type = EXCLUDED.adjustment_type,
-                        reason = EXCLUDED.reason,
-                        adjustment_date = EXCLUDED.adjustment_date,
-                        zoho_data = EXCLUDED.zoho_data,
-                        updated_at = NOW()
-                    RETURNING id
-                """),
-                {
-                    "zoho_adjustment_id": zoho_adjustment_id,
-                    "zoho_item_id": zoho_item_id,
-                    "quantity_adjusted": int(payload.get("quantity_adjusted", 0)),
-                    "adjustment_type": payload.get("adjustment_type", "quantity"),
-                    "reason": payload.get("reason", ""),
-                    "adjustment_date": payload.get("date"),
-                    "zoho_data": str(payload)
-                }
-            )
-
-            row = result.fetchone()
-            adjustment_id = row[0] if row else None
-
-            # Update product stock quantity
-            # Find product by zoho_item_id and update stock
-            await self.db.execute(
-                text("""
-                    UPDATE products
-                    SET stock_quantity = stock_quantity + :quantity_adjusted,
-                        updated_at = NOW()
-                    WHERE zoho_item_id = :zoho_item_id
-                """),
-                {
-                    "zoho_item_id": zoho_item_id,
-                    "quantity_adjusted": int(payload.get("quantity_adjusted", 0))
-                }
-            )
-
-            await self.db.commit()
-
-            logger.info(f"Stock adjustment synced successfully: {zoho_adjustment_id} -> local ID {adjustment_id}")
-
-            return {
-                "success": True,
-                "local_entity_id": str(adjustment_id),
-                "operation_performed": "upsert+update_stock",
-                "records_affected": 2  # adjustment + product
-            }
-
-        except Exception as e:
-            await self.db.rollback()
-            logger.error(f"Stock adjustment sync failed: {e}", exc_info=True)
-            raise
+        logger.warning("StockAdjustmentHandler called but stock_adjustments table does not exist in database")
+        raise NotImplementedError("Stock adjustments table not yet implemented. Please create the stock_adjustments table first.")
 
 
 class PriceListHandler(BaseEntityHandler):
@@ -567,23 +400,21 @@ class PriceListHandler(BaseEntityHandler):
             # Step 1: Sync pricelist header
             result = await self.db.execute(
                 text("""
-                    INSERT INTO pricelists (zoho_pricelist_id, name, currency, is_active, zoho_data, updated_at)
-                    VALUES (:zoho_pricelist_id, :name, :currency, :is_active, :zoho_data::jsonb, NOW())
+                    INSERT INTO pricelists (zoho_pricelist_id, name, currency, is_active, updated_at)
+                    VALUES (:zoho_pricelist_id, :name, :currency, :is_active, NOW())
                     ON CONFLICT (zoho_pricelist_id)
                     DO UPDATE SET
                         name = EXCLUDED.name,
                         currency = EXCLUDED.currency,
                         is_active = EXCLUDED.is_active,
-                        zoho_data = EXCLUDED.zoho_data,
                         updated_at = NOW()
                     RETURNING id
                 """),
                 {
                     "zoho_pricelist_id": zoho_pricelist_id,
                     "name": payload.get("name", ""),
-                    "currency": payload.get("currency_code", "USD"),
+                    "currency": payload.get("currency_code", "IQD"),
                     "is_active": payload.get("is_active", True),
-                    "zoho_data": str(payload)
                 }
             )
 
@@ -687,7 +518,13 @@ class EntityHandlerFactory:
         Raises:
             ValueError: If entity type not supported
         """
-        handler_class = cls._handlers.get(entity_type.lower())
+        # Handle both "invoice" and "EntityType.INVOICE" formats
+        entity_key = entity_type.lower()
+        if "." in entity_key:
+            # Extract value from enum string (e.g., "EntityType.INVOICE" -> "invoice")
+            entity_key = entity_key.split(".")[-1]
+
+        handler_class = cls._handlers.get(entity_key)
         if not handler_class:
             raise ValueError(f"Unsupported entity type: {entity_type}")
 

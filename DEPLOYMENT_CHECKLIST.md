@@ -29,17 +29,17 @@
 - [ ] **Backup current production database**
   ```bash
   PGPASSWORD="TSH@2025Secure!Production" pg_dump \
-    -h aws-1-eu-north-1.pooler.supabase.com \
-    -U postgres.trjjglxhteqnzmyakxhe \
-    -d postgres \
+    -h localhost \
+    -U tsh_app_user \
+    -d tsh_erp \
     --no-owner --no-acl \
     > backup_before_bff_migration_$(date +%Y%m%d_%H%M%S).sql
   ```
 
 - [ ] **Run migration script**
   ```bash
-  PGPASSWORD="Zcbbm.97531tsh" psql \
-    "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres" \
+  PGPASSWORD="TSH@2025Secure!Production" psql \
+    "postgresql://tsh_app_user:TSH@2025Secure!Production@localhost:5432/postgres" \
     -f migrations/create_bff_models.sql
   ```
 
@@ -120,8 +120,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run database migrations
-PGPASSWORD="Zcbbm.97531tsh" psql \
-  "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres" \
+PGPASSWORD="TSH@2025Secure!Production" psql \
+  "postgresql://tsh_app_user:TSH@2025Secure!Production@localhost:5432/postgres" \
   -f migrations/create_bff_models.sql
 ```
 
@@ -233,8 +233,8 @@ top
 htop
 
 # Check database connections
-PGPASSWORD="Zcbbm.97531tsh" psql \
-  "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres" \
+PGPASSWORD="TSH@2025Secure!Production" psql \
+  "postgresql://tsh_app_user:TSH@2025Secure!Production@localhost:5432/postgres" \
   -c "SELECT count(*) as active_connections FROM pg_stat_activity WHERE datname = 'postgres';"
 ```
 
@@ -262,7 +262,7 @@ systemctl restart tsh_erp
 curl https://erp.tsh.sale/health
 
 # 5. Restore database if needed
-# PGPASSWORD="Zcbbm.97531tsh" psql \
+# PGPASSWORD="TSH@2025Secure!Production" psql \
 #   "postgresql://..." \
 #   < backup_before_bff_migration_YYYYMMDD_HHMMSS.sql
 ```
@@ -358,8 +358,8 @@ journalctl -u tsh_erp -n 200 | grep -i "worker\|error"
 pip list | grep asyncpg
 
 # Check database connectivity
-PGPASSWORD="Zcbbm.97531tsh" psql \
-  "postgresql://postgres.trjjglxhteqnzmyakxhe:Zcbbm.97531tsh@aws-1-eu-north-1.pooler.supabase.com:5432/postgres" \
+PGPASSWORD="TSH@2025Secure!Production" psql \
+  "postgresql://tsh_app_user:TSH@2025Secure!Production@localhost:5432/postgres" \
   -c "SELECT 1"
 ```
 
@@ -387,7 +387,7 @@ python3 -c "from app.main import app; print('OK')"
 **Solution:**
 ```bash
 # Check if tables already exist
-PGPASSWORD="Zcbbm.97531tsh" psql \
+PGPASSWORD="TSH@2025Secure!Production" psql \
   "postgresql://..." \
   -c "\dt promotions"
 

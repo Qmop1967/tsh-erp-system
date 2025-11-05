@@ -116,6 +116,14 @@ async def startup_event():
     """Log application startup and start background workers"""
     logger.info("application_startup", message="TSH ERP System starting up...")
 
+    # Start Zoho Token Refresh Scheduler
+    try:
+        from app.services.zoho_token_refresh_scheduler import start_token_refresh_scheduler
+        await start_token_refresh_scheduler()
+        logger.info("zoho_token_scheduler_started", message="Zoho token refresh scheduler started successfully")
+    except Exception as e:
+        logger.error("zoho_token_scheduler_failed", error=str(e), message="Failed to start Zoho token refresh scheduler")
+
     # Start Zoho sync workers
     try:
         from app.background.worker_manager import init_worker_manager, start_workers
@@ -130,6 +138,14 @@ async def startup_event():
 async def shutdown_event():
     """Log application shutdown and stop background workers"""
     logger.info("application_shutdown", message="TSH ERP System shutting down...")
+
+    # Stop Zoho Token Refresh Scheduler
+    try:
+        from app.services.zoho_token_refresh_scheduler import stop_token_refresh_scheduler
+        stop_token_refresh_scheduler()
+        logger.info("zoho_token_scheduler_stopped", message="Zoho token refresh scheduler stopped successfully")
+    except Exception as e:
+        logger.error("zoho_token_scheduler_stop_failed", error=str(e), message="Failed to stop Zoho token refresh scheduler")
 
     # Stop Zoho sync workers
     try:
@@ -193,6 +209,8 @@ from app.routers.notifications import router as notifications_router  # Unified 
 from app.routers.zoho_webhooks import router as zoho_webhooks_router
 from app.routers.zoho_dashboard import router as zoho_dashboard_router
 from app.routers.zoho_admin import router as zoho_admin_router
+from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # Bulk data migration
+from app.routers.zoho_proxy import router as zoho_proxy_router  # Zoho image proxy
 # BFF (Backend For Frontend) - Mobile Optimization Layer
 from app.bff.mobile import router as mobile_bff_router  # Mobile BFF layer enabled!
 
@@ -245,6 +263,8 @@ app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer 
 app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["Zoho Integration - Webhooks"])
 app.include_router(zoho_dashboard_router, prefix="/api/zoho/dashboard", tags=["Zoho Integration - Dashboard"])
 app.include_router(zoho_admin_router, prefix="/api/zoho/admin", tags=["Zoho Integration - Admin"])
+app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["Zoho Integration - Bulk Migration"])
+app.include_router(zoho_proxy_router, tags=["Zoho Proxy"])
 # 📱 MOBILE BFF: Optimized API Layer for Flutter Apps (Consumer & Salesperson)
 app.include_router(mobile_bff_router, prefix="/api/mobile", tags=["Mobile BFF - Optimized for Flutter Apps"])  # Enabled!
 # 🔔 UNIFIED NOTIFICATION SYSTEM: Enterprise-grade Notification Center

@@ -265,8 +265,8 @@ curl https://erp.tsh.sale/api/health
 ```
 
 ### Database:
-**Current:** Supabase PostgreSQL
-**Endpoint:** `https://trjjglxhteqnzmyakxhe.supabase.co`
+**Current:** Self-Hosted PostgreSQL
+**Host:** `localhost:5432`
 
 **Test Connection:**
 ```bash

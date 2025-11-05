@@ -25,12 +25,11 @@ async def get_item_image(item_id: str):
     Uses automatic token refresh to ensure images are always accessible
     """
     try:
-        # Directly reload token from .env file for maximum freshness
-        from dotenv import load_dotenv
-        load_dotenv(override=True)
-        token = os.getenv("ZOHO_ACCESS_TOKEN")
+        # Use token manager to get a valid token (handles refresh automatically)
+        token_manager = get_token_manager()
+        headers = await token_manager.get_auth_headers()
 
-        if not token:
+        if not headers:
             raise HTTPException(status_code=500, detail="Unable to obtain valid Zoho token")
 
         # Get organization ID from environment
@@ -42,10 +41,6 @@ async def get_item_image(item_id: str):
 
         params = {
             "organization_id": organization_id
-        }
-
-        headers = {
-            "Authorization": f"Zoho-oauthtoken {token}"
         }
 
         # Fetch image from Zoho

@@ -122,8 +122,15 @@ async def get_products(
         products = []
 
         for row in result:
-            # Use CDN image URL if available, otherwise fallback to placeholder
-            image_url = row.image_url if row.image_url else f"{base_url}/static/placeholder-product.png"
+            # Use local product images (already downloaded from Zoho)
+            image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
+
+            if row.zoho_item_id:
+                # Use local product images stored on server
+                image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
+            elif row.image_url and 'zohoapis.com' not in row.image_url:
+                # Use CDN or other non-Zoho image URL as-is
+                image_url = row.image_url
 
             # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
             products.append({
@@ -210,7 +217,15 @@ async def get_product_details(
         if not result:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        image_url = result.image_url if result.image_url else f"{base_url}/static/placeholder-product.png"
+        # Use local product images (already downloaded from Zoho)
+        image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
+
+        if result.zoho_item_id:
+            # Use local product images stored on server
+            image_url = f"{base_url}/product-images/{result.zoho_item_id}.jpg"
+        elif result.image_url and 'zohoapis.com' not in result.image_url:
+            # Use CDN or other non-Zoho image URL as-is
+            image_url = result.image_url
 
         # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
         product_data = {
