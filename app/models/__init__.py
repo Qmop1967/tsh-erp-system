@@ -92,6 +92,12 @@ from .cart import Cart, CartItem
 from .review import Review
 from .customer_address import CustomerAddress
 
+# Notification Models
+from .notification import (
+    Notification, NotificationTemplate, NotificationPreference,
+    NotificationType, NotificationPriority, NotificationChannel
+)
+
 # Backward compatibility alias
 AlertLevel = AlertSeverity
 
@@ -148,5 +154,8 @@ __all__ = [
     "ReturnReasonCode", "ReturnStatus", "InspectionStatus", "InspectionResult",
     "MaintenanceStatus", "WarrantyStatus", "Decision", "InventoryZone",
     # Mobile BFF Models
-    "Promotion", "Cart", "CartItem", "Review", "CustomerAddress"
+    "Promotion", "Cart", "CartItem", "Review", "CustomerAddress",
+    # Notification Models
+    "Notification", "NotificationTemplate", "NotificationPreference",
+    "NotificationType", "NotificationPriority", "NotificationChannel"
 ]

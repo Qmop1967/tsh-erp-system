@@ -125,7 +125,8 @@ class Notification(Base):
 
     # Relationships
     user = relationship("User", backref="notifications")
-    tenant = relationship("Tenant", backref="notifications")
+    # Tenant relationship disabled (multi-tenancy not used in unified database)
+    # tenant = relationship("Tenant", backref="notifications")
 
 
 class NotificationTemplate(Base):
