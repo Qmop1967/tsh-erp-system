@@ -158,7 +158,7 @@ allowed_origins = [
 ]
 
 # Allow all origins in development for easier testing
-if settings.ENVIRONMENT == "development":
+if settings.environment == "development":
     allowed_origins.append("*")
 
 app.add_middleware(
