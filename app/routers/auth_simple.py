@@ -1,7 +1,25 @@
 """
-Simple Authentication Router for Unified Database
-Works with the merged TSH Online Store + ERP database schema
+DEPRECATED: Simple Authentication Router for Unified Database
+
+⚠️ WARNING: This router is deprecated and will be removed in v2.0.0
+Please use /api/auth/login from auth_enhanced.py instead.
+
+This router has been replaced by auth_enhanced.py which provides:
+- Enhanced security (rate limiting, account lockout, MFA)
+- Session management
+- Security event logging
+- No hardcoded secrets
+
+Migration: Update your API calls from /api/auth-simple/login to /api/auth/login
 """
+import warnings
+
+warnings.warn(
+    "auth_simple router is deprecated. Use auth_enhanced instead. "
+    "This router will be removed in v2.0.0",
+    DeprecationWarning,
+    stacklevel=2
+)
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -12,11 +30,12 @@ import bcrypt
 import jwt
 
 from app.db.database import get_db
+from app.core.config import settings
 
-# JWT Settings
-SECRET_KEY = "CHANGE_THIS_TO_STRONG_RANDOM_KEY_IN_PRODUCTION"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# JWT Settings - now using environment variables instead of hardcoded secrets
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.jwt_access_token_expire_minutes
 
 router = APIRouter(prefix="/api/auth-simple", tags=["Simple Authentication"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth-simple/token")
@@ -67,11 +86,27 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse, deprecated=True)
 async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     """
-    Simple login endpoint that works with unified database.
-    Uses direct SQL queries to avoid model complications.
+    ⚠️ DEPRECATED: Simple login endpoint that works with unified database.
+
+    **This endpoint is deprecated and will be removed in v2.0.0**
+
+    Please migrate to: POST /api/auth/login
+
+    The new endpoint provides enhanced security features:
+    - Rate limiting (prevents brute force attacks)
+    - Account lockout (after failed attempts)
+    - MFA support (optional two-factor authentication)
+    - Session management (track active sessions)
+    - Security event logging (audit trail)
+
+    Migration is simple - just change the endpoint URL:
+    - Old: POST /api/auth-simple/login
+    - New: POST /api/auth/login
+
+    Request/response format remains the same.
     """
     try:
         # Query user from public.users table

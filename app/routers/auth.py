@@ -1,3 +1,30 @@
+"""
+DEPRECATED: Basic Authentication Router
+
+⚠️ WARNING: This router is deprecated and will be removed in v2.0.0
+Please use auth_enhanced.py instead which provides the same functionality
+plus additional security features.
+
+This router has been replaced by auth_enhanced.py which provides:
+- All basic authentication features from this router
+- Enhanced security (rate limiting, account lockout, MFA)
+- Session management
+- Security event logging
+- Token blacklist
+- Password policy enforcement
+
+Migration: This router is no longer registered in main.py
+Use /api/auth/login from auth_enhanced.py instead
+"""
+import warnings
+
+warnings.warn(
+    "auth router is deprecated. Use auth_enhanced instead. "
+    "This router will be removed in v2.0.0",
+    DeprecationWarning,
+    stacklevel=2
+)
+
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -7,7 +34,7 @@ from app.services.auth_service import AuthService, ACCESS_TOKEN_EXPIRE_MINUTES, 
 from app.schemas.auth import LoginRequest, LoginResponse, UserResponse, RefreshTokenRequest, RefreshTokenResponse
 from app.models.user import User
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication - DEPRECATED"])
 security = HTTPBearer()
 
 def get_user_permissions(user: User) -> list:

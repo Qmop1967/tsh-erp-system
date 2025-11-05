@@ -199,7 +199,7 @@ from app.routers.hr import router as hr_router
 from app.routers.gps_tracking import router as gps_router
 from app.routers.partner_salesmen_simple import router as partner_salesmen_router
 from app.routers.auth_enhanced import router as auth_router  # Enhanced auth router with MFA, rate limiting, sessions
-from app.routers.auth_simple import router as auth_simple_router  # Simple auth router for unified database
+# DEPRECATED: auth_simple router removed - use auth_enhanced instead
 # from app.routers.partner_salesmen import router as partner_salesmen_router  # Temporarily disabled
 from app.routers.vendors import router as vendors_router  # Enable vendors
 from app.routers.permissions import router as permissions_router  # Enable permissions management
@@ -226,8 +226,7 @@ from app.routers.v2.orders import router as orders_v2_router  # Clean architectu
 from app.routers.v2.inventory import router as inventory_v2_router  # Clean architecture inventory API
 
 # إضافة الـ routers
-app.include_router(auth_router, prefix="/api", tags=["authentication"])  # Enable authentication
-app.include_router(auth_simple_router, tags=["Simple Authentication"])  # Simple auth for unified database
+app.include_router(auth_router, prefix="/api", tags=["Authentication"])  # Enhanced authentication with MFA, rate limiting, session management
 app.include_router(dashboard_router, tags=["dashboard"])  # Dashboard statistics
 app.include_router(branches_router, prefix="/api/branches", tags=["branches"])
 app.include_router(products_router, prefix="/api/products", tags=["products"])
