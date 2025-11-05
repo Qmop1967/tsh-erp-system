@@ -32,14 +32,14 @@ Usage:
 
 import json
 import asyncio
+import logging
 from typing import Any, Optional, Callable
 from functools import wraps
 from datetime import timedelta
 import redis.asyncio as redis
 from app.core.config import settings
-from app.core.logger import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class CacheManager:
