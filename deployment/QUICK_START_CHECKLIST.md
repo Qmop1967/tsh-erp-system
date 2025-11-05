@@ -10,7 +10,7 @@ Use this checklist to track your deployment progress.
 - [ ] Domain name registered (e.g., `erp.tsh.sale`)
 - [ ] SSH key generated on local machine
 - [ ] GitHub repository is up to date
-- [ ] Supabase database credentials ready
+- [ ] PostgreSQL database credentials ready
 - [ ] Email address for SSL certificate notifications
 
 ---
@@ -70,7 +70,7 @@ Use this checklist to track your deployment progress.
 - [ ] **Environment Configuration**
   - [ ] `.env` file created
   - [ ] Database URL configured
-  - [ ] Supabase keys added
+  - [ ] PostgreSQL credentials configured
   - [ ] Secret key generated and set
 
 ---

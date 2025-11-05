@@ -39,21 +39,7 @@ from app.models import (
     UserDataScope, DataScopeTemplate, DataAccessLog
 )
 
-# إنشاء جميع الجداول
-# Branch.__table__.create(bind=engine, checkfirst=True)
-# Warehouse.__table__.create(bind=engine, checkfirst=True)
-# Role.__table__.create(bind=engine, checkfirst=True)
-# User.__table__.create(bind=engine, checkfirst=True)
-# Category.__table__.create(bind=engine, checkfirst=True)
-# Product.__table__.create(bind=engine, checkfirst=True)
-# Customer.__table__.create(bind=engine, checkfirst=True)
-# Supplier.__table__.create(bind=engine, checkfirst=True)
-# InventoryItem.__table__.create(bind=engine, checkfirst=True)
-# StockMovement.__table__.create(bind=engine, checkfirst=True)
-# SalesOrder.__table__.create(bind=engine, checkfirst=True)
-# SalesItem.__table__.create(bind=engine, checkfirst=True)
-# PurchaseOrder.__table__.create(bind=engine, checkfirst=True)
-# PurchaseItem.__table__.create(bind=engine, checkfirst=True)
+# Database tables are managed by migrations (Alembic)
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -155,13 +141,33 @@ async def shutdown_event():
     except Exception as e:
         logger.error("background_workers_stop_failed", error=str(e), message="Failed to stop background workers")
 
-# إعدادات CORS
+# CORS Configuration - Secure settings for production
+from app.core.config import settings
+
+# Define allowed origins
+allowed_origins = [
+    "http://localhost:3000",           # React dev server
+    "http://localhost:5173",           # Vite dev server
+    "https://erp.tsh.sale",            # Production ERP web
+    "https://admin.tsh.sale",          # Admin panel
+    "https://shop.tsh.sale",           # Consumer web app
+    "https://consumer.tsh.sale",       # Consumer web app (alternative)
+    "capacitor://localhost",           # iOS apps (Capacitor)
+    "http://localhost",                # Android apps
+    "ionic://localhost",               # Ionic apps
+]
+
+# Allow all origins in development for easier testing
+if settings.ENVIRONMENT == "development":
+    allowed_origins.append("*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # في الإنتاج، حدد المصادر المسموحة
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["X-Total-Count", "X-Page-Count", "X-Request-ID"],
 )
 
 # استيراد الـ routers
