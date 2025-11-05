@@ -186,7 +186,9 @@ from app.routers.expenses import router as expenses_router
 from app.routers.warehouses import router as warehouses_router  # Enable warehouses
 from app.routers.items import router as items_router
 from app.routers.money_transfer import router as money_transfer_router
-from app.routers.settings import router as settings_router
+from app.routers.settings import router as settings_router  # TODO: Migrate to app.routers.settings module
+# New modular settings (Phase 1: System settings completed)
+# from app.routers.settings import router as modular_settings_router
 from app.routers.enhanced_settings import router as enhanced_settings_router  # Enhanced security router
 from app.routers.admin import router as admin_router
 from app.routers.pos_enhanced import router as pos_enhanced_router
