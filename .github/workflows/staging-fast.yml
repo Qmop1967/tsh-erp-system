@@ -194,7 +194,7 @@ jobs:
           path: |
             ~/.cache/pip
             .venv
-          key: ${{ runner.os }}-pip-backend-${{ hashFiles('tds_core/requirements.txt') }}
+          key: ${{ runner.os }}-pip-backend-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-backend-
             ${{ runner.os }}-pip-
@@ -202,8 +202,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f tds_core/requirements.txt ]; then
-            pip install -r tds_core/requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
           fi
           pip install pytest pytest-asyncio httpx
 
@@ -253,7 +253,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-db-${{ hashFiles('tds_core/requirements.txt') }}
+          key: ${{ runner.os }}-pip-db-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-db-
             ${{ runner.os }}-pip-
@@ -261,8 +261,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f tds_core/requirements.txt ]; then
-            pip install -r tds_core/requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
           fi
 
       - name: Run Alembic migrations
