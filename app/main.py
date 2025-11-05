@@ -213,6 +213,11 @@ from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # Bulk d
 from app.routers.zoho_proxy import router as zoho_proxy_router  # Zoho image proxy
 # BFF (Backend For Frontend) - Mobile Optimization Layer
 from app.bff.mobile import router as mobile_bff_router  # Mobile BFF layer enabled!
+# V2 API - Clean Architecture Implementation
+from app.routers.v2.customers import router as customers_v2_router  # Clean architecture customer API
+from app.routers.v2.products import router as products_v2_router  # Clean architecture product API
+from app.routers.v2.orders import router as orders_v2_router  # Clean architecture order API
+from app.routers.v2.inventory import router as inventory_v2_router  # Clean architecture inventory API
 
 # إضافة الـ routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])  # Enable authentication
@@ -267,6 +272,11 @@ app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["Z
 app.include_router(zoho_proxy_router, tags=["Zoho Proxy"])
 # 📱 MOBILE BFF: Optimized API Layer for Flutter Apps (Consumer & Salesperson)
 app.include_router(mobile_bff_router, prefix="/api/mobile", tags=["Mobile BFF - Optimized for Flutter Apps"])  # Enabled!
+# 🏗️ V2 API: Clean Architecture Implementation with Repository Pattern
+app.include_router(customers_v2_router, prefix="/api", tags=["Customers V2 - Clean Architecture"])
+app.include_router(products_v2_router, prefix="/api", tags=["Products V2 - Clean Architecture"])
+app.include_router(orders_v2_router, prefix="/api", tags=["Orders V2 - Clean Architecture"])
+app.include_router(inventory_v2_router, prefix="/api", tags=["Inventory V2 - Clean Architecture"])
 # 🔔 UNIFIED NOTIFICATION SYSTEM: Enterprise-grade Notification Center
 app.include_router(notifications_router, prefix="/api", tags=["Notifications - Real-time & Push Notifications"])
 # 🔒 ENHANCED SECURITY SYSTEM: Advanced RBAC/ABAC, Multi-tenancy, Audit & Monitoring
