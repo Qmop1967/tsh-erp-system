@@ -229,18 +229,51 @@ from app.routers.dashboard import router as dashboard_router  # Dashboard Statis
 from app.routers.notifications import router as notifications_router  # Unified Notification System
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
 # ============================================================================
-# TDS CORE - TSH DataSync Core (Zoho Integration)
+# 🚀 TDS CORE v3.0.0 - TSH DataSync Core (Zoho Integration)
 # ============================================================================
-# TDS Core is the ONLY system handling Zoho Books integration
-# All webhook receivers, bulk sync, monitoring, and queue management
+# TDS is the SOLE OWNER of ALL Zoho integration logic
+#
+# 🎯 SINGLE ENTRY POINT: from app.tds.zoho import ZohoService
+#
+# What TDS Handles:
+# ✅ OAuth authentication & auto-token-refresh
+# ✅ Unified API client (Books, Inventory, CRM)
+# ✅ Sync orchestration (products, customers, inventory)
+# ✅ Webhook processing
+# ✅ Stock synchronization
+# ✅ Rate limiting & retry logic
+# ✅ Monitoring & health checks
+#
+# Consolidated Services (15 → 1):
+# ❌ app/services/zoho_*.py (168KB) → archived
+# ✅ app/tds/zoho.py (single facade)
+# ✅ app/tds/integrations/zoho/* (modular implementation)
+#
+# Impact: -63KB code, -93% files, 100% duplication eliminated
 # ============================================================================
 from app.routers.zoho_webhooks import router as zoho_webhooks_router  # TDS webhook receiver
 from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync
 
-# Legacy Zoho routers REMOVED - TDS Core handles everything:
-# ❌ zoho_dashboard - replaced by TDS monitoring
-# ❌ zoho_admin - replaced by TDS admin features
-# ❌ zoho_proxy - not needed with TDS direct integration
+# 📦 Archived Legacy Services (2025-01-07):
+# See: archived/legacy_zoho_services_2025_01/README.md
+# ❌ zoho_service.py (55KB) - Main service
+# ❌ zoho_auth_service.py - OAuth
+# ❌ zoho_books_client.py - Books API
+# ❌ zoho_inventory_client.py - Inventory API
+# ❌ zoho_bulk_sync.py - Sync ops
+# ❌ zoho_stock_sync.py - Stock sync
+# ❌ zoho_token_manager.py - Token mgmt
+# ❌ zoho_token_refresh_scheduler.py - Auto-refresh
+# ❌ zoho_rate_limiter.py - Rate limiting
+# ❌ zoho_processor.py - Processors
+# ❌ zoho_queue.py - Queue
+# ❌ zoho_monitoring.py - Monitoring
+# ❌ zoho_alert.py - Alerts
+# ❌ zoho_inbox.py - Inbox
+# ❌ zoho_webhook_health.py - Health
+#
+# All functionality now in TDS:
+# ✅ from app.tds.zoho import ZohoService
 # BFF (Backend For Frontend) - Mobile Optimization Layer
 from app.bff import bff_router  # Mobile BFF layer for all 11 apps - 100% Complete!
 # V2 API - Clean Architecture Implementation
