@@ -177,8 +177,8 @@ from app.routers import (
     cashflow_router
 )
 # Phase 5 Refactored Routers
-from app.routers.branches_refactored import router as branches_router  # ✅ Phase 5: Refactored
-from app.routers.products import router as products_router
+from app.routers.branches_refactored import router as branches_router  # ✅ Phase 5 P0: Refactored
+from app.routers.products_refactored import router as products_router  # ✅ Phase 5 P1: Refactored
 # Legacy migration router removed - TDS Core handles all Zoho integration
 # from app.routers.migration import router as migration_router
 from app.routers.models import router as models_router
