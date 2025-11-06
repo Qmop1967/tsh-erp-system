@@ -553,6 +553,116 @@ async def get_dead_letter_queue(
 
 
 # ============================================================================
+# STOCK SYNC OPERATIONS
+# ============================================================================
+
+@router.post(
+    "/sync/stock",
+    summary="Trigger stock sync from Zoho",
+    description="Start pagination batch sync of item stock from Zoho Books/Inventory"
+)
+async def trigger_stock_sync(
+    batch_size: int = Query(200, ge=50, le=200, description="Items per API call"),
+    active_only: bool = Query(True, description="Only sync active items"),
+    with_stock_only: bool = Query(False, description="Only sync items with stock > 0"),
+    db_batch_size: int = Query(100, ge=10, le=500, description="DB batch size"),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Trigger stock sync from Zoho using pagination batch processing
+
+    Features:
+    - Pagination support (200 items per API call max)
+    - Bulk database updates for efficiency
+    - TDS event integration
+    - Progress tracking
+    - Error handling with retry
+
+    Args:
+        batch_size: Number of items per Zoho API call (max 200)
+        active_only: Only sync active items
+        with_stock_only: Only sync items with stock > 0
+        db_batch_size: Number of items to update in database batch
+
+    Returns:
+        Sync statistics and run ID
+    """
+    from app.services.zoho_stock_sync import ZohoStockSyncService
+
+    logger.info(
+        f"📦 Starting stock sync (batch_size={batch_size}, "
+        f"active_only={active_only}, with_stock_only={with_stock_only})"
+    )
+
+    sync_service = ZohoStockSyncService(db)
+
+    result = await sync_service.sync_all_stock(
+        batch_size=batch_size,
+        active_only=active_only,
+        with_stock_only=with_stock_only,
+        db_batch_size=db_batch_size
+    )
+
+    return result
+
+
+@router.get(
+    "/sync/stock/stats",
+    summary="Get stock sync statistics",
+    description="Get current stock sync statistics from database"
+)
+@cache_response(ttl_seconds=60)
+async def get_stock_sync_stats(db: AsyncSession = Depends(get_async_db)):
+    """
+    Get stock sync statistics
+
+    Returns:
+        - Total products
+        - Products with Zoho ID
+        - Products with stock
+        - Total stock quantity
+        - Last sync time
+        - Stale products (not synced in 24h)
+    """
+    from app.services.zoho_stock_sync import ZohoStockSyncService
+
+    sync_service = ZohoStockSyncService(db)
+    stats = await sync_service.get_sync_statistics()
+
+    return stats
+
+
+@router.post(
+    "/sync/stock/specific",
+    summary="Sync stock for specific items",
+    description="Sync stock for specific Zoho item IDs"
+)
+async def sync_specific_items(
+    item_ids: List[str] = Query(..., description="List of Zoho item IDs"),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Sync stock for specific Zoho item IDs
+
+    Useful for targeted updates after webhook events or manual corrections
+
+    Args:
+        item_ids: List of Zoho item IDs to sync
+
+    Returns:
+        Sync statistics
+    """
+    from app.services.zoho_stock_sync import ZohoStockSyncService
+
+    logger.info(f"🎯 Syncing stock for {len(item_ids)} specific items")
+
+    sync_service = ZohoStockSyncService(db)
+    result = await sync_service.sync_stock_for_specific_items(item_ids)
+
+    return result
+
+
+# ============================================================================
 # HEALTH CHECK
 # ============================================================================
 
@@ -576,6 +686,7 @@ async def health_check(db: AsyncSession = Depends(get_async_db)):
             "BFF endpoints for mobile/web",
             "Real-time monitoring",
             "Automatic retry with backoff",
+            "Pagination batch stock sync",
         ],
         "queue_depth": sum(stats["queue_status"].values()),
         "active_alerts": stats["active_alerts"],

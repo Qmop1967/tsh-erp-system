@@ -1,6 +1,9 @@
 """
 Zoho Bulk Sync Router
 API endpoints for bulk data migration from Zoho Books
+
+UPDATED: Now uses TDS unified Zoho integration
+Date: November 6, 2025
 """
 import logging
 from typing import Optional
@@ -9,11 +12,68 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_async_db
-from app.services.zoho_bulk_sync import ZohoBulkSyncService
+from app.tds.integrations.zoho import (
+    UnifiedZohoClient, ZohoAuthManager, ZohoSyncOrchestrator,
+    ZohoCredentials, SyncConfig, SyncMode, EntityType
+)
+from app.core.event_bus import EventBus
+import os
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+async def get_tds_services():
+    """
+    Initialize and return TDS unified services
+
+    Returns:
+        tuple: (zoho_client, orchestrator)
+    """
+    # Load credentials from environment
+    credentials = ZohoCredentials(
+        client_id=os.getenv('ZOHO_CLIENT_ID'),
+        client_secret=os.getenv('ZOHO_CLIENT_SECRET'),
+        refresh_token=os.getenv('ZOHO_REFRESH_TOKEN'),
+        organization_id=os.getenv('ZOHO_ORGANIZATION_ID')
+    )
+
+    # Validate credentials
+    if not all([credentials.client_id, credentials.client_secret,
+                credentials.refresh_token, credentials.organization_id]):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Missing Zoho credentials in environment"
+        )
+
+    # Create event bus
+    event_bus = EventBus()
+
+    # Create auth manager
+    auth_manager = ZohoAuthManager(credentials, auto_refresh=True, event_bus=event_bus)
+    await auth_manager.start()
+
+    # Create Zoho client
+    zoho_client = UnifiedZohoClient(
+        auth_manager=auth_manager,
+        organization_id=credentials.organization_id,
+        rate_limit=100,
+        event_bus=event_bus
+    )
+    await zoho_client.start_session()
+
+    # Create sync orchestrator
+    orchestrator = ZohoSyncOrchestrator(
+        zoho_client=zoho_client,
+        event_bus=event_bus
+    )
+
+    return zoho_client, orchestrator
 
 
 # ============================================================================
@@ -89,7 +149,7 @@ async def bulk_sync_products(
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Bulk sync products from Zoho Books
+    Bulk sync products from Zoho Books using TDS unified architecture
 
     Args:
         request: Bulk sync request parameters
@@ -101,33 +161,49 @@ async def bulk_sync_products(
     """
     logger.info(f"📦 Products bulk sync requested - Incremental: {request.incremental}")
 
+    zoho_client = None
     try:
-        service = ZohoBulkSyncService(db)
+        # Initialize TDS services
+        zoho_client, orchestrator = await get_tds_services()
 
-        result = await service.sync_products(
-            incremental=request.incremental,
-            modified_since=request.modified_since,
+        # Determine sync mode
+        sync_mode = SyncMode.INCREMENTAL if request.incremental else SyncMode.FULL
+
+        # Build filter params
+        filter_params = {}
+        if request.active_only:
+            filter_params['filter_by'] = 'Status.Active'
+        if request.modified_since:
+            filter_params['last_modified_time'] = request.modified_since
+
+        # Create sync configuration
+        config = SyncConfig(
+            entity_type=EntityType.PRODUCTS,
+            mode=sync_mode,
             batch_size=request.batch_size,
-            active_only=request.active_only,
-            with_stock_only=request.with_stock_only,
-            sync_images=request.sync_images
+            filter_params=filter_params
         )
 
-        if result["success"]:
-            stats = result["stats"]
-            return BulkSyncResponse(
-                success=True,
-                message=f"Products bulk sync completed successfully",
-                stats=stats,
-                duration_seconds=result.get("duration_seconds")
-            )
-        else:
-            return BulkSyncResponse(
-                success=False,
-                message="Products bulk sync failed",
-                stats=result["stats"],
-                error=result.get("error")
-            )
+        # Execute sync
+        result = await orchestrator.sync_entity(config)
+
+        # Build response
+        stats = {
+            "total_processed": result.total_processed,
+            "successful": result.total_success,
+            "failed": result.total_failed,
+            "skipped": result.total_skipped
+        }
+
+        duration_seconds = result.duration.total_seconds() if result.duration else None
+
+        return BulkSyncResponse(
+            success=(result.status == "completed"),
+            message=f"Products bulk sync {result.status}",
+            stats=stats,
+            duration_seconds=duration_seconds,
+            error=result.error if result.status == "failed" else None
+        )
 
     except Exception as e:
         logger.error(f"Products bulk sync failed: {e}", exc_info=True)
@@ -135,6 +211,10 @@ async def bulk_sync_products(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Bulk sync failed: {str(e)}"
         )
+    finally:
+        # Cleanup
+        if zoho_client:
+            await zoho_client.close_session()
 
 
 # ============================================================================
@@ -165,7 +245,7 @@ async def bulk_sync_customers(
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Bulk sync customers from Zoho Books
+    Bulk sync customers from Zoho Books using TDS unified architecture
 
     Args:
         request: Bulk sync request parameters
@@ -177,30 +257,47 @@ async def bulk_sync_customers(
     """
     logger.info(f"👥 Customers bulk sync requested - Incremental: {request.incremental}")
 
+    zoho_client = None
     try:
-        service = ZohoBulkSyncService(db)
+        # Initialize TDS services
+        zoho_client, orchestrator = await get_tds_services()
 
-        result = await service.sync_customers(
-            incremental=request.incremental,
-            modified_since=request.modified_since,
-            batch_size=request.batch_size
+        # Determine sync mode
+        sync_mode = SyncMode.INCREMENTAL if request.incremental else SyncMode.FULL
+
+        # Build filter params
+        filter_params = {}
+        if request.modified_since:
+            filter_params['last_modified_time'] = request.modified_since
+
+        # Create sync configuration
+        config = SyncConfig(
+            entity_type=EntityType.CUSTOMERS,
+            mode=sync_mode,
+            batch_size=request.batch_size,
+            filter_params=filter_params
         )
 
-        if result["success"]:
-            stats = result["stats"]
-            return BulkSyncResponse(
-                success=True,
-                message=f"Customers bulk sync completed successfully",
-                stats=stats,
-                duration_seconds=result.get("duration_seconds")
-            )
-        else:
-            return BulkSyncResponse(
-                success=False,
-                message="Customers bulk sync failed",
-                stats=result["stats"],
-                error=result.get("error")
-            )
+        # Execute sync
+        result = await orchestrator.sync_entity(config)
+
+        # Build response
+        stats = {
+            "total_processed": result.total_processed,
+            "successful": result.total_success,
+            "failed": result.total_failed,
+            "skipped": result.total_skipped
+        }
+
+        duration_seconds = result.duration.total_seconds() if result.duration else None
+
+        return BulkSyncResponse(
+            success=(result.status == "completed"),
+            message=f"Customers bulk sync {result.status}",
+            stats=stats,
+            duration_seconds=duration_seconds,
+            error=result.error if result.status == "failed" else None
+        )
 
     except Exception as e:
         logger.error(f"Customers bulk sync failed: {e}", exc_info=True)
@@ -208,6 +305,10 @@ async def bulk_sync_customers(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Bulk sync failed: {str(e)}"
         )
+    finally:
+        # Cleanup
+        if zoho_client:
+            await zoho_client.close_session()
 
 
 # ============================================================================
@@ -244,6 +345,9 @@ async def bulk_sync_pricelists(
     """
     Bulk sync price lists from Zoho Books
 
+    NOTE: Price lists are now synced as part of product sync via TDS.
+    This endpoint is maintained for backward compatibility.
+
     Args:
         background_tasks: FastAPI background tasks
         db: Database session
@@ -251,28 +355,41 @@ async def bulk_sync_pricelists(
     Returns:
         Sync statistics and results
     """
-    logger.info(f"💰 Price lists bulk sync requested")
+    logger.info(f"💰 Price lists bulk sync requested (now part of products sync)")
 
+    zoho_client = None
     try:
-        service = ZohoBulkSyncService(db)
+        # Initialize TDS services
+        zoho_client, orchestrator = await get_tds_services()
 
-        result = await service.sync_pricelists()
+        # Sync products with price list data
+        config = SyncConfig(
+            entity_type=EntityType.PRODUCTS,
+            mode=SyncMode.FULL,
+            batch_size=100,
+            filter_params={}
+        )
 
-        if result["success"]:
-            stats = result["stats"]
-            return BulkSyncResponse(
-                success=True,
-                message=f"Price lists bulk sync completed successfully",
-                stats=stats,
-                duration_seconds=result.get("duration_seconds")
-            )
-        else:
-            return BulkSyncResponse(
-                success=False,
-                message="Price lists bulk sync failed",
-                stats=result["stats"],
-                error=result.get("error")
-            )
+        # Execute sync
+        result = await orchestrator.sync_entity(config)
+
+        # Build response
+        stats = {
+            "total_processed": result.total_processed,
+            "successful": result.total_success,
+            "failed": result.total_failed,
+            "skipped": result.total_skipped
+        }
+
+        duration_seconds = result.duration.total_seconds() if result.duration else None
+
+        return BulkSyncResponse(
+            success=(result.status == "completed"),
+            message=f"Products sync (includes price lists) {result.status}",
+            stats=stats,
+            duration_seconds=duration_seconds,
+            error=result.error if result.status == "failed" else None
+        )
 
     except Exception as e:
         logger.error(f"Price lists bulk sync failed: {e}", exc_info=True)
@@ -280,6 +397,10 @@ async def bulk_sync_pricelists(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Bulk sync failed: {str(e)}"
         )
+    finally:
+        # Cleanup
+        if zoho_client:
+            await zoho_client.close_session()
 
 
 # ============================================================================
@@ -309,7 +430,7 @@ async def sync_all_entities(
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Sync all entities from Zoho Books
+    Sync all entities from Zoho Books using TDS unified architecture
 
     Args:
         modified_since: Optional date filter for incremental sync
@@ -321,30 +442,61 @@ async def sync_all_entities(
     logger.info(f"🚀 COMPLETE MIGRATION requested - Since: {modified_since}")
 
     results = {}
+    zoho_client = None
 
     try:
-        service = ZohoBulkSyncService(db)
+        # Initialize TDS services once for all operations
+        zoho_client, orchestrator = await get_tds_services()
+
+        # Determine sync mode
+        sync_mode = SyncMode.INCREMENTAL if modified_since else SyncMode.FULL
+
+        # Build filter params
+        filter_params = {}
+        if modified_since:
+            filter_params['last_modified_time'] = modified_since
 
         # Step 1: Products
-        logger.info("Step 1/3: Syncing products...")
-        products_result = await service.sync_products(
-            incremental=bool(modified_since),
-            modified_since=modified_since
+        logger.info("Step 1/2: Syncing products...")
+        products_config = SyncConfig(
+            entity_type=EntityType.PRODUCTS,
+            mode=sync_mode,
+            batch_size=100,
+            filter_params={**filter_params, 'filter_by': 'Status.Active'}
         )
-        results["products"] = products_result
+        products_result = await orchestrator.sync_entity(products_config)
+
+        results["products"] = {
+            "success": (products_result.status == "completed"),
+            "stats": {
+                "total_processed": products_result.total_processed,
+                "successful": products_result.total_success,
+                "failed": products_result.total_failed,
+                "skipped": products_result.total_skipped
+            },
+            "duration_seconds": products_result.duration.total_seconds() if products_result.duration else 0
+        }
 
         # Step 2: Customers
-        logger.info("Step 2/3: Syncing customers...")
-        customers_result = await service.sync_customers(
-            incremental=bool(modified_since),
-            modified_since=modified_since
+        logger.info("Step 2/2: Syncing customers...")
+        customers_config = SyncConfig(
+            entity_type=EntityType.CUSTOMERS,
+            mode=sync_mode,
+            batch_size=100,
+            filter_params=filter_params
         )
-        results["customers"] = customers_result
+        customers_result = await orchestrator.sync_entity(customers_config)
 
-        # Step 3: Price Lists
-        logger.info("Step 3/3: Syncing price lists...")
-        pricelists_result = await service.sync_pricelists()
-        results["pricelists"] = pricelists_result
+        results["customers"] = {
+            "success": (customers_result.status == "completed"),
+            "stats": {
+                "total_processed": customers_result.total_processed,
+                "successful": customers_result.total_success,
+                "failed": customers_result.total_failed,
+                "skipped": customers_result.total_skipped
+            },
+            "duration_seconds": customers_result.duration.total_seconds() if customers_result.duration else 0
+        }
 
         # Calculate totals
         total_success = all(r["success"] for r in results.values())
@@ -359,7 +511,7 @@ async def sync_all_entities(
 
         return {
             "success": total_success,
-            "message": "Complete migration finished (invoices sync via webhooks)",
+            "message": "Complete migration finished via TDS (invoices sync via webhooks, pricelists in products)",
             "results": results,
             "totals": {
                 "items": total_items,
@@ -374,6 +526,10 @@ async def sync_all_entities(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Migration failed: {str(e)}"
         )
+    finally:
+        # Cleanup
+        if zoho_client:
+            await zoho_client.close_session()
 
 
 # ============================================================================

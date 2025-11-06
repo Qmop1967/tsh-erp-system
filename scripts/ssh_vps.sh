@@ -7,3 +7,5 @@ HOST_ALIAS="${HOST_ALIAS:-tsh-vps}"
 
 exec ssh "$HOST_ALIAS" "$@"
 
+
+

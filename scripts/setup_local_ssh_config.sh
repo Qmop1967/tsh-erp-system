@@ -50,3 +50,5 @@ EOF
 echo "Added/updated SSH config for host alias '$HOST_ALIAS' -> $VPS_USER@$VPS_HOSTNAME:$VPS_PORT using key $SSH_KEY_PATH"
 echo "Test: ssh $HOST_ALIAS 'echo connected'"
 
+
+
