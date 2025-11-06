@@ -10,7 +10,7 @@ from app.db.database import get_db
 from app.models.migration import MigrationVendor
 from app.models.user import User
 from app.schemas.migration import VendorCreate, VendorUpdate
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from pydantic import BaseModel
 from datetime import datetime
 

@@ -20,7 +20,7 @@ from app.models.user import User
 from app.models.advanced_security import *
 from app.services.advanced_security_service import AdvancedSecurityService, AccessContext, AccessDecision
 from app.services.mfa_mobile_service import MFAMobileService, DeviceInfo
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/security", tags=["Advanced Security"])

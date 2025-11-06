@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.db.database import get_db
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.schemas.inventory import (
     InventoryItem, StockMovementCreate, StockMovement,

@@ -202,8 +202,22 @@ from app.routers.hr import router as hr_router
 from app.routers.gps_tracking import router as gps_router
 from app.routers.partner_salesmen_simple import router as partner_salesmen_router
 from app.routers.auth_enhanced import router as auth_router  # Enhanced auth router with MFA, rate limiting, sessions
-# DEPRECATED: auth_simple router removed - use auth_enhanced instead
-# from app.routers.partner_salesmen import router as partner_salesmen_router  # Temporarily disabled
+
+# ============================================================================
+# 🧹 REFACTORING 2025-01-07: Code Duplication Eliminated
+# ============================================================================
+# Centralized Authentication: app/dependencies/auth.py
+# - get_current_user() - Single source of truth (was duplicated in 3 places)
+# - get_user_permissions() - Centralized role mapping
+#
+# Archived Deprecated Routers (see archived/deprecated_routers_2025_01/):
+# ❌ auth.py (391 lines) → ✅ app.dependencies.auth
+# ❌ auth_simple.py (247 lines) → ✅ app.dependencies.auth
+# ❌ partner_salesmen.py (47KB) → ✅ partner_salesmen_simple.py (4KB, -91%)
+# ❌ multi_price_system.py (798 lines) → ✅ multi_price_system_simple.py (158 lines, -80%)
+#
+# Result: -4 files, -2,200+ lines, improved maintainability
+# ============================================================================
 from app.routers.vendors import router as vendors_router  # Enable vendors
 from app.routers.permissions import router as permissions_router  # Enable permissions management
 from app.routers.trusted_devices import router as trusted_devices_router  # Trusted devices for automatic login

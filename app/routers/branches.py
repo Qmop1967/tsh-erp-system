@@ -5,7 +5,7 @@ from typing import List
 from app.db.database import get_db
 from app.models.branch import Branch
 from app.schemas.branch import BranchCreate, BranchResponse
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from app.services.permission_service import simple_require_permission
 from app.models.user import User
 

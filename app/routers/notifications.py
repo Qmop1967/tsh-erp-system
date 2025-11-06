@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.db.database import get_db
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.models.notification import NotificationType, NotificationPriority
 from app.schemas.notification import (
