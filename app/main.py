@@ -172,13 +172,13 @@ app.add_middleware(
 
 # استيراد الـ routers
 from app.routers import (
-    customers_router,
     sales_router, inventory_router, accounting_router, pos_router,
     cashflow_router
 )
 # Phase 5 Refactored Routers
 from app.routers.branches_refactored import router as branches_router  # ✅ Phase 5 P0: Refactored
 from app.routers.products_refactored import router as products_router  # ✅ Phase 5 P1: Refactored
+from app.routers.customers_refactored import router as customers_router  # ✅ Phase 5 P1: Refactored
 # Legacy migration router removed - TDS Core handles all Zoho integration
 # from app.routers.migration import router as migration_router
 from app.routers.models import router as models_router
