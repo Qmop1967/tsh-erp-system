@@ -179,15 +179,14 @@ from app.routers import (
 from app.routers.branches_refactored import router as branches_router  # ✅ Phase 5 P0: Refactored
 from app.routers.products_refactored import router as products_router  # ✅ Phase 5 P1: Refactored
 from app.routers.customers_refactored import router as customers_router  # ✅ Phase 5 P1: Refactored
+from app.routers.warehouses_refactored import router as warehouses_router  # ✅ Phase 5 P0: Refactored
+from app.routers.items_refactored import router as items_router  # ✅ Phase 5 P2: Refactored
 # Legacy migration router removed - TDS Core handles all Zoho integration
 # from app.routers.migration import router as migration_router
 from app.routers.models import router as models_router
 from app.routers.users import router as users_router
 from app.routers.invoices import router as invoices_router
 from app.routers.expenses import router as expenses_router
-# OLD (Phase 4): from app.routers.warehouses import router as warehouses_router
-from app.routers.warehouses_refactored import router as warehouses_router  # ✅ Phase 5: Refactored
-from app.routers.items import router as items_router
 from app.routers.money_transfer import router as money_transfer_router
 from app.routers.settings import router as settings_router  # TODO: Migrate to app.routers.settings module
 # New modular settings (Phase 1: System settings completed)
