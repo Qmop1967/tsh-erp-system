@@ -11,6 +11,7 @@ Phase: 4 - Service Layer Consolidation
 
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
+from fastapi import Depends
 
 from app.models.branch import Branch
 from app.schemas.branch import BranchCreate, BranchUpdate
@@ -236,7 +237,10 @@ class BranchService:
 # Dependency for FastAPI
 # ============================================================================
 
-def get_branch_service(db: Session) -> BranchService:
+from app.db.database import get_db
+
+
+def get_branch_service(db: Session = Depends(get_db)) -> BranchService:
     """
     Dependency to get BranchService instance.
 

@@ -11,6 +11,7 @@ Phase: 4 - Service Layer Consolidation
 
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
+from fastapi import Depends
 
 from app.models.warehouse import Warehouse
 from app.schemas.warehouse import WarehouseCreate, WarehouseUpdate
@@ -202,7 +203,10 @@ class WarehouseService:
 # Dependency for FastAPI
 # ============================================================================
 
-def get_warehouse_service(db: Session) -> WarehouseService:
+from app.db.database import get_db
+
+
+def get_warehouse_service(db: Session = Depends(get_db)) -> WarehouseService:
     """
     Dependency to get WarehouseService instance.
 
