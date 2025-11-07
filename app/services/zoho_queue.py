@@ -202,6 +202,197 @@ class QueueService:
             logger.error(f"Error fetching retry items: {e}", exc_info=True)
             return []
 
+    # ============================================================================
+    # COMPATIBILITY METHODS FOR ZOHO_SYNC_WORKER
+    # ============================================================================
+
+    async def get_pending_events(
+        self, limit: int = 100, priority_filter: Optional[int] = None
+    ) -> List[TDSSyncQueue]:
+        """
+        Get pending events from queue (compatibility wrapper)
+
+        Args:
+            limit: Maximum number of events to return
+            priority_filter: Optional minimum priority filter (not used in this implementation)
+
+        Returns:
+            List of pending queue entries
+        """
+        return await self.get_pending_items(batch_size=limit)
+
+    async def get_retry_ready_events(self, limit: int = 100) -> List[TDSSyncQueue]:
+        """
+        Get events that are ready for retry (compatibility wrapper)
+
+        Args:
+            limit: Maximum number of events to return
+
+        Returns:
+            List of retry-ready queue entries
+        """
+        return await self.get_retry_items(batch_size=limit)
+
+    async def get_queue_entry_by_id(self, queue_id: str) -> Optional[TDSSyncQueue]:
+        """
+        Get queue entry by ID
+
+        Args:
+            queue_id: Queue entry ID (UUID as string)
+
+        Returns:
+            Queue entry or None if not found
+        """
+        try:
+            result = await self.db.execute(
+                select(TDSSyncQueue).where(TDSSyncQueue.id == queue_id)
+            )
+            return result.scalar_one_or_none()
+        except Exception as e:
+            logger.error(f"Error fetching queue entry {queue_id}: {e}")
+            return None
+
+    async def mark_as_processing(self, queue_id: str, worker_id: str) -> bool:
+        """
+        Mark queue entry as processing
+
+        Args:
+            queue_id: Queue entry ID
+            worker_id: Worker ID
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            await self.db.execute(
+                update(TDSSyncQueue)
+                .where(TDSSyncQueue.id == queue_id)
+                .values(
+                    status=EventStatus.PROCESSING,
+                    processing_started_at=datetime.utcnow(),
+                )
+            )
+            await self.db.commit()
+            logger.debug(f"Marked as processing: {queue_id} by {worker_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error marking as processing: {e}")
+            await self.db.rollback()
+            return False
+
+    async def mark_as_completed(
+        self,
+        queue_id: str,
+        target_entity_id: Optional[str] = None,
+        processing_result: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """
+        Mark queue entry as completed
+
+        Args:
+            queue_id: Queue entry ID
+            target_entity_id: Local entity ID
+            processing_result: Result of processing
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            await self.db.execute(
+                update(TDSSyncQueue)
+                .where(TDSSyncQueue.id == queue_id)
+                .values(
+                    status=EventStatus.COMPLETED,
+                    processing_completed_at=datetime.utcnow(),
+                    local_entity_id=target_entity_id,
+                    sync_result=processing_result or {},
+                )
+            )
+            await self.db.commit()
+            logger.info(f"Marked as completed: {queue_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error marking as completed: {e}")
+            await self.db.rollback()
+            return False
+
+    async def mark_as_failed(
+        self,
+        queue_id: str,
+        error_message: str,
+        error_code: Optional[str] = None,
+        should_retry: bool = True,
+    ) -> bool:
+        """
+        Mark queue entry as failed
+
+        Automatically handles retry logic and dead letter queue
+
+        Args:
+            queue_id: Queue entry ID
+            error_message: Error description
+            error_code: Optional error code
+            should_retry: Whether to retry this item
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get queue entry
+            queue_entry = await self.get_queue_entry_by_id(queue_id)
+            if not queue_entry:
+                logger.error(f"Queue entry not found: {queue_id}")
+                return False
+
+            # Increment retry count
+            new_retry_count = (queue_entry.retry_count or 0) + 1
+
+            # Determine if should move to dead letter queue
+            max_attempts_reached = new_retry_count >= 5
+            move_to_dlq = max_attempts_reached or not should_retry
+
+            if move_to_dlq:
+                # Move to dead letter queue
+                await self.db.execute(
+                    update(TDSSyncQueue)
+                    .where(TDSSyncQueue.id == queue_id)
+                    .values(
+                        status=EventStatus.DEAD_LETTER,
+                        error_message=error_message,
+                        retry_count=new_retry_count,
+                        last_error_at=datetime.utcnow(),
+                    )
+                )
+                logger.error(f"Moved to dead letter queue: {queue_id} - {error_message}")
+            else:
+                # Schedule retry with exponential backoff
+                retry_delay_minutes = 2 ** new_retry_count  # 2, 4, 8, 16...
+                next_retry = datetime.utcnow() + timedelta(minutes=retry_delay_minutes)
+
+                await self.db.execute(
+                    update(TDSSyncQueue)
+                    .where(TDSSyncQueue.id == queue_id)
+                    .values(
+                        status=EventStatus.RETRY,
+                        error_message=error_message,
+                        retry_count=new_retry_count,
+                        next_retry_at=next_retry,
+                        last_error_at=datetime.utcnow(),
+                    )
+                )
+                logger.warning(
+                    f"Scheduled for retry: {queue_id} "
+                    f"(attempt {new_retry_count}, next retry in {retry_delay_minutes}min)"
+                )
+
+            await self.db.commit()
+            return True
+
+        except Exception as e:
+            logger.error(f"Error marking as failed: {e}")
+            await self.db.rollback()
+            return False
+
     async def get_queue_stats(self) -> Dict[str, Any]:
         """
         Get queue statistics
