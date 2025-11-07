@@ -29,7 +29,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 import json
 
-from ....core.event_bus import EventBus
+from ....core.events.event_bus import EventBus
 
 logger = logging.getLogger(__name__)
 
