@@ -544,7 +544,7 @@ class ZohoSyncOrchestrator:
 
     async def _save_product(self, entity: Dict[str, Any]):
         """Save product entity to database"""
-        from ...processors.products import ProductProcessor
+        from .processors.products import ProductProcessor
         from ....db.database import get_async_db
 
         # Transform using processor
