@@ -81,9 +81,10 @@ class ProductProcessor:
             'cost_price': Decimal(str(product_data.get('purchase_rate', 0))),
             'selling_price': Decimal(str(product_data.get('rate', 0))),
 
-            # Stock
-            'stock_on_hand': Decimal(str(product_data.get('stock_on_hand', 0))),
+            # Stock - Zoho returns 'actual_available_stock' and 'available_stock'
+            'stock_on_hand': Decimal(str(product_data.get('actual_available_stock', 0))),
             'available_stock': Decimal(str(product_data.get('available_stock', 0))),
+            'actual_available_stock': Decimal(str(product_data.get('actual_available_stock', 0))),
             'reorder_level': Decimal(str(product_data.get('reorder_level', 0))),
 
             # Attributes

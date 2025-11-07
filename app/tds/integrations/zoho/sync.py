@@ -565,7 +565,7 @@ class ZohoSyncOrchestrator:
             'price': float(transformed.get('rate', 0)),
             'cost_price': float(transformed.get('cost_price', 0)),
             'unit_price': float(transformed.get('rate', 0)),
-            'actual_available_stock': int(transformed.get('stock_on_hand', 0)),
+            'actual_available_stock': int(transformed.get('actual_available_stock', 0)),
             'image_url': transformed.get('image_url'),
             'is_active': transformed.get('is_active', True),
             'unit_of_measure': transformed.get('unit', 'piece'),
