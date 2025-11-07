@@ -332,6 +332,287 @@ tds_sync_runs (
 )
 ```
 
+### Zoho API Best Practices & Instructions
+
+**CRITICAL RULES FOR ZOHO INTEGRATION**
+
+#### Rule 1: Always Use Pagination/Batch Processing
+
+**Why:** Reduce API call consumption and avoid rate limits
+
+**Implementation:**
+```python
+# ✅ CORRECT: Use pagination
+result = await zoho_client.paginated_fetch(
+    api_type=ZohoAPI.BOOKS,
+    endpoint="items",
+    page_size=100  # Process in batches of 100
+)
+
+# ❌ WRONG: Fetch all at once without pagination
+result = await zoho_client.get("items")  # May exceed rate limits
+```
+
+**Batch Size Guidelines:**
+- **Small datasets** (< 500 items): batch_size = 200
+- **Medium datasets** (500-2,000): batch_size = 100
+- **Large datasets** (> 2,000): batch_size = 50
+
+#### Rule 2: API Priority System (Books → Inventory)
+
+**Priority Order:**
+1. **FIRST:** Try Zoho Books API
+2. **SECOND:** Only if data not found, try Zoho Inventory API
+
+**Why:** Zoho Inventory has VERY LIMITED API calls compared to Books
+
+**Rate Limits:**
+- **Zoho Books:** 100 requests/minute ✅ (Higher limit)
+- **Zoho Inventory:** 25-50 requests/minute ⚠️ (Very limited)
+
+**Implementation Pattern:**
+
+```python
+async def sync_product_with_priority(item_id: str):
+    """
+    Sync product data using priority system
+
+    Priority: Books → Inventory
+    """
+    # Step 1: Try Zoho Books first
+    try:
+        product_data = await zoho_client.get(
+            api_type=ZohoAPI.BOOKS,
+            endpoint=f"items/{item_id}"
+        )
+
+        if product_data:
+            logger.info(f"✅ Found in Zoho Books: {item_id}")
+            return product_data
+
+    except Exception as e:
+        logger.warning(f"⚠️ Not in Books, trying Inventory: {e}")
+
+    # Step 2: Only if not found in Books, try Inventory
+    try:
+        product_data = await zoho_client.get(
+            api_type=ZohoAPI.INVENTORY,
+            endpoint=f"items/{item_id}"
+        )
+
+        if product_data:
+            logger.info(f"✅ Found in Zoho Inventory: {item_id}")
+            return product_data
+
+    except Exception as e:
+        logger.error(f"❌ Not found in either Books or Inventory: {e}")
+        raise
+```
+
+#### Rule 3: Batch Operations Structure
+
+**For Bulk Sync Operations:**
+
+```python
+async def bulk_sync_with_batching():
+    """
+    Proper batch sync implementation
+    """
+    batch_size = 100
+    page = 1
+    has_more = True
+
+    while has_more:
+        # Fetch batch from Zoho Books (priority)
+        response = await zoho_client.get(
+            api_type=ZohoAPI.BOOKS,
+            endpoint="items",
+            params={
+                "page": page,
+                "per_page": batch_size
+            }
+        )
+
+        items = response.get('items', [])
+        page_context = response.get('page_context', {})
+
+        # Process batch
+        for item in items:
+            await process_item(item)
+
+        # Check if more pages exist
+        has_more = page_context.get('has_more_page', False)
+        page += 1
+
+        # Rate limit protection: Small delay between batches
+        await asyncio.sleep(0.5)  # 500ms delay
+
+        logger.info(f"📦 Processed batch {page-1}: {len(items)} items")
+```
+
+#### Rule 4: API Endpoint Priority Matrix
+
+| Data Type | Primary Source (Try First) | Secondary Source (Fallback) | Notes |
+|-----------|----------------------------|----------------------------|-------|
+| **Products/Items** | Zoho Books | Zoho Inventory | Books has more complete data |
+| **Stock Levels** | Zoho Inventory | N/A | Only available in Inventory |
+| **Customers** | Zoho Books | N/A | Only in Books |
+| **Invoices** | Zoho Books | N/A | Only in Books |
+| **Bills** | Zoho Books | N/A | Only in Books |
+| **Warehouses** | Zoho Inventory | N/A | Only in Inventory |
+| **Price Lists** | Zoho Books | N/A | Only in Books |
+
+#### Rule 5: Error Handling & Retry Logic
+
+**When Books API Fails:**
+
+```python
+async def resilient_zoho_fetch(item_id: str, max_retries: int = 3):
+    """
+    Fetch with retry and fallback logic
+    """
+    # Try Books API first (with retry)
+    for attempt in range(max_retries):
+        try:
+            return await zoho_client.get(
+                api_type=ZohoAPI.BOOKS,
+                endpoint=f"items/{item_id}"
+            )
+        except RateLimitError:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Exponential backoff
+                logger.warning(f"⚠️ Rate limit hit, waiting {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error("❌ Books API exhausted, trying Inventory...")
+                break
+        except Exception as e:
+            logger.error(f"❌ Books API error: {e}")
+            break
+
+    # Fallback to Inventory API (with retry)
+    for attempt in range(max_retries):
+        try:
+            return await zoho_client.get(
+                api_type=ZohoAPI.INVENTORY,
+                endpoint=f"items/{item_id}"
+            )
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt
+                logger.warning(f"⚠️ Inventory retry {attempt+1}, waiting {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"❌ All attempts failed: {e}")
+                raise
+```
+
+#### Rule 6: API Call Monitoring
+
+**Track API Usage:**
+
+```python
+# Track API calls per endpoint
+api_call_stats = {
+    "books": {"calls": 0, "failures": 0},
+    "inventory": {"calls": 0, "failures": 0}
+}
+
+async def tracked_api_call(api_type: ZohoAPI, endpoint: str):
+    """Call with tracking"""
+    api_name = "books" if api_type == ZohoAPI.BOOKS else "inventory"
+
+    try:
+        api_call_stats[api_name]["calls"] += 1
+        result = await zoho_client.get(api_type=api_type, endpoint=endpoint)
+        return result
+    except Exception as e:
+        api_call_stats[api_name]["failures"] += 1
+        raise
+
+# Log stats periodically
+logger.info(f"📊 API Stats: {api_call_stats}")
+```
+
+#### Rule 7: Sync Strategy Summary
+
+**DO's:**
+- ✅ Always use pagination (batch_size: 50-200)
+- ✅ Try Zoho Books first for products
+- ✅ Use Inventory ONLY for stock levels or when Books fails
+- ✅ Implement exponential backoff for retries
+- ✅ Add small delays (500ms) between batches
+- ✅ Monitor API call counts
+- ✅ Log which API source was used for each record
+
+**DON'Ts:**
+- ❌ Never fetch all data without pagination
+- ❌ Don't start with Inventory API for products
+- ❌ Don't hammer APIs without rate limiting
+- ❌ Don't retry immediately after rate limit error
+- ❌ Don't ignore Books API if Inventory seems "easier"
+
+#### Rule 8: Real-World Example (Items Sync)
+
+```python
+async def sync_items_with_best_practices():
+    """
+    Complete example following all best practices
+    """
+    logger.info("🚀 Starting Items Sync (Books Priority)")
+
+    # Configuration
+    batch_size = 100
+    books_items = []
+    inventory_items = []
+
+    # Step 1: Fetch from Books (Primary)
+    logger.info("📘 Step 1: Fetching from Zoho Books...")
+    books_result = await zoho_client.paginated_fetch(
+        api_type=ZohoAPI.BOOKS,
+        endpoint="items",
+        page_size=batch_size
+    )
+    books_items = books_result.get('items', [])
+    logger.info(f"   Found {len(books_items)} items in Books")
+
+    # Step 2: Process Books items
+    processed_ids = set()
+    for item in books_items:
+        await process_and_save(item, source="books")
+        processed_ids.add(item['item_id'])
+
+    # Step 3: Check Inventory ONLY for missing items
+    logger.info("📦 Step 2: Checking Inventory for missing items...")
+    inventory_result = await zoho_client.paginated_fetch(
+        api_type=ZohoAPI.INVENTORY,
+        endpoint="items",
+        page_size=50  # Smaller batch for limited API
+    )
+    inventory_items = inventory_result.get('items', [])
+
+    # Only process items NOT found in Books
+    new_items = [
+        item for item in inventory_items
+        if item['item_id'] not in processed_ids
+    ]
+
+    logger.info(f"   Found {len(new_items)} NEW items in Inventory")
+
+    for item in new_items:
+        await process_and_save(item, source="inventory")
+
+    # Summary
+    logger.info("=" * 70)
+    logger.info("✅ Sync Complete")
+    logger.info(f"   Books Items: {len(books_items)}")
+    logger.info(f"   Inventory-Only Items: {len(new_items)}")
+    logger.info(f"   Total Unique Items: {len(processed_ids) + len(new_items)}")
+    logger.info("=" * 70)
+```
+
+---
+
 ### Authentication & Security
 
 **Zoho OAuth 2.0 Flow**:
