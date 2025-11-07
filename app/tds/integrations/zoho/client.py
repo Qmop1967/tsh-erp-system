@@ -33,8 +33,7 @@ from enum import Enum
 from .auth import ZohoAuthManager
 from .utils.rate_limiter import RateLimiter
 from .utils.retry import RetryStrategy
-from ...core.events import publish_event
-from ....core.event_bus import EventBus
+from ....core.events.event_bus import EventBus
 
 logger = logging.getLogger(__name__)
 
