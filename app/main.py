@@ -187,7 +187,7 @@ from app.routers.models import router as models_router
 from app.routers.users_refactored import router as users_router  # ✅ Phase 5 P3 Batch 2: Refactored
 from app.routers.invoices_refactored import router as invoices_router  # ✅ Phase 5 P3 Batch 2: Refactored
 from app.routers.expenses_refactored import router as expenses_router  # ✅ Phase 5 P3 Batch 1: Refactored
-from app.routers.money_transfer import router as money_transfer_router
+from app.routers.money_transfer_refactored import router as money_transfer_router  # ✅ Phase 5 P3 Batch 2: Refactored
 from app.routers.settings import router as settings_router  # TODO: Migrate to app.routers.settings module
 # New modular settings (Phase 1: System settings completed)
 # from app.routers.settings import router as modular_settings_router
