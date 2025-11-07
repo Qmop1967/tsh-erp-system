@@ -33,7 +33,7 @@ class StoredEvent(Base):
     aggregate_id = Column(String(255), nullable=True, index=True)
     aggregate_type = Column(String(100), nullable=True, index=True)
     data = Column(JSONB, nullable=False)
-    metadata = Column(JSONB, default={})
+    event_metadata = Column(JSONB, default={})  # Renamed from 'metadata' to avoid SQLAlchemy reserved name
     correlation_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
     causation_id = Column(PG_UUID(as_uuid=True), nullable=True)
     user_id = Column(Integer, nullable=True, index=True)
@@ -49,7 +49,7 @@ class StoredEvent(Base):
             timestamp=self.timestamp,
             module=self.module,
             data=self.data,
-            metadata=self.metadata,
+            metadata=self.event_metadata,
             correlation_id=self.correlation_id,
             causation_id=self.causation_id,
             user_id=self.user_id,
@@ -88,7 +88,7 @@ class EventStore:
             aggregate_id=getattr(event, 'aggregate_id', None),
             aggregate_type=getattr(event, 'aggregate_type', None),
             data=event.data,
-            metadata=event.metadata,
+            event_metadata=event.metadata,  # Use event_metadata column name
             correlation_id=event.correlation_id,
             causation_id=event.causation_id,
             user_id=event.user_id,
