@@ -21,18 +21,29 @@ from app.schemas.invoice import (
 class InvoiceService:
     """خدمة إدارة الفواتير - Invoice Management Service"""
 
-    @staticmethod
-    def generate_invoice_number(db: Session, invoice_type: str = "SALES") -> str:
+    def __init__(self, db: Session):
+        """
+        Initialize invoice service.
+
+        Args:
+            db: Database session
+        """
+        self.db = db
+
+    """خدمة إدارة الفواتير - Invoice Management Service"""
+
+    # Converted from @staticmethod to instance method
+    def generate_invoice_number(self, invoice_type: str = "SALES") -> str:
         """توليد رقم فاتورة جديد - Generate new invoice number"""
         prefix = "INV-S" if invoice_type == "SALES" else "INV-P"
         
         # Get the latest invoice number for this type
         if invoice_type == "SALES":
-            latest = db.query(SalesInvoice).filter(
+            latest = self.db.query(SalesInvoice).filter(
                 SalesInvoice.invoice_number.startswith(prefix)
             ).order_by(desc(SalesInvoice.id)).first()
         else:
-            latest = db.query(PurchaseInvoice).filter(
+            latest = self.db.query(PurchaseInvoice).filter(
                 PurchaseInvoice.invoice_number.startswith(prefix)
             ).order_by(desc(PurchaseInvoice.id)).first()
         
@@ -48,34 +59,34 @@ class InvoiceService:
         return f"{prefix}-{new_number:06d}"
 
     # Sales Invoice Operations
-    @staticmethod
-    def create_sales_invoice(db: Session, invoice_data: SalesInvoiceCreate) -> SalesInvoice:
+    # Converted from @staticmethod to instance method
+    def create_sales_invoice(self, invoice_data: SalesInvoiceCreate) -> SalesInvoice:
         """إنشاء فاتورة مبيعات - Create sales invoice"""
         
         # Generate invoice number if not provided
         if not invoice_data.invoice_number:
-            invoice_data.invoice_number = InvoiceService.generate_invoice_number(db, "SALES")
+            invoice_data.invoice_number = self.generate_invoice_number("SALES")
         
         # Create invoice
         db_invoice = SalesInvoice(**invoice_data.dict(exclude={'invoice_items'}))
-        db.add(db_invoice)
-        db.flush()  # Get the ID
+        self.db.add(db_invoice)
+        self.db.flush()  # Get the ID
         
         # Add invoice items
         for item_data in invoice_data.invoice_items:
             db_item = SalesInvoiceItem(invoice_id=db_invoice.id, **item_data.dict())
-            db.add(db_item)
+            self.db.add(db_item)
         
-        db.commit()
-        db.refresh(db_invoice)
+        self.db.commit()
+        self.db.refresh(db_invoice)
         return db_invoice
 
-    @staticmethod
-    def get_sales_invoice(db: Session, invoice_id: int) -> Optional[SalesInvoice]:
+    # Converted from @staticmethod to instance method
+    def get_sales_invoice(self, invoice_id: int) -> Optional[SalesInvoice]:
         """الحصول على فاتورة مبيعات - Get sales invoice"""
-        return db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+        return self.db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
 
-    @staticmethod
+    # Converted from @staticmethod to instance method
     def get_sales_invoices(
         db: Session, 
         filters: Optional[InvoiceFilter] = None,
@@ -83,7 +94,7 @@ class InvoiceService:
         limit: int = 100
     ) -> List[SalesInvoice]:
         """الحصول على قائمة فواتير المبيعات - Get sales invoices list"""
-        query = db.query(SalesInvoice)
+        query = self.db.query(SalesInvoice)
         
         if filters:
             if filters.status:
@@ -108,14 +119,14 @@ class InvoiceService:
         
         return query.order_by(desc(SalesInvoice.created_at)).offset(skip).limit(limit).all()
 
-    @staticmethod
+    # Converted from @staticmethod to instance method
     def update_sales_invoice(
         db: Session, 
         invoice_id: int, 
         invoice_data: SalesInvoiceUpdate
     ) -> Optional[SalesInvoice]:
         """تحديث فاتورة مبيعات - Update sales invoice"""
-        db_invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+        db_invoice = self.db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
         if not db_invoice:
             return None
         
@@ -123,50 +134,50 @@ class InvoiceService:
         for field, value in update_data.items():
             setattr(db_invoice, field, value)
         
-        db.commit()
-        db.refresh(db_invoice)
+        self.db.commit()
+        self.db.refresh(db_invoice)
         return db_invoice
 
-    @staticmethod
-    def delete_sales_invoice(db: Session, invoice_id: int) -> bool:
+    # Converted from @staticmethod to instance method
+    def delete_sales_invoice(self, invoice_id: int) -> bool:
         """حذف فاتورة مبيعات - Delete sales invoice"""
-        db_invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+        db_invoice = self.db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
         if not db_invoice:
             return False
         
-        db.delete(db_invoice)
-        db.commit()
+        self.db.delete(db_invoice)
+        self.db.commit()
         return True
 
     # Purchase Invoice Operations
-    @staticmethod
-    def create_purchase_invoice(db: Session, invoice_data: PurchaseInvoiceCreate) -> PurchaseInvoice:
+    # Converted from @staticmethod to instance method
+    def create_purchase_invoice(self, invoice_data: PurchaseInvoiceCreate) -> PurchaseInvoice:
         """إنشاء فاتورة مشتريات - Create purchase invoice"""
         
         # Generate invoice number if not provided
         if not invoice_data.invoice_number:
-            invoice_data.invoice_number = InvoiceService.generate_invoice_number(db, "PURCHASE")
+            invoice_data.invoice_number = self.generate_invoice_number("PURCHASE")
         
         # Create invoice
         db_invoice = PurchaseInvoice(**invoice_data.dict(exclude={'invoice_items'}))
-        db.add(db_invoice)
-        db.flush()  # Get the ID
+        self.db.add(db_invoice)
+        self.db.flush()  # Get the ID
         
         # Add invoice items
         for item_data in invoice_data.invoice_items:
             db_item = PurchaseInvoiceItem(invoice_id=db_invoice.id, **item_data.dict())
-            db.add(db_item)
+            self.db.add(db_item)
         
-        db.commit()
-        db.refresh(db_invoice)
+        self.db.commit()
+        self.db.refresh(db_invoice)
         return db_invoice
 
-    @staticmethod
-    def get_purchase_invoice(db: Session, invoice_id: int) -> Optional[PurchaseInvoice]:
+    # Converted from @staticmethod to instance method
+    def get_purchase_invoice(self, invoice_id: int) -> Optional[PurchaseInvoice]:
         """الحصول على فاتورة مشتريات - Get purchase invoice"""
-        return db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
+        return self.db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
 
-    @staticmethod
+    # Converted from @staticmethod to instance method
     def get_purchase_invoices(
         db: Session, 
         filters: Optional[InvoiceFilter] = None,
@@ -174,7 +185,7 @@ class InvoiceService:
         limit: int = 100
     ) -> List[PurchaseInvoice]:
         """الحصول على قائمة فواتير المشتريات - Get purchase invoices list"""
-        query = db.query(PurchaseInvoice)
+        query = self.db.query(PurchaseInvoice)
         
         if filters:
             if filters.status:
@@ -200,14 +211,14 @@ class InvoiceService:
         
         return query.order_by(desc(PurchaseInvoice.created_at)).offset(skip).limit(limit).all()
 
-    @staticmethod
+    # Converted from @staticmethod to instance method
     def update_purchase_invoice(
         db: Session, 
         invoice_id: int, 
         invoice_data: PurchaseInvoiceUpdate
     ) -> Optional[PurchaseInvoice]:
         """تحديث فاتورة مشتريات - Update purchase invoice"""
-        db_invoice = db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
+        db_invoice = self.db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
         if not db_invoice:
             return None
         
@@ -215,36 +226,36 @@ class InvoiceService:
         for field, value in update_data.items():
             setattr(db_invoice, field, value)
         
-        db.commit()
-        db.refresh(db_invoice)
+        self.db.commit()
+        self.db.refresh(db_invoice)
         return db_invoice
 
-    @staticmethod
-    def delete_purchase_invoice(db: Session, invoice_id: int) -> bool:
+    # Converted from @staticmethod to instance method
+    def delete_purchase_invoice(self, invoice_id: int) -> bool:
         """حذف فاتورة مشتريات - Delete purchase invoice"""
-        db_invoice = db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
+        db_invoice = self.db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
         if not db_invoice:
             return False
         
-        db.delete(db_invoice)
-        db.commit()
+        self.db.delete(db_invoice)
+        self.db.commit()
         return True
 
     # Invoice Payment Operations
-    @staticmethod
-    def create_payment(db: Session, payment_data: InvoicePaymentCreate) -> InvoicePayment:
+    # Converted from @staticmethod to instance method
+    def create_payment(self, payment_data: InvoicePaymentCreate) -> InvoicePayment:
         """إنشاء دفعة فاتورة - Create invoice payment"""
         
         # Generate payment number if not provided
         if not payment_data.payment_number:
-            payment_data.payment_number = InvoiceService.generate_payment_number(db)
+            payment_data.payment_number = self.generate_payment_number()
         
         db_payment = InvoicePayment(**payment_data.dict())
-        db.add(db_payment)
+        self.db.add(db_payment)
         
         # Update invoice paid amount
         if payment_data.sales_invoice_id:
-            invoice = db.query(SalesInvoice).filter(
+            invoice = self.db.query(SalesInvoice).filter(
                 SalesInvoice.id == payment_data.sales_invoice_id
             ).first()
             if invoice:
@@ -256,7 +267,7 @@ class InvoiceService:
                     invoice.status = InvoiceStatusEnum.PARTIALLY_PAID
         
         elif payment_data.purchase_invoice_id:
-            invoice = db.query(PurchaseInvoice).filter(
+            invoice = self.db.query(PurchaseInvoice).filter(
                 PurchaseInvoice.id == payment_data.purchase_invoice_id
             ).first()
             if invoice:
@@ -267,17 +278,17 @@ class InvoiceService:
                 elif invoice.paid_amount > 0:
                     invoice.status = InvoiceStatusEnum.PARTIALLY_PAID
         
-        db.commit()
-        db.refresh(db_payment)
+        self.db.commit()
+        self.db.refresh(db_payment)
         return db_payment
 
-    @staticmethod
-    def generate_payment_number(db: Session) -> str:
+    # Converted from @staticmethod to instance method
+    def generate_payment_number(self) -> str:
         """توليد رقم دفعة جديد - Generate new payment number"""
         prefix = "PAY"
         
         # Get the latest payment number
-        latest = db.query(InvoicePayment).filter(
+        latest = self.db.query(InvoicePayment).filter(
             InvoicePayment.payment_number.startswith(prefix)
         ).order_by(desc(InvoicePayment.id)).first()
         
@@ -292,22 +303,22 @@ class InvoiceService:
         
         return f"{prefix}-{new_number:06d}"
 
-    @staticmethod
-    def get_invoice_payments(db: Session, invoice_id: int, invoice_type: str) -> List[InvoicePayment]:
+    # Converted from @staticmethod to instance method
+    def get_invoice_payments(self, invoice_id: int, invoice_type: str) -> List[InvoicePayment]:
         """الحصول على دفعات الفاتورة - Get invoice payments"""
         if invoice_type.upper() == "SALES":
-            return db.query(InvoicePayment).filter(
+            return self.db.query(InvoicePayment).filter(
                 InvoicePayment.sales_invoice_id == invoice_id
             ).order_by(desc(InvoicePayment.payment_date)).all()
         else:
-            return db.query(InvoicePayment).filter(
+            return self.db.query(InvoicePayment).filter(
                 InvoicePayment.purchase_invoice_id == invoice_id
             ).order_by(desc(InvoicePayment.payment_date)).all()
 
-    @staticmethod
-    def get_all_payments(db: Session, page: int = 1, size: int = 10, invoice_type: Optional[InvoiceTypeEnum] = None) -> List[InvoicePayment]:
+    # Converted from @staticmethod to instance method
+    def get_all_payments(self, page: int = 1, size: int = 10, invoice_type: Optional[InvoiceTypeEnum] = None) -> List[InvoicePayment]:
         """الحصول على جميع دفعات الفواتير - Get all invoice payments"""
-        query = db.query(InvoicePayment)
+        query = self.db.query(InvoicePayment)
         
         if invoice_type:
             if invoice_type == InvoiceTypeEnum.SALES:
@@ -319,46 +330,46 @@ class InvoiceService:
         return query.order_by(desc(InvoicePayment.payment_date)).offset(offset).limit(size).all()
 
     # Invoice Status Management
-    @staticmethod
-    def mark_invoice_as_sent(db: Session, invoice_id: int, invoice_type: str) -> bool:
+    # Converted from @staticmethod to instance method
+    def mark_invoice_as_sent(self, invoice_id: int, invoice_type: str) -> bool:
         """تمييز الفاتورة كمرسلة - Mark invoice as sent"""
         if invoice_type.upper() == "SALES":
-            invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+            invoice = self.db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
         else:
-            invoice = db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
+            invoice = self.db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
         
         if not invoice:
             return False
         
         invoice.status = InvoiceStatusEnum.PENDING
         invoice.issued_at = datetime.now()
-        db.commit()
+        self.db.commit()
         return True
 
-    @staticmethod
-    def cancel_invoice(db: Session, invoice_id: int, invoice_type: str) -> bool:
+    # Converted from @staticmethod to instance method
+    def cancel_invoice(self, invoice_id: int, invoice_type: str) -> bool:
         """إلغاء الفاتورة - Cancel invoice"""
         if invoice_type.upper() == "SALES":
-            invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+            invoice = self.db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
         else:
-            invoice = db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
+            invoice = self.db.query(PurchaseInvoice).filter(PurchaseInvoice.id == invoice_id).first()
         
         if not invoice:
             return False
         
         invoice.status = InvoiceStatusEnum.CANCELLED
         invoice.cancelled_at = datetime.now()
-        db.commit()
+        self.db.commit()
         return True
 
     # Dashboard and Reports
-    @staticmethod
-    def get_invoice_summary(db: Session, branch_id: Optional[int] = None) -> InvoiceSummary:
+    # Converted from @staticmethod to instance method
+    def get_invoice_summary(self, branch_id: Optional[int] = None) -> InvoiceSummary:
         """الحصول على ملخص الفواتير - Get invoice summary"""
         
         # Base queries
-        sales_query = db.query(SalesInvoice)
-        purchase_query = db.query(PurchaseInvoice)
+        sales_query = self.db.query(SalesInvoice)
+        purchase_query = self.db.query(PurchaseInvoice)
         
         if branch_id:
             sales_query = sales_query.filter(SalesInvoice.branch_id == branch_id)
@@ -413,12 +424,12 @@ class InvoiceService:
             overdue_purchase_count=overdue_purchase_count
         )
 
-    @staticmethod
-    def get_overdue_invoices(db: Session, branch_id: Optional[int] = None) -> Dict[str, List]:
+    # Converted from @staticmethod to instance method
+    def get_overdue_invoices(self, branch_id: Optional[int] = None) -> Dict[str, List]:
         """الحصول على الفواتير المتأخرة - Get overdue invoices"""
         
         # Sales overdue
-        sales_query = db.query(SalesInvoice).filter(
+        sales_query = self.db.query(SalesInvoice).filter(
             and_(
                 SalesInvoice.due_date < date.today(),
                 SalesInvoice.status != InvoiceStatusEnum.PAID
@@ -426,7 +437,7 @@ class InvoiceService:
         )
         
         # Purchase overdue
-        purchase_query = db.query(PurchaseInvoice).filter(
+        purchase_query = self.db.query(PurchaseInvoice).filter(
             and_(
                 PurchaseInvoice.due_date < date.today(),
                 PurchaseInvoice.status != InvoiceStatusEnum.PAID
@@ -442,7 +453,7 @@ class InvoiceService:
             "purchase": purchase_query.order_by(PurchaseInvoice.due_date).all()
         }
 
-    @staticmethod
+    # Converted from @staticmethod to instance method
     def create_invoice_from_order(
         db: Session, 
         order_id: int, 
@@ -452,7 +463,7 @@ class InvoiceService:
         """إنشاء فاتورة من أمر - Create invoice from order"""
         
         if order_type.upper() == "SALES":
-            order = db.query(SalesOrder).filter(SalesOrder.id == order_id).first()
+            order = self.db.query(SalesOrder).filter(SalesOrder.id == order_id).first()
             if not order:
                 return None
             
@@ -492,10 +503,10 @@ class InvoiceService:
                 ]
             )
             
-            return InvoiceService.create_sales_invoice(db, invoice_data)
+            return self.create_sales_invoice(invoice_data)
         
         else:  # PURCHASE
-            order = db.query(PurchaseOrder).filter(PurchaseOrder.id == order_id).first()
+            order = self.db.query(PurchaseOrder).filter(PurchaseOrder.id == order_id).first()
             if not order:
                 return None
             
@@ -535,4 +546,26 @@ class InvoiceService:
                 ]
             )
             
-            return InvoiceService.create_purchase_invoice(db, invoice_data)
+            return self.create_purchase_invoice(invoice_data)
+
+# ============================================================================
+# Dependency for FastAPI
+# ============================================================================
+
+from app.db.database import get_db
+from fastapi import Depends
+
+
+def get_invoice_service(db: Session = Depends(get_db)) -> InvoiceService:
+    """
+    Dependency to get InvoiceService instance.
+
+    Usage in routers:
+        @router.get("/invoices")
+        def get_invoices(
+            service: InvoiceService = Depends(get_invoice_service)
+        ):
+            invoices, total = service.get_sales_invoices()
+            return invoices
+    """
+    return InvoiceService(db)
