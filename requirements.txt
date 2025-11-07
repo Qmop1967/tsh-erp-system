@@ -9,7 +9,7 @@ anyio==3.7.1
 async-timeout==5.0.1
 asyncpg==0.30.0
 attrs==25.3.0
-backports.asyncio.runner==1.2.0
+# backports.asyncio.runner==1.2.0  # Not needed for Python 3.11+
 bcrypt==4.3.0
 beautifulsoup4==4.14.2
 cachetools==5.5.2
