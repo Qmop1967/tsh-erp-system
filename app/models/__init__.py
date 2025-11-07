@@ -87,6 +87,9 @@ from .zoho_sync import (
     EventStatus, SourceType, EntityType, AlertSeverity
 )
 
+# Data Investigation Models
+from .data_investigation import DataInvestigationReport
+
 # Mobile BFF Models
 from .promotion import Promotion
 from .cart import Cart, CartItem
@@ -158,5 +161,7 @@ __all__ = [
     "Promotion", "Cart", "CartItem", "Review", "CustomerAddress",
     # Notification Models
     "Notification", "NotificationTemplate", "NotificationPreference",
-    "NotificationType", "NotificationPriority", "NotificationChannel"
+    "NotificationType", "NotificationPriority", "NotificationChannel",
+    # Data Investigation Models
+    "DataInvestigationReport"
 ]

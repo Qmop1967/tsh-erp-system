@@ -254,6 +254,7 @@ from app.routers.notifications import router as notifications_router  # Unified 
 # ============================================================================
 # TEMP DISABLED for deployment: from app.routers.zoho_webhooks import router as zoho_webhooks_router  # TDS webhook receiver
 from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync
+from app.routers.data_investigation import router as data_investigation_router  # Daily data investigation reports
 
 # 📦 Archived Legacy Services (2025-01-07):
 # See: archived/legacy_zoho_services_2025_01/README.md
@@ -416,6 +417,7 @@ app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer 
 # ============================================================================
 # TEMP DISABLED for deployment: app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["TDS Core - Webhooks"])
 app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])
+app.include_router(data_investigation_router, tags=["Data Investigation - Daily Monitoring"])
 
 # Legacy Zoho routers REMOVED:
 # ❌ app.include_router(zoho_dashboard_router) - TDS monitoring handles this
