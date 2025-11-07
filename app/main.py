@@ -220,7 +220,7 @@ from app.routers.auth_enhanced import router as auth_router  # Enhanced auth rou
 # Result: -4 files, -2,200+ lines, improved maintainability
 # ============================================================================
 from app.routers.vendors_refactored import router as vendors_router  # ✅ Phase 5 P2: Refactored
-from app.routers.permissions import router as permissions_router  # Enable permissions management
+from app.routers.permissions_refactored import router as permissions_router  # ✅ Phase 5 P3 Batch 3: Refactored
 from app.routers.trusted_devices import router as trusted_devices_router  # Trusted devices for automatic login
 from app.routers.data_scope import router as data_scope_router  # Row-Level Security (RLS) and data scope management
 from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
