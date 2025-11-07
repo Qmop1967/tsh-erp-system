@@ -196,7 +196,7 @@ from app.routers.admin import router as admin_router
 from app.routers.pos_enhanced import router as pos_enhanced_router
 from app.routers.returns_exchange import router as returns_exchange_router
 from app.routers.gps_money_transfer import router as gps_money_transfer_router
-from app.routers.multi_price_system_simple import router as multi_price_system_router
+from app.routers.multi_price_system_refactored import router as multi_price_system_router  # ✅ Phase 5 P3 Batch 3: Refactored
 from app.routers.ai_assistant import router as ai_assistant_router
 from app.routers.whatsapp_integration import router as whatsapp_router
 from app.routers.hr import router as hr_router
