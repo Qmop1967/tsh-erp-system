@@ -527,9 +527,141 @@ class ZohoSyncOrchestrator:
             entity: Entity data
             config: Sync configuration
         """
-        # TODO: Implement actual database save
-        # This will be connected to your database models
-        logger.debug(f"Saving {config.entity_type} entity to database")
+        try:
+            # Route to appropriate handler based on entity type
+            if config.entity_type in [EntityType.PRODUCTS, EntityType.INVENTORY]:
+                await self._save_product(entity)
+            elif config.entity_type == EntityType.CUSTOMERS:
+                await self._save_customer(entity)
+            elif config.entity_type == EntityType.INVOICES:
+                await self._save_invoice(entity)
+            else:
+                logger.warning(f"No handler for entity type: {config.entity_type}")
+
+        except Exception as e:
+            logger.error(f"Failed to save {config.entity_type} entity: {str(e)}", exc_info=True)
+            raise
+
+    async def _save_product(self, entity: Dict[str, Any]):
+        """Save product entity to database"""
+        from ...processors.products import ProductProcessor
+        from ....db.database import get_async_db
+
+        # Transform using processor
+        processor = ProductProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"Product validation failed: {entity.get('item_id')}")
+            return
+
+        transformed = processor.transform(entity)
+
+        # Map to database columns
+        product_data = {
+            'zoho_item_id': transformed.get('zoho_item_id'),
+            'sku': transformed.get('sku') or transformed.get('product_code', f"SKU-{transformed.get('zoho_item_id')}"),
+            'name': transformed.get('name'),
+            'description': transformed.get('description', ''),
+            'category': transformed.get('category'),
+            'price': float(transformed.get('rate', 0)),
+            'cost_price': float(transformed.get('cost_price', 0)),
+            'unit_price': float(transformed.get('rate', 0)),
+            'actual_available_stock': int(transformed.get('stock_on_hand', 0)),
+            'image_url': transformed.get('image_url'),
+            'is_active': transformed.get('is_active', True),
+            'unit_of_measure': transformed.get('unit', 'piece'),
+            'brand': transformed.get('brand'),
+            'is_trackable': transformed.get('track_inventory', True),
+        }
+
+        # Get async database session
+        async for db in get_async_db():
+            try:
+                # Use raw SQL for upsert (asyncpg)
+                from sqlalchemy import text
+
+                # Check if product exists
+                check_query = text("""
+                    SELECT id FROM products WHERE zoho_item_id = :zoho_item_id
+                """)
+                result = await db.execute(check_query, {'zoho_item_id': product_data['zoho_item_id']})
+                existing = result.fetchone()
+
+                if existing:
+                    # Update existing product
+                    update_query = text("""
+                        UPDATE products SET
+                            sku = :sku,
+                            name = :name,
+                            description = :description,
+                            category = :category,
+                            price = :price,
+                            cost_price = :cost_price,
+                            unit_price = :unit_price,
+                            actual_available_stock = :actual_available_stock,
+                            image_url = :image_url,
+                            is_active = :is_active,
+                            brand = :brand,
+                            is_trackable = :is_trackable,
+                            updated_at = NOW()
+                        WHERE zoho_item_id = :zoho_item_id
+                    """)
+                    await db.execute(update_query, product_data)
+                    logger.debug(f"Updated product: {product_data['zoho_item_id']}")
+                else:
+                    # Insert new product
+                    # First ensure category exists
+                    if not product_data.get('category_id'):
+                        # Create or get default category
+                        cat_check = text("SELECT id FROM categories WHERE name = 'General' LIMIT 1")
+                        cat_result = await db.execute(cat_check)
+                        cat_row = cat_result.fetchone()
+
+                        if cat_row:
+                            product_data['category_id'] = cat_row[0]
+                        else:
+                            cat_insert = text("""
+                                INSERT INTO categories (name, is_active, created_at)
+                                VALUES ('General', true, NOW())
+                                RETURNING id
+                            """)
+                            cat_result = await db.execute(cat_insert)
+                            product_data['category_id'] = cat_result.fetchone()[0]
+
+                    insert_query = text("""
+                        INSERT INTO products (
+                            zoho_item_id, sku, name, description, category, category_id,
+                            price, cost_price, unit_price, actual_available_stock,
+                            image_url, is_active, unit_of_measure, brand, is_trackable,
+                            created_at, updated_at
+                        ) VALUES (
+                            :zoho_item_id, :sku, :name, :description, :category, :category_id,
+                            :price, :cost_price, :unit_price, :actual_available_stock,
+                            :image_url, :is_active, :unit_of_measure, :brand, :is_trackable,
+                            NOW(), NOW()
+                        )
+                    """)
+                    await db.execute(insert_query, product_data)
+                    logger.debug(f"Inserted new product: {product_data['zoho_item_id']}")
+
+                await db.commit()
+
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"Database error saving product: {str(e)}")
+                raise
+            finally:
+                break  # Exit the async generator
+
+    async def _save_customer(self, entity: Dict[str, Any]):
+        """Save customer entity to database"""
+        # TODO: Implement customer save
+        logger.debug(f"Saving customer: {entity.get('contact_id')}")
+        pass
+
+    async def _save_invoice(self, entity: Dict[str, Any]):
+        """Save invoice entity to database"""
+        # TODO: Implement invoice save
+        logger.debug(f"Saving invoice: {entity.get('invoice_id')}")
         pass
 
     async def _get_last_sync_time(
