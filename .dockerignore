@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development
+.env
+.env.local
+.env.development
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Uploads (will be mounted as volume)
+uploads/
+
+# Backups
+backups/
+
+# CI/CD
+.github/
+.cicd_test
+
+# Node modules (if any)
+node_modules/
+
+# Claude
+.claude/
+.mcp/
+
+# Config files
+.config/
