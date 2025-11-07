@@ -216,13 +216,16 @@ class ZohoAuthManager:
 
                         # Publish success event
                         if self.event_bus:
-                            await self.event_bus.publish({
-                                "event_type": "tds.zoho.token.refreshed",
-                                "data": {
-                                    "expires_at": self._token_expires_at.isoformat(),
-                                    "expires_in": expires_in
-                                }
-                            })
+                            try:
+                                await self.event_bus.publish({
+                                    "event_type": "tds.zoho.token.refreshed",
+                                    "data": {
+                                        "expires_at": self._token_expires_at.isoformat(),
+                                        "expires_in": expires_in
+                                    }
+                                })
+                            except Exception as e:
+                                logger.warning(f"Failed to publish token refresh event: {e}")
 
                         return self._access_token
 
@@ -234,12 +237,15 @@ class ZohoAuthManager:
 
                 # Publish failure event
                 if self.event_bus:
-                    await self.event_bus.publish({
-                        "event_type": "tds.zoho.token.refresh_failed",
-                        "data": {
-                            "error": error_msg
-                        }
-                    })
+                    try:
+                        await self.event_bus.publish({
+                            "event_type": "tds.zoho.token.refresh_failed",
+                            "data": {
+                                "error": error_msg
+                            }
+                        })
+                    except Exception as e:
+                        logger.warning(f"Failed to publish token refresh failure event: {e}")
 
                 raise ZohoAuthError(error_msg) from e
 
@@ -361,10 +367,13 @@ class ZohoAuthManager:
         logger.info("Access token revoked locally")
 
         if self.event_bus:
-            await self.event_bus.publish({
-                "event_type": "tds.zoho.token.revoked",
-                "data": {}
-            })
+            try:
+                await self.event_bus.publish({
+                    "event_type": "tds.zoho.token.revoked",
+                    "data": {}
+                })
+            except Exception as e:
+                logger.warning(f"Failed to publish token revoked event: {e}")
 
     async def update_credentials(self, new_credentials: ZohoCredentials):
         """
