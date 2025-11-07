@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # PostgreSQL Database
-  postgres:
+  tsh_postgres:
     image: postgres:15-alpine
     container_name: tsh_postgres
     restart: always
@@ -48,12 +48,11 @@ services:
     env_file:
       - .env.production
     environment:
-      - DATABASE_URL=postgresql://tsh_admin:${DB_PASSWORD:-TSH@2025Secure!Production}@postgres:5432/tsh_erp
       - REDIS_URL=redis://redis:6379/0
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
+      tsh_postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
