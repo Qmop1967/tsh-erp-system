@@ -225,7 +225,7 @@ from app.routers.trusted_devices_refactored import router as trusted_devices_rou
 from app.routers.data_scope import router as data_scope_router  # Row-Level Security (RLS) and data scope management
 from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
 from app.routers.backup_restore import router as backup_restore_router  # Backup & Restore System
-# TEMP DISABLED for deployment: from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
+from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
 from app.routers.dashboard_refactored import router as dashboard_router  # ✅ Phase 5 P3 Batch 1: Refactored
 from app.routers.notifications import router as notifications_router  # Unified Notification System
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
@@ -403,7 +403,7 @@ app.include_router(vendors_router, prefix="/api")  # Enable vendors router
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])
 # 🛒 CONSUMER APP: Modern E-commerce with Zoho Integration
-# TEMP DISABLED for deployment: app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
+app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
 # ============================================================================
 # 🔄 TDS CORE - TSH DataSync Core (Zoho Integration)
 # ============================================================================
