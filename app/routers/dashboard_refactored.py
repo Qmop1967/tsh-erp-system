@@ -22,7 +22,7 @@ from typing import Dict, Any
 from app.services.dashboard_service import DashboardService, get_dashboard_service
 from app.models.user import User
 from app.dependencies.auth import get_current_user
-from app.dependencies.permissions import simple_require_permission
+from app.services.permission_service import simple_require_permission
 
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])

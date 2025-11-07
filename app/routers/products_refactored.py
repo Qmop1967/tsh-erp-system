@@ -44,7 +44,7 @@ from app.services.product_service import ProductService, get_product_service
 from app.utils.pagination import PaginatedResponse, SearchParams
 from app.models.user import User
 from app.dependencies.auth import get_current_user
-from app.dependencies.permissions import simple_require_permission
+from app.services.permission_service import simple_require_permission
 
 
 router = APIRouter()

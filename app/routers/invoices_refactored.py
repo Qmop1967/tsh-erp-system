@@ -29,7 +29,7 @@ from app.schemas.invoice import (
 )
 from app.models.invoice import InvoiceTypeEnum
 from app.dependencies.auth import get_current_user
-from app.dependencies.permissions import simple_require_permission
+from app.services.permission_service import simple_require_permission
 from app.models.user import User
 
 
