@@ -184,7 +184,7 @@ from app.routers.items_refactored import router as items_router  # ✅ Phase 5 P
 # Legacy migration router removed - TDS Core handles all Zoho integration
 # from app.routers.migration import router as migration_router
 from app.routers.models import router as models_router
-from app.routers.users import router as users_router
+from app.routers.users_refactored import router as users_router  # ✅ Phase 5 P3 Batch 2: Refactored
 from app.routers.invoices import router as invoices_router
 from app.routers.expenses_refactored import router as expenses_router  # ✅ Phase 5 P3 Batch 1: Refactored
 from app.routers.money_transfer import router as money_transfer_router
