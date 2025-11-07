@@ -20,7 +20,7 @@ from app.models.zoho_sync import (
     EntityType,
 )
 from sqlalchemy import select, func, and_, or_, desc
-from app.bff.services.cache_service import cache_response
+# from app.bff.services.cache_service import cache_response  # TODO: Implement cache_response decorator
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class EntitySyncStatus(BaseModel):
     summary="Get TDS dashboard overview",
     description="Get a complete overview of the TDS system for dashboard display"
 )
-@cache_response(ttl_seconds=30)
+# @cache_response  # TODO: Implement decorator(ttl_seconds=30)
 async def get_dashboard(db: AsyncSession = Depends(get_async_db)):
     """
     Get comprehensive TDS dashboard data
@@ -244,7 +244,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_async_db)):
     summary="Get sync run history",
     description="Get paginated list of sync runs"
 )
-@cache_response(ttl_seconds=30)
+# @cache_response  # TODO: Implement decorator(ttl_seconds=30)
 async def get_sync_runs(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -289,7 +289,7 @@ async def get_sync_runs(
     summary="Get sync run details",
     description="Get detailed information about a specific sync run"
 )
-@cache_response(ttl_seconds=30)
+# @cache_response  # TODO: Implement decorator(ttl_seconds=30)
 async def get_sync_run_details(
     run_id: str,
     db: AsyncSession = Depends(get_async_db)
@@ -348,7 +348,7 @@ async def get_sync_run_details(
     summary="Get entity sync status",
     description="Get sync status for all entity types"
 )
-@cache_response(ttl_seconds=60)
+# @cache_response  # TODO: Implement decorator(ttl_seconds=60)
 async def get_entity_status(db: AsyncSession = Depends(get_async_db)):
     """Get sync status grouped by entity type"""
     entity_statuses = []
@@ -442,7 +442,7 @@ async def get_entity_status(db: AsyncSession = Depends(get_async_db)):
     summary="Get active alerts",
     description="Get list of active TDS alerts"
 )
-@cache_response(ttl_seconds=30)
+# @cache_response  # TODO: Implement decorator(ttl_seconds=30)
 async def get_alerts(
     include_resolved: bool = Query(False),
     severity: Optional[str] = None,
@@ -514,7 +514,7 @@ async def acknowledge_alert(
     summary="Get dead letter queue items",
     description="Get items that failed permanently and require manual intervention"
 )
-@cache_response(ttl_seconds=60)
+# @cache_response  # TODO: Implement decorator(ttl_seconds=60)
 async def get_dead_letter_queue(
     entity_type: Optional[str] = None,
     resolved: bool = Query(False),
@@ -611,7 +611,7 @@ async def trigger_stock_sync(
     summary="Get stock sync statistics",
     description="Get current stock sync statistics from database"
 )
-@cache_response(ttl_seconds=60)
+# @cache_response  # TODO: Implement decorator(ttl_seconds=60)
 async def get_stock_sync_stats(db: AsyncSession = Depends(get_async_db)):
     """
     Get stock sync statistics

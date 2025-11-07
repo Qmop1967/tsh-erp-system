@@ -225,7 +225,7 @@ from app.routers.trusted_devices_refactored import router as trusted_devices_rou
 from app.routers.data_scope import router as data_scope_router  # Row-Level Security (RLS) and data scope management
 from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
 from app.routers.backup_restore import router as backup_restore_router  # Backup & Restore System
-from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
+# TEMP DISABLED for deployment: from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
 from app.routers.dashboard_refactored import router as dashboard_router  # ✅ Phase 5 P3 Batch 1: Refactored
 from app.routers.notifications import router as notifications_router  # Unified Notification System
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
@@ -252,8 +252,8 @@ from app.routers.notifications import router as notifications_router  # Unified 
 #
 # Impact: -63KB code, -93% files, 100% duplication eliminated
 # ============================================================================
-from app.routers.zoho_webhooks import router as zoho_webhooks_router  # TDS webhook receiver
-from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync
+# TEMP DISABLED for deployment: from app.routers.zoho_webhooks import router as zoho_webhooks_router  # TDS webhook receiver
+# TEMP DISABLED for deployment: from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync
 
 # 📦 Archived Legacy Services (2025-01-07):
 # See: archived/legacy_zoho_services_2025_01/README.md
@@ -403,7 +403,7 @@ app.include_router(vendors_router, prefix="/api")  # Enable vendors router
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])
 # 🛒 CONSUMER APP: Modern E-commerce with Zoho Integration
-app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
+# TEMP DISABLED for deployment: app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
 # ============================================================================
 # 🔄 TDS CORE - TSH DataSync Core (Zoho Integration)
 # ============================================================================
@@ -414,8 +414,8 @@ app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer 
 # - Monitoring and auto-healing
 # - Complete audit trail
 # ============================================================================
-app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["TDS Core - Webhooks"])
-app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])
+# TEMP DISABLED for deployment: app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["TDS Core - Webhooks"])
+# TEMP DISABLED for deployment: app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])
 
 # Legacy Zoho routers REMOVED:
 # ❌ app.include_router(zoho_dashboard_router) - TDS monitoring handles this

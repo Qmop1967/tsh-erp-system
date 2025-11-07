@@ -32,9 +32,8 @@ from enum import Enum
 from dataclasses import dataclass, field
 
 from .client import UnifiedZohoClient, ZohoAPI
-from ...core.events import publish_event
-from ...core.queue import TDSQueue
-from ....core.event_bus import EventBus
+from ...core.queue import TDSQueueService
+from ....core.events.event_bus import EventBus
 from ....db.database import get_db
 
 logger = logging.getLogger(__name__)
@@ -140,7 +139,7 @@ class ZohoSyncOrchestrator:
         self,
         zoho_client: UnifiedZohoClient,
         event_bus: Optional[EventBus] = None,
-        queue: Optional[TDSQueue] = None
+        queue: Optional[TDSQueueService] = None
     ):
         """
         Initialize Sync Orchestrator

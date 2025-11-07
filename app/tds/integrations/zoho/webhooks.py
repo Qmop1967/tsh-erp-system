@@ -32,8 +32,7 @@ from dataclasses import dataclass, field
 from collections import deque
 
 from .sync import ZohoSyncOrchestrator, EntityType, SyncConfig, SyncMode
-from ...core.events import publish_event
-from ....core.event_bus import EventBus
+from ....core.events.event_bus import EventBus
 
 logger = logging.getLogger(__name__)
 

@@ -30,7 +30,7 @@ from dataclasses import dataclass
 from .client import UnifiedZohoClient, ZohoAPI
 from .sync import ZohoSyncOrchestrator, SyncConfig, SyncMode, EntityType, SyncResult
 from .processors.inventory import InventoryProcessor
-from ....core.event_bus import EventBus
+from ....core.events.event_bus import EventBus
 
 logger = logging.getLogger(__name__)
 
