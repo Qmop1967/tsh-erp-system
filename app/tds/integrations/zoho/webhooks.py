@@ -551,12 +551,15 @@ class ZohoWebhookManager:
     async def _publish_event(self, event_type: str, data: Dict[str, Any]):
         """Publish event to event bus"""
         if self.event_bus:
-            await self.event_bus.publish({
-                "event_type": event_type,
-                "module": "tds.zoho.webhooks",
-                "data": data,
-                "timestamp": datetime.utcnow().isoformat()
-            })
+            try:
+                await self.event_bus.publish({
+                    "event_type": event_type,
+                    "module": "tds.zoho.webhooks",
+                    "data": data,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            except Exception as e:
+                logger.warning(f"Failed to publish event {event_type}: {e}")
 
     def get_health(self) -> Dict[str, Any]:
         """

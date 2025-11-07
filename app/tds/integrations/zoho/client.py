@@ -244,15 +244,18 @@ class UnifiedZohoClient:
 
                         # Publish success event
                         if self.event_bus:
-                            await self.event_bus.publish({
-                                "event_type": "tds.zoho.api.success",
-                                "data": {
-                                    "method": method,
-                                    "endpoint": endpoint,
-                                    "api_type": api_type,
-                                    "status_code": response.status
-                                }
-                            })
+                            try:
+                                await self.event_bus.publish({
+                                    "event_type": "tds.zoho.api.success",
+                                    "data": {
+                                        "method": method,
+                                        "endpoint": endpoint,
+                                        "api_type": api_type,
+                                        "status_code": response.status
+                                    }
+                                })
+                            except Exception as e:
+                                logger.warning(f"Failed to publish API success event: {e}")
 
                         return response_data
 
@@ -309,16 +312,19 @@ class UnifiedZohoClient:
 
         # Publish failure event
         if self.event_bus:
-            await self.event_bus.publish({
-                "event_type": "tds.zoho.api.failed",
-                "data": {
-                    "method": method,
-                    "endpoint": endpoint,
-                    "api_type": api_type,
-                    "error": error_msg,
-                    "attempts": attempt
-                }
-            })
+            try:
+                await self.event_bus.publish({
+                    "event_type": "tds.zoho.api.failed",
+                    "data": {
+                        "method": method,
+                        "endpoint": endpoint,
+                        "api_type": api_type,
+                        "error": error_msg,
+                        "attempts": attempt
+                    }
+                })
+            except Exception as e:
+                logger.warning(f"Failed to publish API failure event: {e}")
 
         raise ZohoAPIError(
             message=error_msg,
