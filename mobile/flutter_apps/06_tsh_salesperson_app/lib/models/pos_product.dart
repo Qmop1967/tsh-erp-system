@@ -22,7 +22,7 @@ class POSProduct {
   });
 
   factory POSProduct.fromJson(Map<String, dynamic> json) {
-    // Support both inventory API format and direct Supabase products table
+    // Support both inventory API format and direct TSH ERP products format
     final isInventoryFormat = json.containsKey('product');
 
     if (isInventoryFormat) {
@@ -39,7 +39,7 @@ class POSProduct {
         image: product['image_url'],
       );
     } else {
-      // Direct Supabase products table format
+      // Direct TSH ERP products table format
       return POSProduct(
         id: json['id']?.toString() ?? '0',
         name: json['name'] ?? '',

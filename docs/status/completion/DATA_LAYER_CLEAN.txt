@@ -1,0 +1,101 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║                      TSH ERP - DATA LAYER                             ║
+║                   100% Self-Hosted (No Supabase)                      ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────────┐
+│                        PRIMARY DATABASE                               │
+│   ┌───────────────────────────────────────────────────────────┐       │
+│   │         PostgreSQL 14 (Self-Hosted on VPS)               │       │
+│   │                                                           │       │
+│   │   Host: localhost (VPS: 167.71.39.50)                   │       │
+│   │   Port: 5432                                             │       │
+│   │   Database: tsh_erp                                      │       │
+│   │   Size: 127 MB                                           │       │
+│   │                                                           │       │
+│   │   Tables: 50+ tables                                     │       │
+│   │   • users, roles, permissions                            │       │
+│   │   • products (2,218 items)                               │       │
+│   │   • orders, customers                                    │       │
+│   │   • financial_cache                                      │       │
+│   │   • tds_sync_queue                                       │       │
+│   │   • telemetry_events                                     │       │
+│   │   • and 40+ more...                                      │       │
+│   │                                                           │       │
+│   │   Features:                                              │       │
+│   │   ✓ Row-Level Security (RLS)                            │       │
+│   │   ✓ Full-Text Search                                    │       │
+│   │   ✓ JSONB columns                                       │       │
+│   │   ✓ Triggers & procedures                               │       │
+│   │   ✓ Connection pooling                                  │       │
+│   └───────────────────────────────────────────────────────────┘       │
+└───────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────┐
+│                      FILE STORAGE (Images)                            │
+│   ┌───────────────────────────────────────────────────────────┐       │
+│   │       Self-Hosted Filesystem (VPS)                       │       │
+│   │                                                           │       │
+│   │   Location: /var/www/html/images/products/              │       │
+│   │   Size: 500 MB                                           │       │
+│   │   Files: 2,000+ product images                           │       │
+│   │   Format: JPG, PNG, GIF, WEBP                           │       │
+│   │                                                           │       │
+│   │   Naming: item_{zoho_id}_{hash}.{ext}                   │       │
+│   │   Example: item_2646610000040381_a1b2c3d4.jpg          │       │
+│   │                                                           │       │
+│   │   Public URL:                                            │       │
+│   │   https://erp.tsh.sale/images/products/{filename}       │       │
+│   │                                                           │       │
+│   │   Served by: Nginx (static files)                       │       │
+│   │   Cache: 30-day browser cache                           │       │
+│   │   Performance: < 10ms serve time                        │       │
+│   └───────────────────────────────────────────────────────────┘       │
+└───────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────┐
+│                          BACKUP STORAGE                               │
+│   ┌───────────────────────────────────────────────────────────┐       │
+│   │              AWS S3 (Backups Only)                       │       │
+│   │                                                           │       │
+│   │   Bucket: tsh-erp-backups                               │       │
+│   │   Region: eu-north-1 (Stockholm)                        │       │
+│   │                                                           │       │
+│   │   Contents:                                              │       │
+│   │   • Database backups (daily)                            │       │
+│   │   • Image backups (daily)                               │       │
+│   │   • Configuration backups                               │       │
+│   │                                                           │       │
+│   │   Retention: 30 days                                    │       │
+│   │   Encryption: AES-256                                   │       │
+│   │   Schedule: Daily at 2:00 AM                           │       │
+│   └───────────────────────────────────────────────────────────┘       │
+└───────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────┐
+│                      CACHE LAYER (Planned)                            │
+│   ┌───────────────────────────────────────────────────────────┐       │
+│   │                Redis (Future)                            │       │
+│   │                                                           │       │
+│   │   Planned for:                                           │       │
+│   │   • Session caching                                      │       │
+│   │   • API response caching                                │       │
+│   │   • Rate limiting                                        │       │
+│   │   • Query result caching                                │       │
+│   └───────────────────────────────────────────────────────────┘       │
+└───────────────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                         REMOVED SERVICES                              ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║                                                                       ║
+║   ❌ Supabase Database     → ✅ Self-hosted PostgreSQL 14            ║
+║   ❌ Supabase Storage      → ✅ Self-hosted filesystem + Nginx       ║
+║   ❌ Supabase Auth         → ✅ Custom JWT authentication            ║
+║   ❌ Supabase Realtime     → ✅ WebSocket server                     ║
+║                                                                       ║
+║   Status: 100% Self-Hosted Infrastructure                            ║
+║   Cost Savings: $600/year                                            ║
+║   External Dependencies: ZERO                                        ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝

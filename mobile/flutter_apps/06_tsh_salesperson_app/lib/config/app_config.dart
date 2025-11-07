@@ -2,15 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppConfig {
-  // API Base URL - النظام المركزي TSH FastAPI
-  // Using Supabase REST API
-  static const String baseUrl = 'https://trjjglxhteqnzmyakxhe.supabase.co';
-  static const String apiEndpoint = '/rest/v1';
-  static const String authEndpoint = '/auth/v1/token?grant_type=password';
-
-  // Supabase Configuration
-  static const String supabaseUrl = 'https://trjjglxhteqnzmyakxhe.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyampnbHhodGVxbnpteWFreGhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzU4ODksImV4cCI6MjA3NTM1MTg4OX0.2bCdqhSA-Dg1hFbybh3uWfmmra5vhzENaT6dr--JIRU';
+  // API Base URL - النظام المركزي TSH FastAPI (Self-Hosted)
+  static const String baseUrl = 'https://erp.tsh.sale';
+  static const String apiEndpoint = '/api';
+  static const String authEndpoint = '/api/auth/login';
 
   // ⚠️ DEPRECATED: Old Odoo Configuration (no longer used)
   // static const String odooUrl = 'http://138.68.89.104:8069';

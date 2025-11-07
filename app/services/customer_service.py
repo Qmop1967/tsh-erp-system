@@ -1,30 +1,79 @@
+"""
+Customer Service - Business Logic for Customer and Supplier Management
+
+Refactored to use Phase 4 patterns:
+- Instance methods instead of static methods
+- BaseRepository for CRUD operations
+- Custom exceptions instead of HTTPException
+- Pagination and search support
+- Combined customer queries support
+
+Author: Claude Code (Senior Software Engineer AI)
+Date: January 7, 2025
+Phase: 5 P1 - Customers Router Migration
+"""
+
+from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
-from typing import List, Optional
+from sqlalchemy import or_
+from fastapi import Depends
+from datetime import datetime
+import re
+
 from app.models.customer import Customer, Supplier
 from app.schemas.customer import CustomerCreate, CustomerUpdate, SupplierCreate, SupplierUpdate
-from fastapi import HTTPException, status
-import re
-from datetime import datetime
+from app.repositories import BaseRepository
+from app.exceptions import (
+    EntityNotFoundError,
+    DuplicateEntityError,
+    ValidationError
+)
 
 
 class CustomerService:
-    """خدمة إدارة العملاء"""
+    """
+    Service for customer management.
 
-    @staticmethod
-    def generate_customer_code(db: Session, prefix: str = "CUST") -> str:
+    Handles all business logic for customers, replacing direct
+    database operations in the router.
+    """
+
+    def __init__(self, db: Session):
+        """
+        Initialize customer service.
+
+        Args:
+            db: Database session
+        """
+        self.db = db
+        self.customer_repo = BaseRepository(Customer, db)
+
+    # ========================================================================
+    # Customer Code Generation
+    # ========================================================================
+
+    def generate_customer_code(self, prefix: str = "CUST") -> str:
         """
         Generate next customer code in format: CUST-YYYY-NNNN
-        Examples: CUST-2025-0001, CUST-2025-0002, etc.
+
+        Args:
+            prefix: Code prefix (default: "CUST")
+
+        Returns:
+            Generated customer code (e.g., "CUST-2025-0001")
+
+        Examples:
+            - CUST-2025-0001
+            - CUST-2025-0002
         """
         current_year = datetime.now().year
         year_prefix = f"{prefix}-{current_year}-"
-        
+
         # Get the latest customer code for current year
-        latest_customer = db.query(Customer).filter(
+        latest_customer = self.db.query(Customer).filter(
             Customer.customer_code.like(f"{year_prefix}%")
         ).order_by(Customer.customer_code.desc()).first()
-        
+
         if latest_customer:
             # Extract the sequence number from the latest code
             match = re.search(r'-(\d{4})$', latest_customer.customer_code)
@@ -35,188 +84,479 @@ class CustomerService:
                 next_sequence = 1
         else:
             next_sequence = 1
-        
+
         # Format: CUST-YYYY-NNNN (4-digit sequence number)
         return f"{year_prefix}{next_sequence:04d}"
 
-    @staticmethod
-    def validate_customer_code(db: Session, customer_code: str, exclude_id: Optional[int] = None) -> bool:
-        """
-        Validate if customer code is unique
-        """
-        query = db.query(Customer).filter(Customer.customer_code == customer_code)
-        if exclude_id:
-            query = query.filter(Customer.id != exclude_id)
-        
-        existing_customer = query.first()
-        return existing_customer is None
+    # ========================================================================
+    # Customer CRUD Operations
+    # ========================================================================
 
-    @staticmethod
-    def create_customer(db: Session, customer: CustomerCreate) -> Customer:
-        """إنشاء عميل جديد"""
-        # Auto-generate customer code if not provided or empty
-        if not customer.customer_code or customer.customer_code.strip() == "":
-            customer.customer_code = CustomerService.generate_customer_code(db)
-        
-        # التحقق من عدم تكرار رقم العميل
-        if not CustomerService.validate_customer_code(db, customer.customer_code):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Customer code already exists"
-            )
-        
-        db_customer = Customer(**customer.dict())
-        db.add(db_customer)
-        db.commit()
-        db.refresh(db_customer)
-        return db_customer
+    def get_all_customers(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        active_only: bool = True
+    ) -> Tuple[List[Customer], int]:
+        """
+        Get all customers with optional filters.
 
-    @staticmethod
-    def get_customers(db: Session, skip: int = 0, limit: int = 100, 
-                     search: Optional[str] = None, active_only: bool = True) -> List[Customer]:
-        """الحصول على قائمة العملاء"""
-        query = db.query(Customer)
-        
+        Args:
+            skip: Number of records to skip
+            limit: Maximum records to return
+            search: Search term for name, code, company_name
+            active_only: Filter by active status
+
+        Returns:
+            Tuple of (customers list, total count)
+        """
+        # Build filters
+        filters = {}
         if active_only:
-            query = query.filter(Customer.is_active == True)
-        
+            filters['is_active'] = True
+
+        # Apply search if provided
         if search:
-            query = query.filter(
+            customers = self.customer_repo.search(
+                search_term=search,
+                search_fields=['name', 'customer_code', 'company_name', 'phone'],
+                skip=skip,
+                limit=limit
+            )
+            # Get count for search results
+            total = len(self.customer_repo.search(
+                search_term=search,
+                search_fields=['name', 'customer_code', 'company_name', 'phone'],
+                skip=0,
+                limit=10000
+            ))
+        else:
+            customers = self.customer_repo.get_all(
+                skip=skip,
+                limit=limit,
+                filters=filters
+            )
+            total = self.customer_repo.get_count(filters=filters)
+
+        return customers, total
+
+    def get_combined_customers(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        active_only: bool = True
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """
+        Get combined customers (regular + migration customers).
+
+        Args:
+            skip: Number of records to skip
+            limit: Maximum records to return
+            search: Search term
+            active_only: Filter by active status
+
+        Returns:
+            Tuple of (combined customer list as dicts, total count)
+        """
+        from app.models.migration import MigrationCustomer
+        from app.models.user import User
+
+        # Get regular customers
+        regular_customers, regular_total = self.get_all_customers(
+            skip=skip,
+            limit=limit,
+            search=search,
+            active_only=active_only
+        )
+
+        # Get migrated customers
+        migrated_query = self.db.query(MigrationCustomer)
+
+        if active_only:
+            migrated_query = migrated_query.filter(MigrationCustomer.is_active == True)
+
+        if search:
+            search_filter = f"%{search}%"
+            migrated_query = migrated_query.filter(
                 or_(
-                    Customer.name.ilike(f"%{search}%"),
-                    Customer.customer_code.ilike(f"%{search}%"),
-                    Customer.company_name.ilike(f"%{search}%")
+                    MigrationCustomer.name_en.ilike(search_filter),
+                    MigrationCustomer.name_ar.ilike(search_filter),
+                    MigrationCustomer.code.ilike(search_filter)
                 )
             )
-        
-        return query.offset(skip).limit(limit).all()
 
-    @staticmethod
-    def get_customer(db: Session, customer_id: int) -> Customer:
-        """الحصول على عميل محدد"""
-        customer = db.query(Customer).filter(Customer.id == customer_id).first()
+        migrated_customers = migrated_query.offset(0).limit(limit).all()
+        migrated_total = migrated_query.count()
+
+        # Combine results
+        result = []
+
+        # Add regular customers
+        for customer in regular_customers:
+            # Get salesperson info if assigned
+            salesperson_name = None
+            if customer.salesperson_id:
+                salesperson = self.db.query(User).filter(User.id == customer.salesperson_id).first()
+                if salesperson:
+                    salesperson_name = salesperson.name
+
+            result.append({
+                "id": customer.id,
+                "code": customer.customer_code,
+                "name": customer.name,
+                "company_name": customer.company_name,
+                "email": customer.email,
+                "phone": customer.phone,
+                "address": customer.address,
+                "city": customer.city,
+                "country": customer.country,
+                "currency": customer.currency,
+                "portal_language": customer.portal_language,
+                "salesperson_id": customer.salesperson_id,
+                "salesperson_name": salesperson_name,
+                "tax_number": customer.tax_number,
+                "credit_limit": float(customer.credit_limit) if customer.credit_limit else 0,
+                "is_active": customer.is_active,
+                "source": "regular",
+                "created_at": customer.created_at.isoformat() if customer.created_at else None
+            })
+
+        # Add migrated customers
+        for mcustomer in migrated_customers:
+            result.append({
+                "id": f"M{mcustomer.id}",
+                "code": mcustomer.code,
+                "name": mcustomer.name_en or mcustomer.name_ar,
+                "name_ar": mcustomer.name_ar,
+                "company_name": mcustomer.company_name,
+                "email": mcustomer.email,
+                "phone": mcustomer.phone,
+                "address": mcustomer.billing_address,
+                "city": mcustomer.billing_city,
+                "country": mcustomer.billing_country,
+                "currency": mcustomer.currency_code,
+                "is_active": mcustomer.is_active,
+                "source": "migration",
+                "zoho_id": mcustomer.zoho_contact_id,
+                "created_at": mcustomer.created_at.isoformat() if mcustomer.created_at else None
+            })
+
+        total = regular_total + migrated_total
+        return result, total
+
+    def get_customer_by_id(self, customer_id: int) -> Customer:
+        """
+        Get customer by ID.
+
+        Args:
+            customer_id: Customer ID
+
+        Returns:
+            Customer instance
+
+        Raises:
+            EntityNotFoundError: If customer not found
+        """
+        customer = self.customer_repo.get(customer_id)
         if not customer:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Customer not found"
-            )
+            raise EntityNotFoundError("Customer", customer_id)
         return customer
 
-    @staticmethod
-    def update_customer(db: Session, customer_id: int, customer_update: CustomerUpdate) -> Customer:
-        """تحديث بيانات عميل"""
-        customer = CustomerService.get_customer(db, customer_id)
-        
-        # التحقق من عدم تكرار رقم العميل إذا تم تغييره
-        if customer_update.customer_code and customer_update.customer_code != customer.customer_code:
-            if not CustomerService.validate_customer_code(db, customer_update.customer_code, exclude_id=customer_id):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Customer code already exists"
-                )
-        
-        update_data = customer_update.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(customer, field, value)
-        
-        db.commit()
-        db.refresh(customer)
-        return customer
+    def create_customer(self, customer_data: CustomerCreate) -> Customer:
+        """
+        Create new customer.
 
-    @staticmethod
-    def delete_customer(db: Session, customer_id: int) -> Customer:
-        """حذف عميل (إلغاء تنشيط)"""
-        customer = CustomerService.get_customer(db, customer_id)
-        customer.is_active = False
-        db.commit()
-        db.refresh(customer)
-        return customer
+        Args:
+            customer_data: Customer creation data
+
+        Returns:
+            Created customer
+
+        Raises:
+            DuplicateEntityError: If customer code already exists
+        """
+        # Auto-generate customer code if not provided or empty
+        if not customer_data.customer_code or customer_data.customer_code.strip() == "":
+            customer_data.customer_code = self.generate_customer_code()
+
+        # Validate unique customer code
+        if self.customer_repo.exists({'customer_code': customer_data.customer_code}):
+            raise DuplicateEntityError("Customer", "customer_code", customer_data.customer_code)
+
+        # Create customer
+        return self.customer_repo.create(customer_data.dict())
+
+    def update_customer(
+        self,
+        customer_id: int,
+        customer_data: CustomerUpdate
+    ) -> Customer:
+        """
+        Update existing customer.
+
+        Args:
+            customer_id: Customer ID
+            customer_data: Customer update data
+
+        Returns:
+            Updated customer
+
+        Raises:
+            EntityNotFoundError: If customer not found
+            DuplicateEntityError: If new customer code conflicts
+        """
+        # Verify customer exists
+        existing_customer = self.get_customer_by_id(customer_id)
+
+        update_dict = customer_data.dict(exclude_unset=True)
+
+        # Validate unique customer code if being updated
+        if 'customer_code' in update_dict:
+            if update_dict['customer_code'] != existing_customer.customer_code:
+                if self.customer_repo.exists({'customer_code': update_dict['customer_code']}):
+                    raise DuplicateEntityError("Customer", "customer_code", update_dict['customer_code'])
+
+        # Update customer
+        return self.customer_repo.update(customer_id, update_dict)
+
+    def delete_customer(self, customer_id: int) -> bool:
+        """
+        Soft delete customer (set is_active=False).
+
+        Args:
+            customer_id: Customer ID
+
+        Returns:
+            True if deactivated
+
+        Raises:
+            EntityNotFoundError: If customer not found
+        """
+        # Use soft delete
+        self.customer_repo.soft_delete(customer_id)
+        return True
+
+    # ========================================================================
+    # Helper Methods
+    # ========================================================================
+
+    def get_salespersons(self) -> List[Dict[str, Any]]:
+        """
+        Get all active salespersons for customer assignment.
+
+        Returns:
+            List of salesperson dictionaries with id, name, employee_code
+        """
+        from app.models.user import User
+
+        salespersons = self.db.query(User).filter(
+            User.is_salesperson == True,
+            User.is_active == True
+        ).all()
+
+        return [
+            {
+                "id": sp.id,
+                "name": sp.name,
+                "employee_code": sp.employee_code
+            }
+            for sp in salespersons
+        ]
 
 
 class SupplierService:
-    """خدمة إدارة الموردين"""
+    """
+    Service for supplier management.
 
-    @staticmethod
-    def create_supplier(db: Session, supplier: SupplierCreate) -> Supplier:
-        """إنشاء مورد جديد"""
-        # التحقق من عدم تكرار رقم المورد
-        existing_supplier = db.query(Supplier).filter(
-            Supplier.supplier_code == supplier.supplier_code
-        ).first()
-        
-        if existing_supplier:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Supplier code already exists"
-            )
-        
-        db_supplier = Supplier(**supplier.dict())
-        db.add(db_supplier)
-        db.commit()
-        db.refresh(db_supplier)
-        return db_supplier
+    Handles all business logic for suppliers, replacing direct
+    database operations in the router.
+    """
 
-    @staticmethod
-    def get_suppliers(db: Session, skip: int = 0, limit: int = 100, 
-                     search: Optional[str] = None, active_only: bool = True) -> List[Supplier]:
-        """الحصول على قائمة الموردين"""
-        query = db.query(Supplier)
-        
+    def __init__(self, db: Session):
+        """
+        Initialize supplier service.
+
+        Args:
+            db: Database session
+        """
+        self.db = db
+        self.supplier_repo = BaseRepository(Supplier, db)
+
+    # ========================================================================
+    # Supplier CRUD Operations
+    # ========================================================================
+
+    def get_all_suppliers(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        active_only: bool = True
+    ) -> Tuple[List[Supplier], int]:
+        """
+        Get all suppliers with optional filters.
+
+        Args:
+            skip: Number of records to skip
+            limit: Maximum records to return
+            search: Search term for name, code, company_name
+            active_only: Filter by active status
+
+        Returns:
+            Tuple of (suppliers list, total count)
+        """
+        # Build filters
+        filters = {}
         if active_only:
-            query = query.filter(Supplier.is_active == True)
-        
+            filters['is_active'] = True
+
+        # Apply search if provided
         if search:
-            query = query.filter(
-                or_(
-                    Supplier.name.ilike(f"%{search}%"),
-                    Supplier.supplier_code.ilike(f"%{search}%"),
-                    Supplier.company_name.ilike(f"%{search}%")
-                )
+            suppliers = self.supplier_repo.search(
+                search_term=search,
+                search_fields=['name', 'supplier_code', 'company_name'],
+                skip=skip,
+                limit=limit
             )
-        
-        return query.offset(skip).limit(limit).all()
+            total = len(self.supplier_repo.search(
+                search_term=search,
+                search_fields=['name', 'supplier_code', 'company_name'],
+                skip=0,
+                limit=10000
+            ))
+        else:
+            suppliers = self.supplier_repo.get_all(
+                skip=skip,
+                limit=limit,
+                filters=filters
+            )
+            total = self.supplier_repo.get_count(filters=filters)
 
-    @staticmethod
-    def get_supplier(db: Session, supplier_id: int) -> Supplier:
-        """الحصول على مورد محدد"""
-        supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
+        return suppliers, total
+
+    def get_supplier_by_id(self, supplier_id: int) -> Supplier:
+        """
+        Get supplier by ID.
+
+        Args:
+            supplier_id: Supplier ID
+
+        Returns:
+            Supplier instance
+
+        Raises:
+            EntityNotFoundError: If supplier not found
+        """
+        supplier = self.supplier_repo.get(supplier_id)
         if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Supplier not found"
-            )
+            raise EntityNotFoundError("Supplier", supplier_id)
         return supplier
 
-    @staticmethod
-    def update_supplier(db: Session, supplier_id: int, supplier_update: SupplierUpdate) -> Supplier:
-        """تحديث بيانات مورد"""
-        supplier = SupplierService.get_supplier(db, supplier_id)
-        
-        # التحقق من عدم تكرار رقم المورد إذا تم تغييره
-        if supplier_update.supplier_code and supplier_update.supplier_code != supplier.supplier_code:
-            existing_supplier = db.query(Supplier).filter(
-                Supplier.supplier_code == supplier_update.supplier_code
-            ).first()
-            
-            if existing_supplier:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Supplier code already exists"
-                )
-        
-        update_data = supplier_update.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(supplier, field, value)
-        
-        db.commit()
-        db.refresh(supplier)
-        return supplier
+    def create_supplier(self, supplier_data: SupplierCreate) -> Supplier:
+        """
+        Create new supplier.
 
-    @staticmethod
-    def delete_supplier(db: Session, supplier_id: int) -> Supplier:
-        """حذف مورد (إلغاء تنشيط)"""
-        supplier = SupplierService.get_supplier(db, supplier_id)
-        supplier.is_active = False
-        db.commit()
-        db.refresh(supplier)
-        return supplier
+        Args:
+            supplier_data: Supplier creation data
+
+        Returns:
+            Created supplier
+
+        Raises:
+            DuplicateEntityError: If supplier code already exists
+        """
+        # Validate unique supplier code
+        if self.supplier_repo.exists({'supplier_code': supplier_data.supplier_code}):
+            raise DuplicateEntityError("Supplier", "supplier_code", supplier_data.supplier_code)
+
+        # Create supplier
+        return self.supplier_repo.create(supplier_data.dict())
+
+    def update_supplier(
+        self,
+        supplier_id: int,
+        supplier_data: SupplierUpdate
+    ) -> Supplier:
+        """
+        Update existing supplier.
+
+        Args:
+            supplier_id: Supplier ID
+            supplier_data: Supplier update data
+
+        Returns:
+            Updated supplier
+
+        Raises:
+            EntityNotFoundError: If supplier not found
+            DuplicateEntityError: If new supplier code conflicts
+        """
+        # Verify supplier exists
+        existing_supplier = self.get_supplier_by_id(supplier_id)
+
+        update_dict = supplier_data.dict(exclude_unset=True)
+
+        # Validate unique supplier code if being updated
+        if 'supplier_code' in update_dict:
+            if update_dict['supplier_code'] != existing_supplier.supplier_code:
+                if self.supplier_repo.exists({'supplier_code': update_dict['supplier_code']}):
+                    raise DuplicateEntityError("Supplier", "supplier_code", update_dict['supplier_code'])
+
+        # Update supplier
+        return self.supplier_repo.update(supplier_id, update_dict)
+
+    def delete_supplier(self, supplier_id: int) -> bool:
+        """
+        Soft delete supplier (set is_active=False).
+
+        Args:
+            supplier_id: Supplier ID
+
+        Returns:
+            True if deactivated
+
+        Raises:
+            EntityNotFoundError: If supplier not found
+        """
+        # Use soft delete
+        self.supplier_repo.soft_delete(supplier_id)
+        return True
+
+
+# ============================================================================
+# Dependencies for FastAPI
+# ============================================================================
+
+from app.db.database import get_db
+
+
+def get_customer_service(db: Session = Depends(get_db)) -> CustomerService:
+    """
+    Dependency to get CustomerService instance.
+
+    Usage in routers:
+        @router.get("/customers")
+        def get_customers(
+            service: CustomerService = Depends(get_customer_service)
+        ):
+            customers, total = service.get_all_customers()
+            return customers
+    """
+    return CustomerService(db)
+
+
+def get_supplier_service(db: Session = Depends(get_db)) -> SupplierService:
+    """
+    Dependency to get SupplierService instance.
+
+    Usage in routers:
+        @router.get("/suppliers")
+        def get_suppliers(
+            service: SupplierService = Depends(get_supplier_service)
+        ):
+            suppliers, total = service.get_all_suppliers()
+            return suppliers
+    """
+    return SupplierService(db)

@@ -77,3 +77,4 @@ class Product(Base):
     sales_invoice_items = relationship("SalesInvoiceItem", back_populates="product")
     purchase_invoice_items = relationship("PurchaseInvoiceItem", back_populates="product")
     expense_items = relationship("ExpenseItem", back_populates="product")
+    reviews = relationship("Review", back_populates="product")

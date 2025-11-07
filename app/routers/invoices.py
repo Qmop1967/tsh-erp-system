@@ -11,7 +11,7 @@ from app.schemas.invoice import (
     InvoiceSummary, InvoiceFilter
 )
 from app.models.invoice import InvoiceTypeEnum
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 

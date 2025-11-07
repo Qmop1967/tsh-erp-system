@@ -110,30 +110,36 @@ class ZohoConfigManager:
             return False
     
     def test_credentials(self, credentials: ZohoCredentials) -> Dict[str, Any]:
-        """Test Zoho API credentials"""
+        """Test Zoho API credentials using TDS unified client"""
         import asyncio
-        from ..services.zoho_service import ZohoAsyncService
-        from ..schemas.migration import ZohoConfigCreate
-        
+        from ..tds.integrations.zoho import UnifiedZohoClient, ZohoAuthManager
+        from ..tds.integrations.zoho import ZohoCredentials as TDSCredentials
+
         try:
-            # Convert to config format
-            config = ZohoConfigCreate(
-                organization_id=credentials.organization_id,
-                access_token=credentials.access_token,
-                refresh_token=credentials.refresh_token,
-                client_id=credentials.client_id,
-                client_secret=credentials.client_secret,
-                books_api_base=credentials.books_api_base,
-                inventory_api_base=credentials.inventory_api_base
-            )
-            
-            # Test connection
+            # Test connection using TDS unified client
             async def test_connection():
-                async with ZohoAsyncService(config) as service:
-                    return await service.test_connection()
-            
+                # Convert credentials
+                tds_creds = TDSCredentials(
+                    organization_id=credentials.organization_id,
+                    client_id=credentials.client_id,
+                    client_secret=credentials.client_secret,
+                    refresh_token=credentials.refresh_token
+                )
+
+                # Create auth manager
+                auth_manager = ZohoAuthManager(tds_creds, auto_refresh=True)
+                await auth_manager.start()
+
+                # Create client
+                async with UnifiedZohoClient(
+                    auth_manager=auth_manager,
+                    organization_id=credentials.organization_id
+                ) as client:
+                    # Test connection
+                    return await client.test_connection()
+
             return asyncio.run(test_connection())
-            
+
         except Exception as e:
             return {
                 "error": str(e),

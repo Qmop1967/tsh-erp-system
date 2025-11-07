@@ -8,6 +8,11 @@
 ### Rule #2: STAGING-FIRST DEPLOYMENT WORKFLOW
 **All changes MUST be deployed to staging (develop branch) first, verified, then promoted to production (main branch).**
 
+### Rule #3: DEPLOY ALL PROJECT COMPONENTS TOGETHER
+**⚠️ CRITICAL: When deploying, ALL project components MUST be deployed together - Backend, Frontend, Consumer App, TDS Core, etc. NEVER deploy only the backend!**
+
+**See detailed rules:** [COMPLETE_PROJECT_DEPLOYMENT_RULES.md](./COMPLETE_PROJECT_DEPLOYMENT_RULES.md)
+
 ### Prohibited Actions:
 1. ❌ Direct SSH to production VPS for deployment
 2. ❌ Direct rsync/scp of files to production
@@ -18,6 +23,8 @@
 7. ❌ Pushing directly to main branch from local development
 8. ❌ Force pushing to any branch (git push -f)
 9. ❌ Skipping staging verification before production
+10. ❌ **Deploying only the backend without frontend/consumer app**
+11. ❌ **Marking deployment complete without verifying ALL components**
 
 ### Allowed Actions:
 1. ✅ Push code to develop branch (staging)
@@ -80,6 +87,9 @@ In case of critical production issues:
 - Help debug by reading logs only
 - Remind users to verify on staging before production
 - Assist with creating Pull Requests from develop to main
+- **Verify ALL project components after deployment (Backend, Frontend, Consumer App)**
+- **Build frontend components (React, Flutter) before deployment**
+- **Check that consumer.tsh.sale matches deployed git commit**
 
 **Deployment Commands Allowed by Claude Code:**
 ```bash

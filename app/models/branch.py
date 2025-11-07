@@ -41,3 +41,4 @@ class Branch(Base):
     # tenant = relationship("Tenant", back_populates="branches")  # Not used in unified database
     cash_boxes = relationship("CashBox", back_populates="branch")
     expenses = relationship("Expense", back_populates="branch")
+    promotions = relationship("Promotion", back_populates="branch")

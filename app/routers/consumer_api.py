@@ -15,13 +15,52 @@ import logging
 from ..db.database import get_db
 # Removed InventoryItem - using products table directly
 from ..models.product import Product, Category
-from ..services.zoho_service import ZohoAsyncService, ZohoAPIError
+# ✅ UPDATED: Using TDS unified Zoho integration
+from ..tds.integrations.zoho import (
+    UnifiedZohoClient, ZohoAuthManager, ZohoCredentials,
+    ZohoAPIError
+)
 from ..utils.image_helper import get_product_image_url
 from sqlalchemy import text
+import os
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# ============================================
+# HELPER FUNCTIONS
+# ============================================
+
+async def get_zoho_client() -> UnifiedZohoClient:
+    """
+    Initialize and return TDS unified Zoho client
+
+    Returns:
+        UnifiedZohoClient instance
+    """
+    # Load credentials from environment
+    credentials = ZohoCredentials(
+        client_id=os.getenv('ZOHO_CLIENT_ID'),
+        client_secret=os.getenv('ZOHO_CLIENT_SECRET'),
+        refresh_token=os.getenv('ZOHO_REFRESH_TOKEN'),
+        organization_id=os.getenv('ZOHO_ORGANIZATION_ID')
+    )
+
+    # Create auth manager
+    auth_manager = ZohoAuthManager(credentials, auto_refresh=True)
+    await auth_manager.start()
+
+    # Create and return Zoho client
+    client = UnifiedZohoClient(
+        auth_manager=auth_manager,
+        organization_id=credentials.organization_id,
+        rate_limit=100
+    )
+    await client.start_session()
+
+    return client
 
 
 # ============================================
@@ -122,8 +161,15 @@ async def get_products(
         products = []
 
         for row in result:
-            # Use CDN image URL if available, otherwise fallback to placeholder
-            image_url = row.image_url if row.image_url else f"{base_url}/static/placeholder-product.png"
+            # Use local product images (already downloaded from Zoho)
+            image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
+
+            if row.zoho_item_id:
+                # Use local product images stored on server
+                image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
+            elif row.image_url and 'zohoapis.com' not in row.image_url:
+                # Use CDN or other non-Zoho image URL as-is
+                image_url = row.image_url
 
             # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
             products.append({
@@ -210,7 +256,15 @@ async def get_product_details(
         if not result:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        image_url = result.image_url if result.image_url else f"{base_url}/static/placeholder-product.png"
+        # Use local product images (already downloaded from Zoho)
+        image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
+
+        if result.zoho_item_id:
+            # Use local product images stored on server
+            image_url = f"{base_url}/product-images/{result.zoho_item_id}.jpg"
+        elif result.image_url and 'zohoapis.com' not in result.image_url:
+            # Use CDN or other non-Zoho image URL as-is
+            image_url = result.image_url
 
         # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
         product_data = {
@@ -293,71 +347,83 @@ async def create_order(
     Create a sales order in Zoho Books and update inventory
     إنشاء طلب مبيعات في Zoho Books وتحديث المخزون
     """
+    zoho_client = None
     try:
         logger.info(f"Creating order for customer: {order_data.customer_email}")
 
-        # Initialize Zoho service
-        async with ZohoAsyncService() as zoho:
-            # Prepare order data for Zoho
-            zoho_order_data = {
-                "customer_name": order_data.customer_name,
-                "date": datetime.now().strftime("%Y-%m-%d"),
-                "line_items": [
-                    {
-                        "item_id": item.item_id,
-                        "name": item.product_name,
-                        "quantity": item.quantity,
-                        "rate": item.rate,
-                        "amount": item.amount
-                    }
-                    for item in order_data.line_items
-                ],
-                "notes": order_data.notes or f"Order from TSH Consumer App - {order_data.customer_email}",
-                "custom_fields": [
-                    {"label": "Customer Email", "value": order_data.customer_email},
-                    {"label": "Customer Phone", "value": order_data.customer_phone}
-                ]
-            }
+        # Initialize TDS Zoho client
+        zoho_client = await get_zoho_client()
 
-            # Create sales order in Zoho
-            try:
-                zoho_response = await zoho.create_salesorder(zoho_order_data)
+        # Prepare order data for Zoho Books API
+        zoho_order_data = {
+            "customer_name": order_data.customer_name,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "line_items": [
+                {
+                    "item_id": item.item_id,
+                    "name": item.product_name,
+                    "quantity": item.quantity,
+                    "rate": item.rate,
+                    "amount": item.amount
+                }
+                for item in order_data.line_items
+            ],
+            "notes": order_data.notes or f"Order from TSH Consumer App - {order_data.customer_email}",
+            "custom_fields": [
+                {"label": "Customer Email", "value": order_data.customer_email},
+                {"label": "Customer Phone", "value": order_data.customer_phone}
+            ]
+        }
 
-                if zoho_response and 'salesorder' in zoho_response:
-                    salesorder = zoho_response['salesorder']
+        # Create sales order in Zoho Books via TDS client
+        try:
+            from ..tds.integrations.zoho.client import ZohoAPI
 
-                    # Update local inventory quantities
-                    background_tasks.add_task(
-                        update_inventory_after_order,
-                        order_data.line_items,
-                        db
-                    )
+            zoho_response = await zoho_client.post(
+                endpoint="/salesorders",
+                data=zoho_order_data,
+                api_type=ZohoAPI.BOOKS
+            )
 
-                    return OrderResponse(
-                        success=True,
-                        order_id=salesorder.get('salesorder_id'),
-                        salesorder_number=salesorder.get('salesorder_number'),
-                        message="Order created successfully in Zoho",
-                        zoho_response=zoho_response
-                    )
-                else:
-                    raise HTTPException(
-                        status_code=500,
-                        detail="Failed to create order in Zoho"
-                    )
+            if zoho_response and 'salesorder' in zoho_response:
+                salesorder = zoho_response['salesorder']
 
-            except ZohoAPIError as e:
-                logger.error(f"Zoho API Error: {e.message}")
+                # Update local inventory quantities
+                background_tasks.add_task(
+                    update_inventory_after_order,
+                    order_data.line_items,
+                    db
+                )
+
+                return OrderResponse(
+                    success=True,
+                    order_id=salesorder.get('salesorder_id'),
+                    salesorder_number=salesorder.get('salesorder_number'),
+                    message="Order created successfully in Zoho",
+                    zoho_response=zoho_response
+                )
+            else:
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Zoho API Error: {e.message}"
+                    detail="Failed to create order in Zoho"
                 )
+
+        except ZohoAPIError as e:
+            logger.error(f"Zoho API Error: {e.message}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Zoho API Error: {e.message}"
+            )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error creating order: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Cleanup
+        if zoho_client:
+            await zoho_client.close_session()
 
 
 def update_inventory_after_order(line_items: List[OrderLineItem], db: Session):
@@ -400,51 +466,66 @@ async def sync_inventory_from_zoho(db: Session = Depends(get_db)):
     Manually trigger inventory sync from Zoho
     تشغيل مزامنة المخزون من Zoho يدوياً
     """
+    zoho_client = None
     try:
-        async with ZohoAsyncService() as zoho:
-            # Fetch items from Zoho
-            items = await zoho.get_all_items()
+        # Initialize TDS Zoho client
+        zoho_client = await get_zoho_client()
 
-            if not items:
-                return {
-                    'status': 'error',
-                    'message': 'No items fetched from Zoho'
-                }
+        # Fetch items from Zoho Books/Inventory API
+        from ..tds.integrations.zoho.client import ZohoAPI
 
-            # Update database
-            updated_count = 0
-            for zoho_item in items:
-                # Update products directly by zoho_item_id
-                update_query = text("""
-                    UPDATE products
-                    SET actual_available_stock = :stock,
-                        stock_quantity = :stock,
-                        price = :price,
-                        last_zoho_sync = NOW(),
-                        updated_at = NOW()
-                    WHERE zoho_item_id = :item_id
-                """)
-                result = db.execute(update_query, {
-                    "stock": zoho_item.get('stock_on_hand', 0),
-                    "price": zoho_item.get('rate', 0),
-                    "item_id": zoho_item.get('item_id')
-                })
+        items_response = await zoho_client.paginated_fetch(
+            endpoint="/items",
+            api_type=ZohoAPI.BOOKS,
+            params={"filter_by": "Status.Active"}
+        )
 
-                if result.rowcount > 0:
-                    updated_count += 1
+        items = items_response.get('items', [])
 
-            db.commit()
-
+        if not items:
             return {
-                'status': 'success',
-                'message': f'Synced {updated_count} items from Zoho',
-                'total_items': len(items),
-                'updated_items': updated_count
+                'status': 'error',
+                'message': 'No items fetched from Zoho'
             }
+
+        # Update database
+        updated_count = 0
+        for zoho_item in items:
+            # Update products directly by zoho_item_id
+            update_query = text("""
+                UPDATE products
+                SET actual_available_stock = :stock,
+                    stock_quantity = :stock,
+                    price = :price,
+                    last_zoho_sync = NOW(),
+                    updated_at = NOW()
+                WHERE zoho_item_id = :item_id
+            """)
+            result = db.execute(update_query, {
+                "stock": zoho_item.get('stock_on_hand', 0),
+                "price": zoho_item.get('rate', 0),
+                "item_id": zoho_item.get('item_id')
+            })
+
+            if result.rowcount > 0:
+                updated_count += 1
+
+        db.commit()
+
+        return {
+            'status': 'success',
+            'message': f'Synced {updated_count} items from Zoho',
+            'total_items': len(items),
+            'updated_items': updated_count
+        }
 
     except Exception as e:
         logger.error(f"Error syncing inventory: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Cleanup
+        if zoho_client:
+            await zoho_client.close_session()
 
 
 @router.get("/sync/status", summary="Get sync status")

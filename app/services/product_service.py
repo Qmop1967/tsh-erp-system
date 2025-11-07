@@ -1,186 +1,152 @@
+"""
+Product Service - Business Logic for Product Management
+
+Refactored to use Phase 4 patterns:
+- Instance methods instead of static methods
+- BaseRepository for CRUD operations
+- Custom exceptions instead of HTTPException
+- Pagination and search support
+
+Author: Claude Code (Senior Software Engineer AI)
+Date: January 7, 2025
+Phase: 5 P1 - Products Router Migration
+"""
+
+from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_
-from typing import List, Optional
-from fastapi import HTTPException, status
+from sqlalchemy import or_, and_, func
+from fastapi import Depends
+from decimal import Decimal
+
 from app.models.product import Product, Category
 from app.schemas.product import (
-    ProductCreate, ProductUpdate, ProductSummary, 
+    ProductCreate, ProductUpdate, ProductSummary,
+    CategoryCreate, CategoryUpdate,
     TranslateNameRequest, TranslateNameResponse,
-    MediaUploadRequest, MediaUploadResponse,
-    CategoryCreate, CategoryUpdate
+    MediaUploadRequest, MediaUploadResponse
+)
+from app.repositories import BaseRepository
+from app.exceptions import (
+    EntityNotFoundError,
+    DuplicateEntityError,
+    ValidationError
 )
 
 
 class ProductService:
-    """خدمة إدارة المنتجات"""
+    """
+    Service for product management.
 
-    @staticmethod
-    def create_category(db: Session, category: CategoryCreate) -> Category:
-        """إنشاء فئة جديدة"""
-        # التحقق من عدم تكرار الاسم
-        existing = db.query(Category).filter(Category.name == category.name).first()
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Category name already exists"
-            )
-        
-        # التحقق من وجود الفئة الأساسية
-        if category.parent_id:
-            parent = db.query(Category).filter(Category.id == category.parent_id).first()
-            if not parent:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Parent category not found"
-                )
-        
-        db_category = Category(**category.dict())
-        db.add(db_category)
-        db.commit()
-        db.refresh(db_category)
-        return db_category
+    Handles all business logic for products, replacing direct
+    database operations in the router.
+    """
 
-    @staticmethod
-    def get_categories(db: Session, skip: int = 0, limit: int = 100, 
-                      active_only: bool = True) -> List[Category]:
-        """الحصول على قائمة الفئات"""
-        query = db.query(Category)
-        
-        if active_only:
-            query = query.filter(Category.is_active == True)
-            
-        return query.offset(skip).limit(limit).all()
+    def __init__(self, db: Session):
+        """
+        Initialize product service.
 
-    @staticmethod
-    def update_category(db: Session, category_id: int, category_update: CategoryUpdate) -> Category:
-        """تحديث فئة"""
-        db_category = db.query(Category).filter(Category.id == category_id).first()
-        if not db_category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Category not found"
-            )
-        
-        update_data = category_update.dict(exclude_unset=True)
-        
-        # التحقق من عدم تكرار الاسم
-        if "name" in update_data:
-            existing = db.query(Category).filter(
-                Category.name == update_data["name"],
-                Category.id != category_id
-            ).first()
-            if existing:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Category name already exists"
-                )
-        
-        for field, value in update_data.items():
-            setattr(db_category, field, value)
-        
-        db.commit()
-        db.refresh(db_category)
-        return db_category
+        Args:
+            db: Database session
+        """
+        self.db = db
+        self.product_repo = BaseRepository(Product, db)
+        self.category_repo = BaseRepository(Category, db)
 
-    @staticmethod
-    def create_product(db: Session, product: ProductCreate) -> Product:
-        """إنشاء منتج جديد"""
-        # التحقق من وجود الفئة
-        category = db.query(Category).filter(Category.id == product.category_id).first()
-        if not category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Category not found"
-            )
+    # ========================================================================
+    # Product CRUD Operations
+    # ========================================================================
 
-        # التحقق من عدم تكرار SKU
-        existing_product = db.query(Product).filter(Product.sku == product.sku).first()
-        if existing_product:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="SKU already exists"
-            )
-
-        # التحقق من عدم تكرار الباركود
-        if product.barcode:
-            existing_barcode = db.query(Product).filter(Product.barcode == product.barcode).first()
-            if existing_barcode:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Barcode already exists"
-                )
-
-        # إنشاء المنتج
-        db_product = Product(**product.dict())
-        db.add(db_product)
-        db.commit()
-        db.refresh(db_product)
-        return db_product
-
-    @staticmethod
-    def get_product(db: Session, product_id: int) -> Optional[Product]:
-        """الحصول على منتج بالمعرف"""
-        return db.query(Product).options(joinedload(Product.category)).filter(
-            Product.id == product_id
-        ).first()
-
-    @staticmethod
-    def get_products(
-        db: Session, 
-        skip: int = 0, 
+    def get_all_products(
+        self,
+        skip: int = 0,
         limit: int = 100,
         category_id: Optional[int] = None,
-        search: Optional[str] = None,
-        is_active: Optional[bool] = None
-    ) -> List[Product]:
-        """الحصول على قائمة المنتجات مع البحث والفلترة"""
-        query = db.query(Product).options(joinedload(Product.category))
-        
-        if category_id:
-            query = query.filter(Product.category_id == category_id)
-        
-        if is_active is not None:
-            query = query.filter(Product.is_active == is_active)
-        
-        if search:
-            query = query.filter(
-                or_(
-                    Product.name.ilike(f"%{search}%"),
-                    Product.name_ar.ilike(f"%{search}%"),
-                    Product.sku.ilike(f"%{search}%"),
-                    Product.description.ilike(f"%{search}%"),
-                    Product.description_ar.ilike(f"%{search}%")
-                )
-            )
-        
-        return query.offset(skip).limit(limit).all()
-
-    @staticmethod
-    def get_products_summary(
-        db: Session, 
-        skip: int = 0, 
-        limit: int = 100,
-        category_id: Optional[int] = None,
+        is_active: Optional[bool] = None,
         search: Optional[str] = None
-    ) -> List[ProductSummary]:
-        """الحصول على ملخص المنتجات للقوائم"""
-        query = db.query(Product).join(Category)
-        
-        if category_id:
-            query = query.filter(Product.category_id == category_id)
-        
+    ) -> Tuple[List[Product], int]:
+        """
+        Get all products with optional filters.
+
+        Args:
+            skip: Number of records to skip
+            limit: Maximum records to return
+            category_id: Filter by category ID
+            is_active: Filter by active status
+            search: Search term for name, name_ar, SKU, description
+
+        Returns:
+            Tuple of (products list, total count)
+        """
+        # Build filters
+        filters = {}
+        if category_id is not None:
+            filters['category_id'] = category_id
+        if is_active is not None:
+            filters['is_active'] = is_active
+
+        # Apply search if provided
         if search:
-            query = query.filter(
-                or_(
-                    Product.name.ilike(f"%{search}%"),
-                    Product.name_ar.ilike(f"%{search}%"),
-                    Product.sku.ilike(f"%{search}%")
-                )
+            # Use custom query for multi-field search with joins
+            query = self.db.query(Product).options(joinedload(Product.category))
+
+            # Apply filters
+            if filters:
+                for field, value in filters.items():
+                    query = query.filter(getattr(Product, field) == value)
+
+            # Apply search across multiple fields
+            search_filter = or_(
+                Product.name.ilike(f"%{search}%"),
+                Product.name_ar.ilike(f"%{search}%"),
+                Product.sku.ilike(f"%{search}%"),
+                Product.description.ilike(f"%{search}%"),
+                Product.description_ar.ilike(f"%{search}%")
             )
-        
-        products = query.offset(skip).limit(limit).all()
-        
-        # Convert to ProductSummary with category name
+            query = query.filter(search_filter)
+
+            # Get results
+            products = query.offset(skip).limit(limit).all()
+            total = query.count()
+        else:
+            # Use BaseRepository for simple queries
+            products = self.db.query(Product).options(
+                joinedload(Product.category)
+            ).filter_by(**filters).offset(skip).limit(limit).all()
+
+            total = self.product_repo.get_count(filters=filters)
+
+        return products, total
+
+    def get_products_summary(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        category_id: Optional[int] = None,
+        is_active: Optional[bool] = None,
+        search: Optional[str] = None
+    ) -> Tuple[List[ProductSummary], int]:
+        """
+        Get product summaries for list views.
+
+        Args:
+            skip: Number of records to skip
+            limit: Maximum records to return
+            category_id: Filter by category ID
+            is_active: Filter by active status
+            search: Search term
+
+        Returns:
+            Tuple of (product summaries list, total count)
+        """
+        products, total = self.get_all_products(
+            skip=skip,
+            limit=limit,
+            category_id=category_id,
+            is_active=is_active,
+            search=search
+        )
+
+        # Convert to ProductSummary
         result = []
         for product in products:
             summary_dict = {
@@ -197,175 +163,329 @@ class ProductService:
             }
             summary = ProductSummary(**summary_dict)
             result.append(summary)
-        
-        return result
 
-    @staticmethod
-    def update_product(db: Session, product_id: int, product_update: ProductUpdate) -> Product:
-        """تحديث منتج"""
-        db_product = db.query(Product).filter(Product.id == product_id).first()
-        if not db_product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found"
-            )
+        return result, total
 
-        # التحقق من SKU إذا تم تحديثه
-        if product_update.sku and product_update.sku != db_product.sku:
-            existing_product = db.query(Product).filter(
-                and_(Product.sku == product_update.sku, Product.id != product_id)
-            ).first()
-            if existing_product:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="SKU already exists"
-                )
+    def get_product_by_id(self, product_id: int) -> Product:
+        """
+        Get product by ID with category joined.
 
-        # التحقق من الباركود إذا تم تحديثه
-        if product_update.barcode and product_update.barcode != db_product.barcode:
-            existing_barcode = db.query(Product).filter(
-                and_(Product.barcode == product_update.barcode, Product.id != product_id)
-            ).first()
-            if existing_barcode:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Barcode already exists"
-                )
+        Args:
+            product_id: Product ID
 
-        # تحديث الحقول
-        update_data = product_update.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_product, field, value)
+        Returns:
+            Product instance
 
-        db.commit()
-        db.refresh(db_product)
-        return db_product
+        Raises:
+            EntityNotFoundError: If product not found
+        """
+        product = self.db.query(Product).options(
+            joinedload(Product.category)
+        ).filter(Product.id == product_id).first()
 
-    @staticmethod
-    def delete_product(db: Session, product_id: int) -> bool:
-        """حذف منتج"""
-        db_product = db.query(Product).filter(Product.id == product_id).first()
-        if not db_product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found"
-            )
+        if not product:
+            raise EntityNotFoundError("Product", product_id)
 
-        # التحقق من عدم وجود مراجع أخرى (مبيعات، مشتريات، مخزون)
-        # يمكن إضافة منطق إضافي هنا للتحقق من المراجع
+        return product
 
-        db.delete(db_product)
-        db.commit()
+    def create_product(self, product_data: ProductCreate) -> Product:
+        """
+        Create new product.
+
+        Args:
+            product_data: Product creation data
+
+        Returns:
+            Created product
+
+        Raises:
+            EntityNotFoundError: If category not found
+            DuplicateEntityError: If SKU or barcode already exists
+        """
+        # Validate category exists
+        category = self.category_repo.get(product_data.category_id)
+        if not category:
+            raise EntityNotFoundError("Category", product_data.category_id)
+
+        # Validate unique SKU
+        if self.product_repo.exists({'sku': product_data.sku}):
+            raise DuplicateEntityError("Product", "SKU", product_data.sku)
+
+        # Validate unique barcode if provided
+        if product_data.barcode:
+            if self.product_repo.exists({'barcode': product_data.barcode}):
+                raise DuplicateEntityError("Product", "barcode", product_data.barcode)
+
+        # Create product
+        product = self.product_repo.create(product_data.dict())
+
+        # Load with category relation
+        return self.get_product_by_id(product.id)
+
+    def update_product(
+        self,
+        product_id: int,
+        product_data: ProductUpdate
+    ) -> Product:
+        """
+        Update existing product.
+
+        Args:
+            product_id: Product ID
+            product_data: Product update data
+
+        Returns:
+            Updated product
+
+        Raises:
+            EntityNotFoundError: If product not found
+            DuplicateEntityError: If new SKU or barcode conflicts
+        """
+        # Verify product exists
+        existing_product = self.get_product_by_id(product_id)
+
+        update_dict = product_data.dict(exclude_unset=True)
+
+        # Validate unique SKU if being updated
+        if 'sku' in update_dict and update_dict['sku'] != existing_product.sku:
+            if self.product_repo.exists({'sku': update_dict['sku']}):
+                raise DuplicateEntityError("Product", "SKU", update_dict['sku'])
+
+        # Validate unique barcode if being updated
+        if 'barcode' in update_dict and update_dict['barcode']:
+            if update_dict['barcode'] != existing_product.barcode:
+                if self.product_repo.exists({'barcode': update_dict['barcode']}):
+                    raise DuplicateEntityError("Product", "barcode", update_dict['barcode'])
+
+        # Validate category if being updated
+        if 'category_id' in update_dict:
+            category = self.category_repo.get(update_dict['category_id'])
+            if not category:
+                raise EntityNotFoundError("Category", update_dict['category_id'])
+
+        # Update product
+        updated_product = self.product_repo.update(product_id, update_dict)
+
+        # Load with category relation
+        return self.get_product_by_id(product_id)
+
+    def delete_product(self, product_id: int) -> bool:
+        """
+        Soft delete product (set is_active=False).
+
+        Args:
+            product_id: Product ID
+
+        Returns:
+            True if deactivated
+
+        Raises:
+            EntityNotFoundError: If product not found
+        """
+        # Use soft delete
+        self.product_repo.soft_delete(product_id)
         return True
 
-    @staticmethod
-    async def translate_product_name(request: TranslateNameRequest) -> TranslateNameResponse:
-        """ترجمة اسم المنتج إلى العربية باستخدام AI"""
+    # ========================================================================
+    # Category Operations
+    # ========================================================================
+
+    def get_categories(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        active_only: bool = True
+    ) -> Tuple[List[Category], int]:
+        """
+        Get all categories with optional filters.
+
+        Args:
+            skip: Number of records to skip
+            limit: Maximum records to return
+            active_only: Filter by active status
+
+        Returns:
+            Tuple of (categories list, total count)
+        """
+        filters = {}
+        if active_only:
+            filters['is_active'] = True
+
+        categories = self.category_repo.get_all(
+            skip=skip,
+            limit=limit,
+            filters=filters
+        )
+        total = self.category_repo.get_count(filters=filters)
+
+        return categories, total
+
+    def create_category(self, category_data: CategoryCreate) -> Category:
+        """
+        Create new category.
+
+        Args:
+            category_data: Category creation data
+
+        Returns:
+            Created category
+
+        Raises:
+            DuplicateEntityError: If category name already exists
+            EntityNotFoundError: If parent category not found
+        """
+        # Validate unique name
+        if self.category_repo.exists({'name': category_data.name}):
+            raise DuplicateEntityError("Category", "name", category_data.name)
+
+        # Validate parent exists if provided
+        if category_data.parent_id:
+            parent = self.category_repo.get(category_data.parent_id)
+            if not parent:
+                raise EntityNotFoundError("Parent Category", category_data.parent_id)
+
+        # Create category
+        return self.category_repo.create(category_data.dict())
+
+    def update_category(
+        self,
+        category_id: int,
+        category_data: CategoryUpdate
+    ) -> Category:
+        """
+        Update existing category.
+
+        Args:
+            category_id: Category ID
+            category_data: Category update data
+
+        Returns:
+            Updated category
+
+        Raises:
+            EntityNotFoundError: If category not found
+            DuplicateEntityError: If new name conflicts
+        """
+        update_dict = category_data.dict(exclude_unset=True)
+
+        # Validate unique name if being updated
+        if 'name' in update_dict:
+            # Check if another category has this name
+            existing = self.db.query(Category).filter(
+                Category.name == update_dict['name'],
+                Category.id != category_id
+            ).first()
+            if existing:
+                raise DuplicateEntityError("Category", "name", update_dict['name'])
+
+        # Update category
+        return self.category_repo.update(category_id, update_dict)
+
+    # ========================================================================
+    # AI Translation
+    # ========================================================================
+
+    async def translate_product_name(
+        self,
+        request: TranslateNameRequest
+    ) -> TranslateNameResponse:
+        """
+        Translate English product name to Arabic using AI.
+
+        Args:
+            request: Translation request
+
+        Returns:
+            Translation response with Arabic name and description
+        """
         try:
-            # Using a simple AI translation service (you can replace with OpenAI, Google Translate, etc.)
-            # For demo purposes, I'll create a simple mapping and rules-based translation
-            
-            # Simple translation rules (you can enhance this with actual AI service)
+            # Simple translation mapping (can be enhanced with OpenAI/Google Translate)
             translation_map = {
-                "laptop": "لابتوب",
-                "computer": "كمبيوتر",
-                "phone": "هاتف",
-                "mobile": "جوال",
-                "iphone": "آيفون",
-                "samsung": "سامسونج",
-                "dell": "ديل",
-                "hp": "إتش بي",
-                "apple": "أبل",
-                "mouse": "فأرة",
-                "keyboard": "لوحة مفاتيح",
-                "monitor": "شاشة",
-                "speaker": "سماعة",
-                "headphone": "سماعة رأس",
-                "tablet": "تابلت",
-                "watch": "ساعة",
-                "camera": "كاميرا",
-                "printer": "طابعة",
-                "scanner": "ماسح ضوئي",
-                "router": "راوتر",
-                "cable": "كابل",
-                "charger": "شاحن",
-                "battery": "بطارية",
-                "memory": "ذاكرة",
-                "storage": "تخزين",
-                "hard drive": "قرص صلب",
-                "ssd": "إس إس دي",
-                "usb": "يو إس بي",
-                "bluetooth": "بلوتوث",
-                "wireless": "لاسلكي",
-                "pro": "برو",
-                "plus": "بلس",
-                "max": "ماكس",
-                "mini": "ميني",
-                "air": "إير",
-                "studio": "ستوديو",
-                "premium": "بريميوم",
-                "standard": "قياسي",
-                "basic": "أساسي",
-                "professional": "احترافي",
-                "gaming": "ألعاب"
+                "laptop": "لابتوب", "computer": "كمبيوتر", "phone": "هاتف",
+                "mobile": "جوال", "iphone": "آيفون", "samsung": "سامسونج",
+                "dell": "ديل", "hp": "إتش بي", "apple": "أبل",
+                "mouse": "فأرة", "keyboard": "لوحة مفاتيح", "monitor": "شاشة",
+                "speaker": "سماعة", "headphone": "سماعة رأس", "tablet": "تابلت",
+                "watch": "ساعة", "camera": "كاميرا", "printer": "طابعة",
+                "scanner": "ماسح ضوئي", "router": "راوتر", "cable": "كابل",
+                "charger": "شاحن", "battery": "بطارية", "memory": "ذاكرة",
+                "storage": "تخزين", "hard drive": "قرص صلب", "ssd": "إس إس دي",
+                "usb": "يو إس بي", "bluetooth": "بلوتوث", "wireless": "لاسلكي",
+                "pro": "برو", "plus": "بلس", "max": "ماكس", "mini": "ميني",
+                "air": "إير", "studio": "ستوديو", "premium": "بريميوم",
+                "standard": "قياسي", "basic": "أساسي", "professional": "احترافي",
+                "gaming": "ألعاب", "black": "أسود", "white": "أبيض",
+                "red": "أحمر", "blue": "أزرق", "green": "أخضر",
+                "yellow": "أصفر", "orange": "برتقالي", "purple": "بنفسجي",
+                "gray": "رمادي", "brown": "بني", "small": "صغير",
+                "medium": "متوسط", "large": "كبير", "extra large": "كبير جداً"
             }
-            
+
             english_name = request.english_name.lower()
-            arabic_name = ""
-            
-            # Try to translate each word
             words = english_name.split()
             arabic_words = []
-            
+
             for word in words:
-                # Remove special characters
                 clean_word = ''.join(char for char in word if char.isalnum())
                 if clean_word in translation_map:
                     arabic_words.append(translation_map[clean_word])
                 else:
-                    # If no translation found, keep the English word
                     arabic_words.append(word)
-            
+
             arabic_name = " ".join(arabic_words)
-            
-            # If no translation was made, create a simple Arabic version
+
+            # If no translation was made, keep original
             if arabic_name.lower() == english_name.lower():
-                arabic_name = f"{request.english_name}"  # Keep original if no translation
-            
+                arabic_name = request.english_name
+
             # Translate description if provided
             arabic_description = None
             if request.description:
-                # Simple description translation (can be enhanced with actual AI)
                 desc_lower = request.description.lower()
-                if "laptop" in desc_lower:
-                    arabic_description = request.description.replace("laptop", "لابتوب")
-                elif "phone" in desc_lower:
-                    arabic_description = request.description.replace("phone", "هاتف")
-                else:
-                    arabic_description = request.description  # Keep original
-            
+                desc_words = desc_lower.split()
+                translated_desc = []
+                for word in desc_words:
+                    clean_word = ''.join(char for char in word if char.isalnum())
+                    if clean_word in translation_map:
+                        translated_desc.append(translation_map[clean_word])
+                    else:
+                        translated_desc.append(word)
+                arabic_description = " ".join(translated_desc)
+
             return TranslateNameResponse(
                 arabic_name=arabic_name,
                 arabic_description=arabic_description
             )
-            
-        except Exception as e:
-            # Fallback: return the original name if translation fails
+
+        except Exception:
+            # Fallback: return original if translation fails
             return TranslateNameResponse(
                 arabic_name=request.english_name,
                 arabic_description=request.description
             )
 
-    @staticmethod
-    def upload_media(db: Session, media_request: MediaUploadRequest) -> MediaUploadResponse:
-        """رفع وسائط للمنتج"""
-        # التحقق من وجود المنتج
-        product = db.query(Product).filter(Product.id == media_request.product_id).first()
+    # ========================================================================
+    # Media Management
+    # ========================================================================
+
+    def upload_media(self, media_request: MediaUploadRequest) -> MediaUploadResponse:
+        """
+        Upload media for product.
+
+        Args:
+            media_request: Media upload request
+
+        Returns:
+            Media upload response
+
+        Raises:
+            EntityNotFoundError: If product not found
+            ValidationError: If media upload fails
+        """
+        # Verify product exists
+        product = self.product_repo.get(media_request.product_id)
         if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found"
-            )
+            raise EntityNotFoundError("Product", media_request.product_id)
 
         try:
             if media_request.media_type == "image":
@@ -377,37 +497,53 @@ class ProductService:
                     if product.images is None:
                         product.images = []
                     product.images.append(media_request.media_url)
-                    
+
             elif media_request.media_type == "video":
                 # Add to videos list
                 if product.videos is None:
                     product.videos = []
                 product.videos.append(media_request.media_url)
 
-            db.commit()
-            db.refresh(product)
+            self.db.commit()
+            self.db.refresh(product)
 
             return MediaUploadResponse(
                 success=True,
                 message="Media uploaded successfully",
                 media_url=media_request.media_url
             )
-            
+
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to upload media: {str(e)}"
+            raise ValidationError(
+                f"Failed to upload media: {str(e)}",
+                f"فشل تحميل الوسائط: {str(e)}"
             )
 
-    @staticmethod
-    def remove_media(db: Session, product_id: int, media_url: str, media_type: str) -> bool:
-        """حذف وسائط من المنتج"""
-        product = db.query(Product).filter(Product.id == product_id).first()
+    def remove_media(
+        self,
+        product_id: int,
+        media_url: str,
+        media_type: str
+    ) -> bool:
+        """
+        Remove media from product.
+
+        Args:
+            product_id: Product ID
+            media_url: URL of media to remove
+            media_type: Type of media (image or video)
+
+        Returns:
+            True if removed successfully
+
+        Raises:
+            EntityNotFoundError: If product not found
+            ValidationError: If media removal fails
+        """
+        # Verify product exists
+        product = self.product_repo.get(product_id)
         if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found"
-            )
+            raise EntityNotFoundError("Product", product_id)
 
         try:
             if media_type == "image":
@@ -415,31 +551,40 @@ class ProductService:
                     product.image_url = None
                 elif product.images and media_url in product.images:
                     product.images.remove(media_url)
-                    
+
             elif media_type == "video":
                 if product.videos and media_url in product.videos:
                     product.videos.remove(media_url)
 
-            db.commit()
+            self.db.commit()
             return True
-            
+
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to remove media: {str(e)}"
+            raise ValidationError(
+                f"Failed to remove media: {str(e)}",
+                f"فشل حذف الوسائط: {str(e)}"
             )
 
-    @staticmethod
-    def get_product_statistics(db: Session) -> dict:
-        """إحصائيات المنتجات"""
-        total_products = db.query(Product).count()
-        active_products = db.query(Product).filter(Product.is_active == True).count()
+    # ========================================================================
+    # Statistics
+    # ========================================================================
+
+    def get_product_statistics(self) -> Dict[str, Any]:
+        """
+        Get product statistics.
+
+        Returns:
+            Dictionary with statistics
+        """
+        total_products = self.product_repo.get_count()
+        active_products = self.product_repo.get_count({'is_active': True})
         inactive_products = total_products - active_products
-        
+
         # Products by category
-        categories_stats = db.query(Category.name, db.func.count(Product.id)).join(
-            Product, Category.id == Product.category_id
-        ).group_by(Category.name).all()
+        categories_stats = self.db.query(
+            Category.name,
+            func.count(Product.id)
+        ).join(Product).group_by(Category.name).all()
 
         return {
             "total_products": total_products,
@@ -447,3 +592,25 @@ class ProductService:
             "inactive_products": inactive_products,
             "categories_stats": dict(categories_stats)
         }
+
+
+# ============================================================================
+# Dependency for FastAPI
+# ============================================================================
+
+from app.db.database import get_db
+
+
+def get_product_service(db: Session = Depends(get_db)) -> ProductService:
+    """
+    Dependency to get ProductService instance.
+
+    Usage in routers:
+        @router.get("/products")
+        def get_products(
+            service: ProductService = Depends(get_product_service)
+        ):
+            products, total = service.get_all_products()
+            return products
+    """
+    return ProductService(db)

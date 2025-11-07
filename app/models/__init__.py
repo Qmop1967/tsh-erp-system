@@ -74,11 +74,36 @@ from .after_sales import (
     MaintenanceStatus, WarrantyStatus, Decision, InventoryZone
 )
 
-# Migration models
+# Migration models - KEPT (used by items, customers, vendors routers)
+# Note: These are NOT for Zoho sync (TDS handles that), but for internal data structures
 from .migration import (
     MigrationBatch, MigrationRecord, ItemCategory, MigrationItem, PriceList as MigrationPriceList, PriceListItem,
     MigrationCustomer, MigrationVendor, MigrationStock
 )
+
+# Zoho Sync Models (unified from TDS Core)
+from .zoho_sync import (
+    TDSInboxEvent, TDSSyncQueue, TDSDeadLetterQueue, TDSSyncLog, TDSAlert,
+    EventStatus, SourceType, EntityType, AlertSeverity
+)
+
+# Data Investigation Models
+from .data_investigation import DataInvestigationReport
+
+# Mobile BFF Models
+from .promotion import Promotion
+from .cart import Cart, CartItem
+from .review import Review
+from .customer_address import CustomerAddress
+
+# Notification Models
+from .notification import (
+    Notification, NotificationTemplate, NotificationPreference,
+    NotificationType, NotificationPriority, NotificationChannel
+)
+
+# Backward compatibility alias
+AlertLevel = AlertSeverity
 
 # Aliases for backward compatibility
 Item = MigrationItem  # Alias for backward compatibility
@@ -131,5 +156,12 @@ __all__ = [
     "ASOProduct", "ASOReturnRequest", "ASOInspection", "ASOMaintenanceJob",
     "ASOWarrantyPolicy", "ASODecisionRecord", "ASONotification", "ASOOutboxEvent",
     "ReturnReasonCode", "ReturnStatus", "InspectionStatus", "InspectionResult",
-    "MaintenanceStatus", "WarrantyStatus", "Decision", "InventoryZone"
+    "MaintenanceStatus", "WarrantyStatus", "Decision", "InventoryZone",
+    # Mobile BFF Models
+    "Promotion", "Cart", "CartItem", "Review", "CustomerAddress",
+    # Notification Models
+    "Notification", "NotificationTemplate", "NotificationPreference",
+    "NotificationType", "NotificationPriority", "NotificationChannel",
+    # Data Investigation Models
+    "DataInvestigationReport"
 ]

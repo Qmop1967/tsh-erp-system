@@ -1,257 +1,130 @@
-# 🏢 TSH ERP System
+# 📚 TSH ERP Ecosystem Documentation
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
-[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev/)
+Complete documentation index for the TSH ERP Ecosystem project.
 
-A comprehensive **Enterprise Resource Planning (ERP)** system designed for trade and services management, featuring multi-platform support with web and mobile applications.
+## 📖 Table of Contents
 
-## 🌟 Features
+### 🏗️ Architecture
+- [Architecture Overview](architecture/) - System architecture and design decisions
+- [Clean Architecture](architecture/CLEAN_ARCHITECTURE_2025.md) - Clean architecture implementation
+- [BFF Architecture](architecture/BFF_ARCHITECTURE_COMPLETE.md) - Backend for Frontend pattern
+- [Modular Monolith](architecture/MODULAR_MONOLITH_ARCHITECTURE_PLAN.md) - Modular monolith approach
 
-### 🏗️ **Core Modules**
-- **👥 User Management** - Multi-tenant authentication and authorization
-- **🏪 Branch & Warehouse Management** - Multi-location inventory tracking
-- **📦 Inventory Management** - Real-time stock tracking and management
-- **💼 Sales & Purchase Management** - Complete order lifecycle management
-- **💰 Financial Management** - Accounting, invoicing, and financial reporting
-- **🛒 POS System** - Point-of-sale with real-time synchronization
-- **💸 Cash Flow Management** - Cash tracking and transfer management
-- **📊 Reporting & Analytics** - Comprehensive business intelligence
+### 🚀 Deployment
+- [Deployment Guide](deployment/DEPLOYMENT_GUIDE.md) - Production deployment instructions
+- [Deployment Checklist](deployment/DEPLOYMENT_CHECKLIST.md) - Pre-deployment checklist
+- [VPS Setup](deployment/VPS_SETUP_INSTRUCTIONS.md) - VPS configuration guide
+- [Production Status](deployment/PRODUCTION_STATUS.md) - Current production status
 
-### 🌍 **Multi-Platform Support**
-- **🌐 Web Application** - React-based admin dashboard
-- **📱 Mobile Applications** - 17+ Flutter-based mobile apps including:
-  - Admin Dashboard
-  - Salesperson App
-  - Inventory Management
-  - HR Management
-  - Travel Sales
-  - Retail Sales
-  - And more...
+### 🔧 Setup & Configuration
+- [Quick Start Guides](guides/quick-start/) - Quick start guides for various components
+- [Setup Guides](guides/setup/) - Detailed setup instructions
+- [MCP Setup](guides/setup/QUICK_MCP_SETUP.md) - MCP server setup
+- [OAuth Configuration](guides/setup/OAUTH_UPDATE_QUICKSTART.md) - OAuth setup
 
-### 🔧 **Technical Features**
-- **🌐 Multi-language Support** (Arabic/English)
-- **🔐 Advanced Security** - JWT authentication, role-based permissions
-- **📡 Real-time Updates** - WebSocket integration for live data
-- **🗄️ Database Management** - PostgreSQL with Alembic migrations
-- **🐳 Containerization** - Docker support for easy deployment
-- **📋 Comprehensive Testing** - Unit and integration tests
-- **📚 API Documentation** - Auto-generated OpenAPI/Swagger docs
+### 🔌 Integrations
+- [Zoho Integration](integrations/zoho/) - Complete Zoho Books integration
+  - [Zoho Quick Start](integrations/zoho/TDS_ZOHO_QUICK_START.md)
+  - [Zoho Sync Guide](integrations/zoho/ZOHO_SYNC_SUMMARY.md)
+  - [Zoho Webhook Setup](integrations/zoho/ZOHO_WEBHOOK_FIX_GUIDE.md)
+- [TDS Core Integration](integrations/tds/) - TDS Core system integration
+  - [TDS Quick Start](integrations/tds/TDS_QUICK_START.md)
+  - [TDS Stock Sync](integrations/tds/TDS_STOCK_SYNC_GUIDE.md)
+  - [TDS Dashboard Setup](integrations/tds/TDS_DASHBOARD_SETUP.md)
 
-## 🚀 Quick Start
+### 💻 Implementation
+- [Implementation Status](implementation/IMPLEMENTATION_STATUS.md) - Current implementation status
+- [API Standards](implementation/API_RESPONSE_STANDARDS.md) - API response standards
+- [Feature Parity](implementation/FEATURE_PARITY_TRACKER.md) - Feature parity tracking
+- [Mobile BFF](implementation/MOBILE_BFF_ENHANCEMENT_PLAN.md) - Mobile BFF implementation
 
-### Prerequisites
-- Python 3.9+
-- Node.js 16+
-- PostgreSQL 12+
-- Flutter 3.0+ (for mobile development)
+### 🔐 Security
+- [Security Implementation](security/SECURITY_IMPROVEMENTS_SUMMARY.md) - Security features
+- [RBAC Implementation](security/RBAC_IMPLEMENTATION.md) - Role-Based Access Control
+- [Rate Limiting](security/RATE_LIMITING_IMPLEMENTATION.md) - API rate limiting
 
-### 🖥️ Backend Setup (FastAPI)
+### 🔄 Migrations
+- [Migration Guide](migrations/MIGRATION_GUIDE.md) - General migration guide
+- [Database Migrations](migrations/) - Database migration scripts
 
-```bash
-# Clone the repository
-git clone git@github.com:Qmop1967/tsh-erp-system.git
-cd tsh-erp-system
+### 📊 Status & Reports
+- [Project Status](status/) - Overall project status
+- [Completion Reports](status/completion/) - Feature completion reports
+- [Phase Reports](status/phases/) - Phase-by-phase progress
 
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+### 📱 Mobile Development
+- [Flutter Integration](guides/FLUTTER_BFF_INTEGRATION_GUIDE.md) - Flutter BFF integration
+- [Mobile Backend Connection](guides/FLUTTER_BACKEND_CONNECTION_GUIDE.md) - Backend connection guide
 
-# Install dependencies
-pip install -r config/requirements.txt
+### 🧪 Testing
+- [Testing Guide](testing/) - Testing documentation
+- [Security Testing](security/SECURITY_FEATURES_TESTING_GUIDE.md) - Security testing guide
 
-# Set up environment variables
-cp config/env.example .env
-# Edit .env with your database credentials
+### 📋 CI/CD
+- [CI/CD Implementation](ci-cd/CI_CD_IMPLEMENTATION_COMPLETE.md) - CI/CD setup
+- [GitHub Actions](ci-cd/GITHUB_ACTIONS_SETUP.md) - GitHub Actions configuration
+- [Intelligent CI/CD](ci-cd/INTELLIGENT_CICD_SYSTEM.md) - Advanced CI/CD features
 
-# Run database migrations
-cd database
-alembic upgrade head
-
-# Start the backend server
-cd ..
-python -m uvicorn app.main:app --reload
-```
-
-The API will be available at `http://localhost:8000`
-API Documentation: `http://localhost:8000/docs`
-
-### 🌐 Frontend Setup (React)
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-The web application will be available at `http://localhost:5173`
-
-### 📱 Mobile App Setup (Flutter)
-
-```bash
-# Navigate to specific mobile app
-cd mobile/flutter_apps/admin_dashboard
-
-# Get dependencies
-flutter pub get
-
-# Run the app
-flutter run
-```
-
-## 📁 Project Structure
+## 🗂️ Documentation Structure
 
 ```
-TSH ERP System/
-├── 🖥️  app/                    # FastAPI Backend Application
-│   ├── models/                # Database models
-│   ├── routers/              # API route handlers
-│   ├── services/             # Business logic
-│   ├── schemas/              # Pydantic schemas
-│   └── db/                   # Database configuration
-├── 🌐 frontend/               # React Web Application
-│   ├── src/                  # Source code
-│   ├── public/               # Static assets
-│   └── build/                # Production build
-├── 📱 mobile/                 # Mobile Applications
-│   ├── flutter_apps/         # Flutter applications
-│   │   ├── admin_dashboard/
-│   │   ├── salesperson/
-│   │   ├── inventory_app/
-│   │   ├── hr_app/
-│   │   └── ...               # 17+ mobile apps
-│   ├── ios/                  # iOS specific files
-│   └── android/              # Android specific files
-├── 🗄️  database/              # Database Schema & Migrations
-├── ⚙️  config/                # Configuration Files
-├── 🔧 scripts/               # Utility Scripts
-├── 📚 docs/                  # Documentation
-├── 🧪 tests/                 # Test Files
-├── 🐳 docker/                # Docker Configuration
-└── 🛠️  tools/                 # Development Tools
+docs/
+├── architecture/          # System architecture documentation
+├── deployment/            # Deployment guides and checklists
+├── guides/                # Setup and quick start guides
+│   ├── quick-start/      # Quick start guides
+│   └── setup/            # Detailed setup instructions
+├── integrations/          # Third-party integrations
+│   ├── zoho/            # Zoho Books integration
+│   └── tds/             # TDS Core integration
+├── implementation/        # Implementation details
+├── migrations/            # Migration guides
+├── security/              # Security documentation
+├── status/                # Project status and reports
+│   ├── completion/       # Completion reports
+│   └── phases/           # Phase reports
+├── ci-cd/                 # CI/CD documentation
+├── testing/               # Testing documentation
+└── legacy/                # Archived documentation
 ```
 
-## 📱 Mobile Applications
+## 🔍 Quick Reference
 
-The system includes 17+ specialized Flutter applications:
+### For Developers
+- Start with [Quick Start Guides](guides/quick-start/)
+- Review [Architecture Overview](architecture/)
+- Check [Implementation Status](implementation/IMPLEMENTATION_STATUS.md)
 
-| App | Description |
-|-----|-------------|
-| **Admin Dashboard** | Complete system administration |
-| **Salesperson App** | Mobile sales management |
-| **Inventory App** | Stock management on-the-go |
-| **HR App** | Human resources management |
-| **Travel Sales** | Travel booking and management |
-| **Retail Sales** | Retail point-of-sale |
-| **Client App** | Customer portal |
-| **Consumer App** | End-user interface |
-| **Partners App** | Partner management |
+### For DevOps
+- See [Deployment Guide](deployment/DEPLOYMENT_GUIDE.md)
+- Review [CI/CD Setup](ci-cd/CI_CD_IMPLEMENTATION_COMPLETE.md)
+- Check [VPS Setup](deployment/VPS_SETUP_INSTRUCTIONS.md)
 
-## 🔐 Security Features
+### For Integrations
+- [Zoho Integration](integrations/zoho/)
+- [TDS Integration](integrations/tds/)
 
-- **JWT Authentication** - Secure token-based authentication
-- **Role-Based Access Control** - Granular permission system
-- **Multi-tenant Architecture** - Data isolation between organizations
-- **Audit Logging** - Complete activity tracking
-- **Data Encryption** - Sensitive data protection
-- **API Rate Limiting** - Protection against abuse
+### For Project Management
+- [Project Status](status/)
+- [Completion Reports](status/completion/)
+- [Phase Reports](status/phases/)
 
-## 🌍 Internationalization
+## 📝 Documentation Standards
 
-- **Arabic Language Support** - Complete RTL interface
-- **English Language Support** - Full LTR interface
-- **Multi-currency Support** - Handle multiple currencies
-- **Localized Date/Time** - Regional formatting
+- All documentation should be in Markdown format
+- Include code examples where applicable
+- Keep documentation up-to-date with code changes
+- Use clear headings and structure
+- Include links to related documentation
 
-## 📊 Database Schema
+## 🔄 Updating Documentation
 
-The system uses PostgreSQL with comprehensive models including:
-
-- User Management (Users, Roles, Permissions)
-- Inventory (Products, Categories, Stock Movements)
-- Sales (Orders, Invoices, Payments)
-- Accounting (Chart of Accounts, Journal Entries)
-- POS (Terminals, Transactions, Sessions)
-- And much more...
-
-## 🐳 Docker Deployment
-
-```bash
-# Build and run with Docker Compose
-docker-compose up -d
-
-# Or build manually
-docker build -t tsh-erp-system .
-docker run -p 8000:8000 tsh-erp-system
-```
-
-## 📋 Testing
-
-```bash
-# Backend tests
-python -m pytest tests/
-
-# Frontend tests
-cd frontend
-npm test
-
-# Mobile tests
-cd mobile/flutter_apps/admin_dashboard
-flutter test
-```
-
-## 📚 Documentation
-
-- **[API Documentation](http://localhost:8000/docs)** - Auto-generated Swagger UI
-- **[System Guides](docs/guides/)** - Setup and configuration guides
-- **[Implementation Details](docs/implementation/)** - Technical documentation
-- **[Deployment Guide](docs/deployment/)** - Production deployment instructions
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🔧 Development
-
-### Environment Setup
-```bash
-# Backend development
-source .venv/bin/activate
-python -m uvicorn app.main:app --reload
-
-# Frontend development
-cd frontend && npm run dev
-
-# Mobile development
-cd mobile/flutter_apps/[app_name] && flutter run
-```
-
-### Code Style
-- **Python**: Follow PEP 8, use Black formatter
-- **JavaScript/TypeScript**: Use Prettier, ESLint
-- **Flutter**: Follow Dart style guide
-
-## 📞 Support
-
-For support and questions, please open an issue in the GitHub repository.
+When adding new features or making changes:
+1. Update relevant documentation files
+2. Update this index if adding new sections
+3. Keep status reports current
+4. Document breaking changes clearly
 
 ---
 
-**Last Updated:** September 2025
-**Version:** 1.0.0
-**Status:** Production Ready ✅
+**Last Updated:** November 2025

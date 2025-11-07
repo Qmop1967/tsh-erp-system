@@ -78,21 +78,21 @@ GRANT ALL ON SCHEMA public TO tsh_admin;
 exit
 ```
 
-### 4. Import Supabase Data (10 min)
+### 4. Import Self-Hosted PostgreSQL Data (10 min)
 ```bash
-# On local Mac - Export from Supabase
-export PGPASSWORD='Zcbbm.97531tsh'
-pg_dump -h aws-1-eu-north-1.pooler.supabase.com -p 5432 \
-  -U postgres.trjjglxhteqnzmyakxhe -d postgres \
+# On local Mac - Export from Self-Hosted PostgreSQL
+export PGPASSWORD='TSH@2025Secure!Production'
+pg_dump -h localhost -p 5432 \
+  -U tsh_app_user -d tsh_erp \
   --clean --if-exists --no-owner --no-privileges \
-  -f supabase_backup.sql
+  -f local PostgreSQL_backup.sql
 
 # Upload to VPS
-scp supabase_backup.sql deploy@YOUR_IP:/home/deploy/
+scp local PostgreSQL_backup.sql deploy@YOUR_IP:/home/deploy/
 
 # On VPS - Import
 export PGPASSWORD='YOUR_STRONG_PASSWORD'
-psql -h localhost -U tsh_admin -d tsh_erp -f ~/supabase_backup.sql
+psql -h localhost -U tsh_admin -d tsh_erp -f ~/local PostgreSQL_backup.sql
 ```
 
 ### 5. Deploy TSH ERP (15 min)

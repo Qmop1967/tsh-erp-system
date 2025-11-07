@@ -293,6 +293,167 @@ class PermissionService:
         
         return query.order_by(AuditLog.timestamp.desc()).limit(limit).all()
 
+    # ========================================================================
+    # Role & Permission Management CRUD (Added for Phase 5 P3 Batch 3)
+    # ========================================================================
+
+    def get_all_permissions(self) -> List[Permission]:
+        """Get all permissions"""
+        return self.db.query(Permission).all()
+
+    def get_all_roles_with_permissions(self) -> List[Dict[str, Any]]:
+        """Get all roles with their permissions"""
+        roles = self.db.query(Role).all()
+
+        result = []
+        for role in roles:
+            role_permissions = self.db.query(Permission).join(
+                RolePermission, Permission.id == RolePermission.permission_id
+            ).filter(RolePermission.role_id == role.id).all()
+
+            result.append({
+                "id": role.id,
+                "name": role.name,
+                "description": role.description or "",
+                "is_active": role.is_active if role.is_active is not None else True,
+                "permissions": role_permissions
+            })
+
+        return result
+
+    def create_role(self, name: str, description: Optional[str],
+                   permission_ids: List[int], is_active: bool = True) -> Dict[str, Any]:
+        """Create a new role with permissions"""
+        from app.exceptions import DuplicateEntityError
+
+        # Check if role name already exists
+        existing_role = self.db.query(Role).filter(Role.name == name).first()
+        if existing_role:
+            raise DuplicateEntityError(
+                "Role", "name", name,
+                "Role name already exists",
+                "اسم الدور موجود بالفعل"
+            )
+
+        # Create the role
+        new_role = Role(
+            name=name,
+            description=description,
+            is_active=is_active
+        )
+
+        self.db.add(new_role)
+        self.db.commit()
+        self.db.refresh(new_role)
+
+        # Add permissions to the role
+        for permission_id in permission_ids:
+            permission = self.db.query(Permission).filter(
+                Permission.id == permission_id
+            ).first()
+            if permission:
+                role_permission = RolePermission(
+                    role_id=new_role.id,
+                    permission_id=permission_id
+                )
+                self.db.add(role_permission)
+
+        self.db.commit()
+
+        # Return role with permissions
+        role_permissions = self.db.query(Permission).join(
+            RolePermission, Permission.id == RolePermission.permission_id
+        ).filter(RolePermission.role_id == new_role.id).all()
+
+        return {
+            "id": new_role.id,
+            "name": new_role.name,
+            "description": new_role.description,
+            "is_active": new_role.is_active,
+            "permissions": role_permissions
+        }
+
+    def update_role(self, role_id: int, name: str, description: Optional[str],
+                   permission_ids: List[int], is_active: bool) -> Dict[str, Any]:
+        """Update role and its permissions"""
+        from app.exceptions import EntityNotFoundError
+
+        # Get the role
+        role = self.db.query(Role).filter(Role.id == role_id).first()
+        if not role:
+            raise EntityNotFoundError("Role", role_id)
+
+        # Update role fields
+        role.name = name
+        role.description = description
+        role.is_active = is_active
+
+        # Remove existing permissions
+        self.db.query(RolePermission).filter(
+            RolePermission.role_id == role_id
+        ).delete()
+
+        # Add new permissions
+        for permission_id in permission_ids:
+            permission = self.db.query(Permission).filter(
+                Permission.id == permission_id
+            ).first()
+            if permission:
+                role_permission = RolePermission(
+                    role_id=role_id,
+                    permission_id=permission_id
+                )
+                self.db.add(role_permission)
+
+        self.db.commit()
+
+        # Return updated role with permissions
+        role_permissions = self.db.query(Permission).join(
+            RolePermission, Permission.id == RolePermission.permission_id
+        ).filter(RolePermission.role_id == role_id).all()
+
+        return {
+            "id": role.id,
+            "name": role.name,
+            "description": role.description,
+            "is_active": role.is_active,
+            "permissions": role_permissions
+        }
+
+    def delete_role(self, role_id: int) -> bool:
+        """Delete a role (only if no users are assigned to it)"""
+        from app.exceptions import EntityNotFoundError, ValidationError
+
+        # Check if role exists
+        role = self.db.query(Role).filter(Role.id == role_id).first()
+        if not role:
+            raise EntityNotFoundError("Role", role_id)
+
+        # Check if any users have this role
+        users_with_role = self.db.query(User).filter(User.role_id == role_id).count()
+        if users_with_role > 0:
+            raise ValidationError(
+                f"Cannot delete role. {users_with_role} users are assigned to this role.",
+                f"لا يمكن حذف الدور. {users_with_role} مستخدم مرتبط بهذا الدور."
+            )
+
+        # Remove role permissions
+        self.db.query(RolePermission).filter(
+            RolePermission.role_id == role_id
+        ).delete()
+
+        # Delete the role
+        self.db.delete(role)
+        self.db.commit()
+
+        return True
+
+    def get_permission_categories(self) -> List[str]:
+        """Get all permission categories"""
+        categories = self.db.query(Permission.category).distinct().all()
+        return [cat[0] for cat in categories if cat[0]]
+
+
 # Permission decorator for FastAPI endpoints
 from functools import wraps
 from fastapi import HTTPException, Depends, Request
@@ -398,3 +559,22 @@ def simple_require_permission(permission_name: str):
             return await func(*args, **kwargs)
         return wrapper
     return decorator
+
+
+# ============================================================================
+# Dependency for FastAPI (Added for Phase 5 P3 Batch 3)
+# ============================================================================
+
+def get_permission_service(db: Session = Depends(get_db)) -> PermissionService:
+    """
+    Dependency to get PermissionService instance.
+
+    Usage in routers:
+        @router.get("/permissions")
+        def get_permissions(
+            service: PermissionService = Depends(get_permission_service)
+        ):
+            permissions = service.get_all_permissions()
+            return permissions
+    """
+    return PermissionService(db)

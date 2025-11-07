@@ -13,7 +13,7 @@ import json
 from app.db.database import get_db
 from app.services.chatgpt_service import get_chatgpt_service, ChatMessage
 from app.models import User
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/chatgpt", tags=["ChatGPT"])
 

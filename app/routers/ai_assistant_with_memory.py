@@ -9,7 +9,7 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel
 
 from app.db.database import get_db
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from app.services.ai_service_with_memory import TSHAIServiceWithMemory
 
 router = APIRouter(prefix="/ai", tags=["ai-assistant"])

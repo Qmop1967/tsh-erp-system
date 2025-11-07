@@ -8,7 +8,7 @@ from app.schemas.customer import (
     SupplierCreate, SupplierUpdate, Supplier
 )
 from app.services.customer_service import CustomerService, SupplierService
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.services.permission_service import simple_require_permission
 

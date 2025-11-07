@@ -15,7 +15,7 @@ from app.schemas.money_transfer import (
     MoneyTransferSummary, WeeklyCommissionReport, DashboardStats,
     FraudAlert, TransferPlatformConfig
 )
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 from app.models.user import User
 
 router = APIRouter(prefix="/api/money-transfers", tags=["Money Transfers - FRAUD PREVENTION"])

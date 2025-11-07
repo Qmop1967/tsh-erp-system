@@ -29,6 +29,9 @@ from app.models.user import User
 from app.models.security import UserSession, SecurityEvent
 from jose import jwt
 
+# Import centralized auth dependencies
+from app.dependencies.auth import get_user_permissions, get_current_user
+
 # Import structured logging
 from app.utils.logging_config import get_logger, log_authentication, log_security_event
 
@@ -37,60 +40,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication - Enhanced Security"])
 security = HTTPBearer()
 
-
-def get_user_permissions(user: User) -> list:
-    """Get permissions based on user role"""
-    if not user.role:
-        return []
-
-    role_name = user.role.name.lower()
-
-    # Normalize role names
-    if 'sales' in role_name or 'salesperson' in role_name:
-        role_name = 'salesperson'
-
-    # Define permissions for each role
-    permissions = {
-        'admin': [
-            'admin', 'dashboard.view', 'users.view', 'users.create', 'users.update', 'users.delete',
-            'hr.view', 'branches.view', 'warehouses.view', 'items.view', 'products.view',
-            'inventory.view', 'customers.view', 'vendors.view', 'sales.view', 'sales.create',
-            'purchase.view', 'accounting.view', 'pos.view', 'cashflow.view', 'migration.view',
-            'reports.view', 'settings.view', 'security.view', 'mfa.setup', 'sessions.manage'
-        ],
-        'manager': [
-            'dashboard.view', 'users.view', 'hr.view', 'branches.view', 'warehouses.view',
-            'items.view', 'products.view', 'inventory.view', 'customers.view', 'vendors.view',
-            'sales.view', 'sales.create', 'purchase.view', 'accounting.view', 'pos.view',
-            'cashflow.view', 'reports.view'
-        ],
-        'salesperson': [
-            'dashboard.view', 'customers.view', 'customers.create', 'customers.update',
-            'sales.view', 'sales.create', 'sales.update', 'products.view', 'inventory.view',
-            'pos.view', 'cashflow.view', 'reports.view'
-        ],
-        'inventory': [
-            'dashboard.view', 'items.view', 'items.create', 'items.update',
-            'products.view', 'inventory.view', 'inventory.create', 'inventory.update',
-            'warehouses.view'
-        ],
-        'accountant': [
-            'dashboard.view', 'accounting.view', 'accounting.create', 'accounting.update',
-            'cashflow.view', 'reports.view', 'sales.view', 'purchase.view'
-        ],
-        'cashier': [
-            'dashboard.view', 'pos.view', 'pos.create', 'sales.view', 'sales.create',
-            'customers.view', 'products.view'
-        ],
-        'hr': [
-            'dashboard.view', 'hr.view', 'hr.create', 'hr.update', 'users.view', 'reports.view'
-        ],
-        'viewer': [
-            'dashboard.view', 'reports.view'
-        ]
-    }
-
-    return permissions.get(role_name, ['dashboard.view'])
+# Note: get_user_permissions is now imported from app.dependencies.auth (centralized)
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -710,39 +660,8 @@ async def get_audit_log(
     }
 
 
-# Dependency to get current user (enhanced with token blacklist check)
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-) -> User:
-    """
-    Enhanced dependency to get current authenticated user with security checks
-    """
-    token = credentials.credentials
+# Note: get_current_user is now imported from app.dependencies.auth (centralized)
+# This ensures consistent authentication logic across all routers
 
-    # Check if token is blacklisted
-    if TokenBlacklistService.is_token_blacklisted(db, token):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked. Please login again."
-        )
-
-    user = AuthService.get_current_user(db, token)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is deactivated"
-        )
-
-    return user
-
-
-# Keep backward compatibility
+# Keep backward compatibility alias
 get_current_user_dependency = get_current_user

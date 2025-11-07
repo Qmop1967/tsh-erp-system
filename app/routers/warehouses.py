@@ -10,7 +10,7 @@ from app.db.database import get_db
 from app.models.warehouse import Warehouse
 from app.models.user import User
 from app.schemas.warehouse import WarehouseCreate, WarehouseUpdate, Warehouse as WarehouseSchema
-from app.routers.auth import get_current_user
+from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/warehouses", tags=["warehouses"])
 

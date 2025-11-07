@@ -295,4 +295,27 @@ class MoneyTransferService:
         print(f"   Amount: ${transfer.amount_usd:,.2f}")
         print(f"   Reason: {transfer.fraud_alert_reason}")
         print(f"   Time: {transfer.created_at}")
-        print("   ⚠️  IMMEDIATE ATTENTION REQUIRED ⚠️") 
+        print("   ⚠️  IMMEDIATE ATTENTION REQUIRED ⚠️")
+
+
+# ============================================================================
+# Dependency for FastAPI
+# ============================================================================
+
+from app.db.database import get_db
+from fastapi import Depends
+
+
+def get_money_transfer_service(db: Session = Depends(get_db)) -> MoneyTransferService:
+    """
+    Dependency to get MoneyTransferService instance.
+
+    Usage in routers:
+        @router.post("/transfers")
+        def create_transfer(
+            service: MoneyTransferService = Depends(get_money_transfer_service)
+        ):
+            transfer = service.create_transfer(...)
+            return transfer
+    """
+    return MoneyTransferService(db) 

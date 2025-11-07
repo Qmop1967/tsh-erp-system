@@ -1,0 +1,15 @@
+# Copy the contents of this file into your ~/.ssh/config (create if missing)
+# Then replace placeholders as needed or run scripts/setup_local_ssh_config.sh
+
+Host tsh-vps
+    HostName 167.71.39.50
+    User root
+    Port 22
+    IdentitiesOnly yes
+    IdentityFile ~/.ssh/tsh_vps
+    StrictHostKeyChecking accept-new
+    ServerAliveInterval 30
+    ServerAliveCountMax 4
+
+
+
