@@ -1439,12 +1439,874 @@ ssh root@167.71.39.50 "docker exec tsh_postgres psql -U postgres -d tsh_erp -c '
 
 ---
 
+---
+
+## Senior Engineering Standards & Best Practices
+
+### 1. Token Management & Authentication Strategy
+
+**Philosophy**: Proactive token management prevents service disruptions
+
+#### 1.1 Automatic Token Refresh System
+
+**Implementation**: `app/tds/integrations/zoho/auth.py`
+
+```python
+class ZohoAuthManager:
+    """
+    Handles Zoho OAuth 2.0 with automatic token refresh
+
+    Features:
+    - Auto-refresh 5 minutes before expiration
+    - Background refresh task
+    - Thread-safe token access
+    - Retry logic with exponential backoff
+    """
+
+    def __init__(
+        self,
+        credentials: ZohoCredentials,
+        auto_refresh: bool = True,
+        refresh_buffer_minutes: int = 5
+    ):
+        self.credentials = credentials
+        self.auto_refresh = auto_refresh
+        self.refresh_buffer = timedelta(minutes=refresh_buffer_minutes)
+        self._access_token = None
+        self._token_expires_at = None
+        self._refresh_task = None
+        self._lock = asyncio.Lock()
+
+    async def start(self):
+        """Start auto-refresh background task"""
+        if self.auto_refresh:
+            self._refresh_task = asyncio.create_task(
+                self._auto_refresh_loop()
+            )
+
+    async def _auto_refresh_loop(self):
+        """Background task to refresh token before expiration"""
+        while True:
+            try:
+                # Check if token needs refresh
+                if self._needs_refresh():
+                    await self.refresh_access_token()
+
+                # Check every minute
+                await asyncio.sleep(60)
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Auto-refresh error: {e}")
+                await asyncio.sleep(300)  # Wait 5 min on error
+```
+
+**Token Refresh Rules:**
+
+1. **Always refresh 5 minutes before expiration**
+2. **Retry up to 3 times with exponential backoff**
+3. **Log all refresh attempts and failures**
+4. **Never expose tokens in logs**
+5. **Use environment variables, never hardcode**
+
+#### 1.2 Rate Limiting Strategy
+
+**Implementation**: `app/tds/integrations/zoho/utils/rate_limiter.py`
+
+```python
+class RateLimiter:
+    """
+    Token bucket rate limiter for Zoho API
+
+    Limits:
+    - Books API: 100 requests/minute
+    - Inventory API: 25 requests/minute
+    """
+
+    def __init__(self, requests_per_minute: int = 100):
+        self.rate = requests_per_minute
+        self.tokens = requests_per_minute
+        self.last_refill = time.time()
+        self.lock = asyncio.Lock()
+
+    async def acquire(self):
+        """Wait for available token"""
+        async with self.lock:
+            # Refill tokens based on time elapsed
+            now = time.time()
+            elapsed = now - self.last_refill
+            refill_amount = elapsed * (self.rate / 60.0)
+
+            self.tokens = min(
+                self.rate,
+                self.tokens + refill_amount
+            )
+            self.last_refill = now
+
+            # Wait if no tokens available
+            if self.tokens < 1:
+                wait_time = (1 - self.tokens) / (self.rate / 60.0)
+                await asyncio.sleep(wait_time)
+                self.tokens = 1
+
+            self.tokens -= 1
+```
+
+**Rate Limit Best Practices:**
+
+- ✅ Never exceed 90% of rate limit (safety buffer)
+- ✅ Implement exponential backoff on 429 errors
+- ✅ Track API usage per endpoint
+- ✅ Prioritize critical operations
+- ✅ Queue non-urgent requests
+
+#### 1.3 Token Validation Schedule
+
+**Daily**: Verify token validity
+```bash
+# Cron job: daily_token_check.sh
+#!/bin/bash
+# Run at 2 AM daily
+0 2 * * * /scripts/daily_token_check.sh
+
+# Script content:
+curl -X POST https://erp.tsh.sale/api/zoho/test-credentials \
+  | jq '.status'
+
+# If failed, send alert and refresh
+```
+
+**Monitoring**: Token health dashboard
+```sql
+-- Track token refresh history
+CREATE TABLE zoho_token_refresh_log (
+    id SERIAL PRIMARY KEY,
+    refresh_type VARCHAR(20), -- 'auto' or 'manual'
+    success BOOLEAN,
+    error_message TEXT,
+    token_expires_at TIMESTAMP,
+    refreshed_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Query recent refresh activity
+SELECT * FROM zoho_token_refresh_log
+ORDER BY refreshed_at DESC
+LIMIT 10;
+```
+
+---
+
+### 2. Code Quality & Consolidation Standards
+
+**Philosophy**: Clean, DRY (Don't Repeat Yourself), maintainable code
+
+#### 2.1 Code Duplication Detection
+
+**Before any new code**, check for existing implementations:
+
+```bash
+#!/bin/bash
+# check_duplication.sh
+
+# Search for similar function names
+grep -r "def sync_products" app/
+grep -r "class ProductProcessor" app/
+grep -r "async def fetch_zoho" app/
+
+# Find similar patterns
+rg "async def.*zoho.*fetch" app/
+rg "class.*Sync.*Service" app/
+```
+
+**Consolidation Checklist:**
+
+- [ ] Check `app/tds/` for existing TDS implementations
+- [ ] Search for similar function names
+- [ ] Review `app/services/` for legacy code
+- [ ] Check `app/routers/` for duplicate endpoints
+- [ ] Verify no redundant database models
+
+#### 2.2 File Organization Rules
+
+**TDS Core Structure** (Primary - Use This):
+```
+app/tds/
+├── core/
+│   ├── sync_engine.py       # Main sync orchestrator
+│   └── events.py            # Event definitions
+├── integrations/
+│   └── zoho/
+│       ├── client.py        # Unified API client
+│       ├── auth.py          # Token management
+│       ├── sync.py          # Sync operations
+│       ├── webhooks.py      # Webhook handling
+│       ├── stock_sync.py    # Stock sync
+│       └── processors/      # Data transformers
+│           ├── products.py
+│           ├── customers.py
+│           └── invoices.py
+└── models/
+    ├── sync_run.py
+    └── sync_queue.py
+```
+
+**Legacy Structure** (Deprecated - Remove/Migrate):
+```
+app/services/
+├── zoho_service.py         # ❌ DEPRECATED → Use tds/integrations/zoho/
+├── zoho_sync.py            # ❌ DEPRECATED → Use tds/integrations/zoho/sync.py
+└── zoho_processor.py       # ❌ DEPRECATED → Use tds/processors/
+```
+
+**Migration Strategy:**
+
+1. **Identify** duplicate functionality
+2. **Consolidate** into TDS structure
+3. **Update** all imports
+4. **Test** thoroughly
+5. **Delete** old files
+6. **Document** changes
+
+#### 2.3 Code Review Checklist
+
+**Before every commit:**
+
+```markdown
+## Code Quality Checklist
+
+### Architecture
+- [ ] Code follows TDS architecture
+- [ ] No duplicate functionality
+- [ ] Functions are in correct modules
+- [ ] Proper separation of concerns
+
+### Documentation
+- [ ] Docstrings for all functions
+- [ ] Type hints for parameters
+- [ ] Comments for complex logic
+- [ ] README updated if needed
+
+### Testing
+- [ ] Unit tests written
+- [ ] Integration tests pass
+- [ ] Manual testing completed
+- [ ] Edge cases covered
+
+### Security
+- [ ] No hardcoded secrets
+- [ ] Input validation present
+- [ ] SQL injection prevented
+- [ ] XSS protection in place
+
+### Performance
+- [ ] No N+1 queries
+- [ ] Proper indexing used
+- [ ] Batch operations where possible
+- [ ] Async operations utilized
+
+### Error Handling
+- [ ] Try-except blocks present
+- [ ] Errors logged properly
+- [ ] User-friendly error messages
+- [ ] Retry logic implemented
+```
+
+---
+
+### 3. Project Health & Size Optimization
+
+**Philosophy**: Keep codebase lean, remove technical debt
+
+#### 3.1 Codebase Analysis Workflow
+
+**After every task completion:**
+
+```bash
+#!/bin/bash
+# analyze_project.sh
+
+echo "📊 TSH ERP Project Health Analysis"
+echo "===================================="
+
+# 1. Count lines of code by type
+echo -e "\n📝 Lines of Code:"
+find app/ -name "*.py" | xargs wc -l | tail -1
+
+# 2. Find large files (> 500 lines)
+echo -e "\n📦 Large Files (>500 lines):"
+find app/ -name "*.py" -exec wc -l {} + | awk '$1 > 500' | sort -rn
+
+# 3. Find duplicate code
+echo -e "\n🔍 Potential Duplicates:"
+fdupes -r app/ -S
+
+# 4. Find unused imports
+echo -e "\n🗑️  Unused Imports:"
+autoflake --check --recursive app/
+
+# 5. Find dead code
+echo -e "\n💀 Dead Code:"
+vulture app/ --min-confidence 80
+
+# 6. Count TODO/FIXME
+echo -e "\n📌 TODOs and FIXMEs:"
+grep -r "TODO\|FIXME" app/ | wc -l
+
+# 7. Security vulnerabilities
+echo -e "\n🔐 Security Check:"
+bandit -r app/ -ll
+
+# 8. Dependencies audit
+echo -e "\n📦 Dependencies:"
+pip list --outdated
+```
+
+**Run after every major feature**:
+```bash
+./scripts/analyze_project.sh > reports/health_$(date +%Y%m%d).txt
+```
+
+#### 3.2 Files to Remove/Archive
+
+**Criteria for Removal:**
+
+1. **Archived/Old Files**:
+   ```bash
+   # Check for archived directories
+   find . -type d -name "*archive*" -o -name "*old*" -o -name "*backup*"
+
+   # Move to archive directory (not tracked by git)
+   mkdir -p .archive/$(date +%Y%m%d)
+   mv app/services/old_zoho_* .archive/$(date +%Y%m%d)/
+   ```
+
+2. **Unused Scripts**:
+   ```bash
+   # Find scripts not executed in last 30 days
+   find scripts/ -type f -name "*.py" -mtime +30
+
+   # Verify with git log
+   git log --since="30 days ago" --name-only -- scripts/
+   ```
+
+3. **Test Fixtures** (if not needed):
+   ```bash
+   # Large test data files
+   find tests/ -name "*.json" -size +1M
+   find tests/ -name "*.csv" -size +1M
+   ```
+
+4. **Temporary Files**:
+   ```bash
+   # Python cache
+   find . -type d -name "__pycache__" -exec rm -rf {} +
+   find . -name "*.pyc" -delete
+   find . -name "*.pyo" -delete
+
+   # OS files
+   find . -name ".DS_Store" -delete
+   find . -name "Thumbs.db" -delete
+   ```
+
+**Monthly Cleanup Schedule:**
+
+```bash
+#!/bin/bash
+# monthly_cleanup.sh
+
+# Run on 1st of every month
+echo "🧹 Monthly Project Cleanup"
+
+# 1. Remove Python cache
+find . -type d -name "__pycache__" -exec rm -rf {} +
+
+# 2. Remove old logs
+find logs/ -name "*.log" -mtime +30 -delete
+
+# 3. Clean Docker
+docker system prune -a --volumes -f
+
+# 4. Archive old migrations (if needed)
+# ... archive logic ...
+
+# 5. Update .gitignore for ignored patterns
+```
+
+#### 3.3 Project Size Targets
+
+**Optimal Sizes:**
+
+| Component | Target Size | Max Size | Action if Exceeded |
+|-----------|------------|----------|-------------------|
+| Single File | < 300 lines | 500 lines | Split into modules |
+| Function | < 50 lines | 100 lines | Extract subfunctions |
+| Class | < 300 lines | 500 lines | Split responsibilities |
+| Module | < 10 files | 20 files | Create subpackages |
+| Dependencies | < 50 packages | 75 packages | Remove unused |
+
+**Monitoring Script:**
+
+```python
+# scripts/size_monitor.py
+import os
+from pathlib import Path
+
+def analyze_file_sizes(root_dir="app/"):
+    """Analyze and report file sizes"""
+    large_files = []
+
+    for path in Path(root_dir).rglob("*.py"):
+        lines = len(path.read_text().splitlines())
+
+        if lines > 500:
+            large_files.append((str(path), lines))
+
+    # Sort by size
+    large_files.sort(key=lambda x: x[1], reverse=True)
+
+    print("⚠️  Files exceeding 500 lines:")
+    for file, lines in large_files:
+        print(f"   {file}: {lines} lines")
+
+    return large_files
+
+if __name__ == "__main__":
+    analyze_file_sizes()
+```
+
+---
+
+### 4. Daily Data Investigation System
+
+**Philosophy**: Trust but verify - daily data consistency checks
+
+#### 4.1 Automated Daily Comparison
+
+**Implementation**: `scripts/daily_data_investigation.py`
+
+```python
+#!/usr/bin/env python3
+"""
+Daily Data Investigation System
+================================
+
+Compares data counts between Zoho and TSH ERP
+Alerts on discrepancies
+
+Run daily at 3 AM via cron:
+0 3 * * * /usr/bin/python3 /path/to/daily_data_investigation.py
+"""
+
+import asyncio
+import os
+from datetime import datetime
+from typing import Dict, Any
+
+from app.tds.integrations.zoho import UnifiedZohoClient, ZohoAPI
+from app.db.database import get_async_db
+
+class DataInvestigator:
+    """Daily data consistency checker"""
+
+    async def investigate(self) -> Dict[str, Any]:
+        """Run full investigation"""
+
+        report = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "status": "healthy",
+            "discrepancies": [],
+            "entities": {}
+        }
+
+        # Check each entity type
+        entities_to_check = [
+            ("products", "items", "products"),
+            ("customers", "contacts", "customers"),
+            ("invoices", "invoices", "invoices"),
+            ("orders", "salesorders", "sales_orders")
+        ]
+
+        for entity_name, zoho_endpoint, db_table in entities_to_check:
+            result = await self._compare_entity(
+                entity_name, zoho_endpoint, db_table
+            )
+            report["entities"][entity_name] = result
+
+            if result["discrepancy"]:
+                report["discrepancies"].append(result)
+                report["status"] = "warning"
+
+        # Save report
+        await self._save_report(report)
+
+        # Send alert if discrepancies found
+        if report["discrepancies"]:
+            await self._send_alert(report)
+
+        return report
+
+    async def _compare_entity(
+        self,
+        entity_name: str,
+        zoho_endpoint: str,
+        db_table: str
+    ) -> Dict[str, Any]:
+        """Compare counts for single entity type"""
+
+        # Get Zoho count
+        zoho_count = await self._get_zoho_count(zoho_endpoint)
+
+        # Get database count
+        db_count = await self._get_db_count(db_table)
+
+        # Calculate discrepancy
+        difference = abs(zoho_count - db_count)
+        percentage = (difference / zoho_count * 100) if zoho_count > 0 else 0
+
+        result = {
+            "entity": entity_name,
+            "zoho_count": zoho_count,
+            "db_count": db_count,
+            "difference": difference,
+            "discrepancy_percentage": round(percentage, 2),
+            "discrepancy": percentage > 1.0,  # Alert if > 1% difference
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        return result
+
+    async def _get_zoho_count(self, endpoint: str) -> int:
+        """Get entity count from Zoho"""
+        # Initialize Zoho client
+        zoho_client = await self._get_zoho_client()
+
+        response = await zoho_client.get(
+            api_type=ZohoAPI.BOOKS,
+            endpoint=endpoint,
+            params={"per_page": 1, "page": 1}
+        )
+
+        page_context = response.get('page_context', {})
+        return page_context.get('total', 0)
+
+    async def _get_db_count(self, table: str) -> int:
+        """Get entity count from database"""
+        from sqlalchemy import text
+
+        async for db in get_async_db():
+            try:
+                query = text(f"SELECT COUNT(*) FROM {table}")
+                result = await db.execute(query)
+                count = result.scalar()
+                return count
+            finally:
+                break
+
+        return 0
+
+    async def _save_report(self, report: Dict[str, Any]):
+        """Save investigation report to database"""
+        from sqlalchemy import text
+
+        async for db in get_async_db():
+            try:
+                query = text("""
+                    INSERT INTO data_investigation_reports
+                    (report_date, status, report_data, created_at)
+                    VALUES (CURRENT_DATE, :status, :report_data, NOW())
+                """)
+
+                await db.execute(query, {
+                    "status": report["status"],
+                    "report_data": json.dumps(report)
+                })
+
+                await db.commit()
+            finally:
+                break
+
+    async def _send_alert(self, report: Dict[str, Any]):
+        """Send alert if discrepancies found"""
+        # Email alert
+        subject = f"⚠️ TSH ERP Data Discrepancy Alert - {datetime.utcnow().date()}"
+
+        body = f"""
+        Data Investigation Report
+        =========================
+
+        Status: {report['status']}
+        Timestamp: {report['timestamp']}
+
+        Discrepancies Found:
+        """
+
+        for disc in report['discrepancies']:
+            body += f"""
+
+            Entity: {disc['entity']}
+            - Zoho Count: {disc['zoho_count']}
+            - Database Count: {disc['db_count']}
+            - Difference: {disc['difference']} ({disc['discrepancy_percentage']}%)
+            """
+
+        # Send email (implement email sending logic)
+        # await send_email(subject, body)
+
+        # Log alert
+        print(f"🚨 ALERT: {subject}")
+        print(body)
+
+# Run investigation
+async def main():
+    investigator = DataInvestigator()
+    report = await investigator.investigate()
+
+    print("=" * 70)
+    print("📊 Daily Data Investigation Report")
+    print("=" * 70)
+    print(json.dumps(report, indent=2))
+    print("=" * 70)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Database Schema for Reports:**
+
+```sql
+-- Create investigation reports table
+CREATE TABLE IF NOT EXISTS data_investigation_reports (
+    id SERIAL PRIMARY KEY,
+    report_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL, -- 'healthy', 'warning', 'critical'
+    report_data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Index for date queries
+CREATE INDEX idx_investigation_date ON data_investigation_reports(report_date DESC);
+
+-- View recent investigations
+CREATE VIEW recent_investigations AS
+SELECT
+    report_date,
+    status,
+    (report_data->>'timestamp')::TIMESTAMP as investigated_at,
+    jsonb_array_length(report_data->'discrepancies') as discrepancy_count
+FROM data_investigation_reports
+ORDER BY report_date DESC
+LIMIT 30;
+```
+
+#### 4.2 Cron Job Setup
+
+```bash
+# Add to VPS crontab
+ssh root@167.71.39.50
+
+# Edit crontab
+crontab -e
+
+# Add daily investigation at 3 AM
+0 3 * * * cd /home/deploy/TSH_ERP_Ecosystem && /usr/bin/python3 scripts/daily_data_investigation.py >> /var/log/tsh_data_investigation.log 2>&1
+```
+
+#### 4.3 Investigation Dashboard
+
+**Endpoint**: `GET /api/admin/data-investigation`
+
+```python
+@router.get("/data-investigation")
+async def get_investigation_dashboard(
+    days: int = 7,
+    db: Session = Depends(get_db)
+):
+    """Get recent investigation reports"""
+
+    from sqlalchemy import text
+
+    query = text("""
+        SELECT
+            report_date,
+            status,
+            report_data
+        FROM data_investigation_reports
+        WHERE report_date >= CURRENT_DATE - :days
+        ORDER BY report_date DESC
+    """)
+
+    result = db.execute(query, {"days": days})
+    reports = result.fetchall()
+
+    return {
+        "total_reports": len(reports),
+        "healthy_count": sum(1 for r in reports if r[1] == 'healthy'),
+        "warning_count": sum(1 for r in reports if r[1] == 'warning'),
+        "reports": [
+            {
+                "date": str(r[0]),
+                "status": r[1],
+                "data": r[2]
+            }
+            for r in reports
+        ]
+    }
+```
+
+---
+
+### 5. Consumer App Product Filtering
+
+**Philosophy**: Only show products with available stock
+
+#### 5.1 API Filtering Rules
+
+**Already Implemented**: `app/routers/consumer_api.py:119`
+
+```python
+# WHERE clause filters for products with stock
+where_conditions = [
+    "p.is_active = true",           # Only active products
+    "p.actual_available_stock > 0"  # Only products with stock
+]
+```
+
+**Additional Filters (Optional):**
+
+```python
+# Add to where_conditions based on requirements
+where_conditions.extend([
+    "p.price > 0",                  # Only products with price
+    "p.image_url IS NOT NULL",      # Only products with images (optional)
+    "p.category IS NOT NULL"        # Only categorized products (optional)
+])
+```
+
+#### 5.2 Stock Threshold Configuration
+
+**Environment Variable**: `.env`
+```bash
+# Minimum stock to display
+CONSUMER_MIN_STOCK=1
+
+# Low stock warning threshold
+CONSUMER_LOW_STOCK_THRESHOLD=10
+```
+
+**Implementation**:
+```python
+min_stock = int(os.getenv('CONSUMER_MIN_STOCK', 1))
+where_conditions.append(f"p.actual_available_stock >= {min_stock}")
+```
+
+#### 5.3 Real-time Stock Updates
+
+**Webhook Integration**: When stock changes in Zoho, update immediately
+
+```python
+@router.post("/webhooks/stock-update")
+async def handle_stock_webhook(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Handle real-time stock updates from Zoho"""
+
+    item_id = payload.get('item_id')
+    new_stock = payload.get('actual_available_stock')
+
+    # Update database
+    db.execute(
+        "UPDATE products SET actual_available_stock = :stock "
+        "WHERE zoho_item_id = :item_id",
+        {"stock": new_stock, "item_id": item_id}
+    )
+    db.commit()
+
+    # Clear cache
+    await redis.delete(f"product:{item_id}")
+
+    return {"status": "success"}
+```
+
+---
+
+### 6. TDS Core Responsibilities
+
+**Philosophy**: TDS = Single Source of Truth for all sync operations
+
+#### 6.1 TDS Architecture Mandate
+
+**ALL Zoho operations MUST go through TDS:**
+
+```
+❌ WRONG: Direct Zoho API calls from routers
+app/routers/products.py → zoho_client.get("items")
+
+✅ CORRECT: Through TDS
+app/routers/products.py → TDS Sync Orchestrator → Zoho Client
+```
+
+#### 6.2 TDS Responsibilities
+
+**TDS Core (`app/tds/`) is responsible for:**
+
+1. **Authentication**:
+   - Token management
+   - Auto-refresh
+   - Rate limiting
+
+2. **API Communication**:
+   - All Zoho API calls
+   - Request/response handling
+   - Error handling and retries
+
+3. **Data Transformation**:
+   - Zoho format → TSH format
+   - Validation
+   - Enrichment
+
+4. **Synchronization**:
+   - Webhooks processing
+   - Bulk sync operations
+   - Queue management
+
+5. **Event Publishing**:
+   - Sync events
+   - Status updates
+   - Error notifications
+
+**Other modules MUST NOT:**
+- ❌ Make direct Zoho API calls
+- ❌ Handle OAuth tokens
+- ❌ Transform Zoho data
+- ❌ Manage sync queue
+
+**Migration Plan for Legacy Code:**
+
+```bash
+# Find legacy direct Zoho calls
+grep -r "zoho_client\|ZohoService" app/routers/ app/services/
+
+# Move to TDS
+# Example:
+# OLD: app/services/product_service.py → zoho_client.get("items")
+# NEW: app/services/product_service.py → tds.sync.sync_entity(EntityType.PRODUCTS)
+```
+
+---
+
 ## Version History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0.0 | Nov 7, 2025 | Senior Engineer | Initial Tronix guide created |
-| - | - | - | - |
+| 1.1.0 | Nov 7, 2025 | Senior Engineer | Added senior engineering standards |
+|  |  |  | - Token management strategy |
+|  |  |  | - Code consolidation guidelines |
+|  |  |  | - Daily data investigation system |
+|  |  |  | - Consumer app filtering |
+|  |  |  | - TDS core responsibilities |
 
 ---
 
