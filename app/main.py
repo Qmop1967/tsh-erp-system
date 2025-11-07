@@ -186,7 +186,7 @@ from app.routers.items_refactored import router as items_router  # ✅ Phase 5 P
 from app.routers.models import router as models_router
 from app.routers.users import router as users_router
 from app.routers.invoices import router as invoices_router
-from app.routers.expenses import router as expenses_router
+from app.routers.expenses_refactored import router as expenses_router  # ✅ Phase 5 P3 Batch 1: Refactored
 from app.routers.money_transfer import router as money_transfer_router
 from app.routers.settings import router as settings_router  # TODO: Migrate to app.routers.settings module
 # New modular settings (Phase 1: System settings completed)
@@ -226,7 +226,7 @@ from app.routers.data_scope import router as data_scope_router  # Row-Level Secu
 from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
 from app.routers.backup_restore import router as backup_restore_router  # Backup & Restore System
 from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
-from app.routers.dashboard import router as dashboard_router  # Dashboard Statistics
+from app.routers.dashboard_refactored import router as dashboard_router  # ✅ Phase 5 P3 Batch 1: Refactored
 from app.routers.notifications import router as notifications_router  # Unified Notification System
 # from app.routers.product_images import router as product_images_router  # Temporarily disabled
 # ============================================================================
