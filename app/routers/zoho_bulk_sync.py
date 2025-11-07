@@ -16,7 +16,7 @@ from app.tds.integrations.zoho import (
     UnifiedZohoClient, ZohoAuthManager, ZohoSyncOrchestrator,
     ZohoCredentials, SyncConfig, SyncMode, EntityType
 )
-from app.core.event_bus import EventBus
+from app.core.events.event_bus import EventBus
 import os
 
 logger = logging.getLogger(__name__)
@@ -317,6 +317,117 @@ async def bulk_sync_customers(
 
 
 # ============================================================================
+# ITEMS WITH STOCK BULK SYNC
+# ============================================================================
+
+@router.post(
+    "/items-with-stock",
+    response_model=BulkSyncResponse,
+    tags=["Zoho Bulk Sync"],
+    summary="Bulk sync items (products) with stock levels from Zoho Books/Inventory",
+    description="""
+    Fetch all items from Zoho Books/Inventory with their current stock levels and sync to TSH ERP database.
+
+    **Features:**
+    - Syncs product data (name, SKU, prices, images)
+    - Syncs stock levels (stock on hand, available stock)
+    - Supports multi-warehouse stock tracking
+    - Real-time inventory updates
+    - Supports both active-only and all items
+    - Can filter by stock availability
+
+    **Stock Data Synced:**
+    - Stock on hand (current physical stock)
+    - Available stock (stock available for sale)
+    - Warehouse information
+    - Last modified timestamps
+
+    **Performance:**
+    - Processes 100-200 items per batch
+    - Expected duration: 5-10 minutes for 2,000+ products
+    - Automatic deduplication using zoho_item_id
+
+    **Note:** This combines product sync with inventory sync for complete stock visibility.
+    """
+)
+async def bulk_sync_items_with_stock(
+    request: BulkSyncRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Bulk sync items (products) with stock levels from Zoho using TDS unified architecture
+
+    This endpoint syncs both product information AND stock levels in a single operation.
+
+    Args:
+        request: Bulk sync request parameters
+        background_tasks: FastAPI background tasks
+        db: Database session
+
+    Returns:
+        Sync statistics and results
+    """
+    logger.info(f"📦📊 Items with Stock bulk sync requested - Incremental: {request.incremental}")
+
+    zoho_client = None
+    try:
+        # Initialize TDS services
+        zoho_client, orchestrator = await get_tds_services()
+
+        # Import stock sync service
+        from app.tds.integrations.zoho.stock_sync import UnifiedStockSyncService, StockSyncConfig
+        from app.tds.integrations.zoho import SyncMode
+
+        # Create stock sync service
+        stock_service = UnifiedStockSyncService(
+            zoho_client=zoho_client,
+            sync_orchestrator=orchestrator
+        )
+
+        # Configure stock sync
+        stock_config = StockSyncConfig(
+            batch_size=request.batch_size,
+            active_only=request.active_only,
+            with_stock_only=request.with_stock_only,
+            sync_mode=SyncMode.INCREMENTAL if request.incremental else SyncMode.FULL
+        )
+
+        # Execute sync
+        result = await stock_service.sync_all_stock(config=stock_config)
+
+        # Build response
+        stats = {
+            "total_processed": result.total_processed,
+            "successful": result.total_success,
+            "failed": result.total_failed,
+            "skipped": result.total_skipped,
+            "stock_updated": result.total_success  # All successful items had stock updated
+        }
+
+        duration_seconds = result.duration.total_seconds() if result.duration else None
+
+        return BulkSyncResponse(
+            success=(result.status == "completed"),
+            message=f"Items with stock bulk sync {result.status}",
+            stats=stats,
+            duration_seconds=duration_seconds,
+            error=result.error if result.status == "failed" else None
+        )
+
+    except Exception as e:
+        logger.error(f"Items with stock bulk sync failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Bulk sync failed: {str(e)}"
+        )
+    finally:
+        # Cleanup
+        if zoho_client:
+            await zoho_client.close_session()
+
+
+# ============================================================================
 # PRICE LISTS BULK SYNC
 # ============================================================================
 
@@ -553,6 +664,7 @@ async def get_sync_status(db: AsyncSession = Depends(get_async_db)):
         "status": "healthy",
         "available_operations": [
             "POST /api/zoho/bulk-sync/products",
+            "POST /api/zoho/bulk-sync/items-with-stock",
             "POST /api/zoho/bulk-sync/customers",
             "POST /api/zoho/bulk-sync/pricelists",
             "POST /api/zoho/bulk-sync/sync-all"
@@ -562,7 +674,9 @@ async def get_sync_status(db: AsyncSession = Depends(get_async_db)):
             "Incremental sync",
             "Batch processing",
             "Automatic deduplication",
-            "Error handling with retry"
+            "Error handling with retry",
+            "Stock level synchronization",
+            "Multi-warehouse support"
         ],
         "note": "Invoices are synced automatically via webhooks, not bulk sync"
     }
