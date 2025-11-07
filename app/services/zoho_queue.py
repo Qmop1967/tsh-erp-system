@@ -65,8 +65,8 @@ class QueueService:
         try:
             query = select(TDSSyncQueue).where(
                 TDSSyncQueue.status == EventStatus.PENDING,
-                TDSSyncQueue.retry_count < max_retry_count
-            ).order_by(TDSSyncQueue.queued_at.asc()).limit(batch_size)
+                TDSSyncQueue.attempt_count < max_retry_count
+            ).order_by(TDSSyncQueue.created_at.asc()).limit(batch_size)
 
             if entity_types:
                 query = query.where(TDSSyncQueue.entity_type.in_(entity_types))
@@ -152,15 +152,14 @@ class QueueService:
             True if successful, False otherwise
         """
         try:
-            queue_item.retry_count += 1
-            queue_item.last_error_at = datetime.utcnow()
+            queue_item.attempt_count += 1
             queue_item.error_message = error_message
 
             # Determine final status
-            if should_retry and queue_item.retry_count < 5:
+            if should_retry and queue_item.attempt_count < 5:
                 queue_item.status = EventStatus.RETRY
                 queue_item.next_retry_at = datetime.utcnow() + timedelta(
-                    minutes=2 ** queue_item.retry_count  # Exponential backoff
+                    minutes=2 ** queue_item.attempt_count  # Exponential backoff
                 )
             else:
                 queue_item.status = EventStatus.DEAD_LETTER
@@ -189,7 +188,7 @@ class QueueService:
             query = select(TDSSyncQueue).where(
                 TDSSyncQueue.status == EventStatus.RETRY,
                 TDSSyncQueue.next_retry_at <= now,
-                TDSSyncQueue.retry_count < 5
+                TDSSyncQueue.attempt_count < 5
             ).order_by(TDSSyncQueue.next_retry_at.asc()).limit(batch_size)
 
             result = await self.db.execute(query)
@@ -344,11 +343,11 @@ class QueueService:
                 logger.error(f"Queue entry not found: {queue_id}")
                 return False
 
-            # Increment retry count
-            new_retry_count = (queue_entry.retry_count or 0) + 1
+            # Increment attempt count
+            new_attempt_count = (queue_entry.attempt_count or 0) + 1
 
             # Determine if should move to dead letter queue
-            max_attempts_reached = new_retry_count >= 5
+            max_attempts_reached = new_attempt_count >= queue_entry.max_retry_attempts
             move_to_dlq = max_attempts_reached or not should_retry
 
             if move_to_dlq:
@@ -359,14 +358,14 @@ class QueueService:
                     .values(
                         status=EventStatus.DEAD_LETTER,
                         error_message=error_message,
-                        retry_count=new_retry_count,
-                        last_error_at=datetime.utcnow(),
+                        error_code=error_code,
+                        attempt_count=new_attempt_count,
                     )
                 )
                 logger.error(f"Moved to dead letter queue: {queue_id} - {error_message}")
             else:
                 # Schedule retry with exponential backoff
-                retry_delay_minutes = 2 ** new_retry_count  # 2, 4, 8, 16...
+                retry_delay_minutes = 2 ** new_attempt_count  # 2, 4, 8, 16...
                 next_retry = datetime.utcnow() + timedelta(minutes=retry_delay_minutes)
 
                 await self.db.execute(
@@ -375,14 +374,14 @@ class QueueService:
                     .values(
                         status=EventStatus.RETRY,
                         error_message=error_message,
-                        retry_count=new_retry_count,
+                        error_code=error_code,
+                        attempt_count=new_attempt_count,
                         next_retry_at=next_retry,
-                        last_error_at=datetime.utcnow(),
                     )
                 )
                 logger.warning(
                     f"Scheduled for retry: {queue_id} "
-                    f"(attempt {new_retry_count}, next retry in {retry_delay_minutes}min)"
+                    f"(attempt {new_attempt_count}, next retry in {retry_delay_minutes}min)"
                 )
 
             await self.db.commit()
@@ -484,7 +483,7 @@ class QueueService:
                     TDSSyncQueue.id == queue_item_id
                 ).values(
                     status=EventStatus.PENDING,
-                    retry_count=0,
+                    attempt_count=0,
                     error_message=None,
                     next_retry_at=None
                 )
