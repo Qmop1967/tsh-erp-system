@@ -201,7 +201,7 @@ from app.routers.ai_assistant import router as ai_assistant_router
 from app.routers.whatsapp_integration import router as whatsapp_router
 from app.routers.hr import router as hr_router
 from app.routers.gps_tracking import router as gps_router
-from app.routers.partner_salesmen_simple import router as partner_salesmen_router
+from app.routers.partner_salesmen_refactored import router as partner_salesmen_router  # ✅ Phase 5 P3 Batch 3: Refactored
 from app.routers.auth_enhanced import router as auth_router  # Enhanced auth router with MFA, rate limiting, sessions
 
 # ============================================================================
