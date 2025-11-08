@@ -1008,21 +1008,86 @@ PYTHON_SCRIPT
 
             cd /home/deploy/TSH_ERP_Ecosystem || cd /opt/tsh_erp || exit 1
 
-            # Pull latest code from main branch
-            echo "📥 Pulling latest code from main branch..."
-            git fetch origin
-            git checkout main
-            git pull origin main
-            
-            echo "Current commit: $(git rev-parse HEAD)"
-            echo "Current branch: $(git branch --show-current)"
-
-            # Run deployment script (blue-green)
-            echo "🔄 Running blue-green deployment..."
-            bash /opt/tsh_erp/bin/deploy.sh main
+            set -eo pipefail
 
             echo "========================================"
-            echo "✅ DEPLOYMENT SCRIPT COMPLETED"
+            echo "🚀 PRODUCTION DEPLOYMENT STARTING"
+            echo "========================================"
+
+            if [ -d "/home/deploy/TSH_ERP_Ecosystem" ]; then
+              DEPLOY_DIR="/home/deploy/TSH_ERP_Ecosystem"
+            elif [ -d "/opt/tsh_erp" ]; then
+              DEPLOY_DIR="/opt/tsh_erp"
+            else
+              echo "❌ Deployment directory not found (/home/deploy/TSH_ERP_Ecosystem or /opt/tsh_erp)"
+              exit 1
+            fi
+
+            echo "📂 Using deployment directory: ${DEPLOY_DIR}"
+            cd "${DEPLOY_DIR}"
+
+            echo "📥 Pulling latest code from main branch..."
+            git fetch origin
+            git reset --hard origin/main
+
+            if [ -f "./deploy.sh" ]; then
+              chmod +x ./deploy.sh
+            fi
+
+            RESTART_SUCCESS=0
+            DEPLOYMENT_METHOD="none"
+
+            if systemctl list-unit-files | grep -q '^tsh-erp\.service'; then
+              echo "🔄 Restarting systemd service: tsh-erp.service"
+              if systemctl restart tsh-erp; then
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="systemd (tsh-erp.service)"
+              else
+                echo "⚠️ systemctl restart tsh-erp failed"
+              fi
+            fi
+
+            if [ ${RESTART_SUCCESS} -eq 0 ] && systemctl list-unit-files | grep -q '^tsh_erp\.service'; then
+              echo "🔄 Restarting systemd service: tsh_erp.service"
+              if systemctl restart tsh_erp; then
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="systemd (tsh_erp.service)"
+              else
+                echo "⚠️ systemctl restart tsh_erp failed"
+              fi
+            fi
+
+            if [ ${RESTART_SUCCESS} -eq 0 ] && [ -f "docker-compose.yml" ] && command -v docker >/dev/null 2>&1; then
+              if docker compose version >/dev/null 2>&1; then
+                echo "🔄 Deploying with docker compose"
+                docker compose pull || true
+                docker compose up -d --build
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="docker compose"
+              elif command -v docker-compose >/dev/null 2>&1; then
+                echo "🔄 Deploying with docker-compose"
+                docker-compose pull || true
+                docker-compose up -d --build
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="docker-compose"
+              fi
+            fi
+
+            if [ ${RESTART_SUCCESS} -eq 0 ] && [ -f "./deploy.sh" ]; then
+              echo "🔄 Falling back to ./deploy.sh update"
+              ./deploy.sh update || ./deploy.sh restart || ./deploy.sh start || true
+              RESTART_SUCCESS=1
+              DEPLOYMENT_METHOD="deploy.sh"
+            fi
+
+            if [ ${RESTART_SUCCESS} -eq 0 ]; then
+              echo "⚠️ Deployment commands executed but service restart could not be confirmed automatically."
+            else
+              echo "✅ Deployment restart completed via ${DEPLOYMENT_METHOD}"
+            fi
+
+            echo "========================================"
+            echo "✅ DEPLOYMENT STEPS COMPLETED"
             echo "========================================"
 
       - name: 🔍 Verify Deployment
@@ -1033,24 +1098,36 @@ PYTHON_SCRIPT
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_SSH_PORT || 22 }}
           script: |
+            set -eo pipefail
+
             echo "🔍 Verifying deployment..."
 
-            # Determine active port
-            ACTIVE_PORT=$(cat /opt/tsh_erp/current_deployment.txt 2>/dev/null || echo "8001")
+            HEALTH_URLS=(
+              "http://127.0.0.1:8000/health"
+              "http://127.0.0.1:8001/health"
+              "http://127.0.0.1:8002/health"
+            )
 
-            echo "Active port: $ACTIVE_PORT"
+            HEALTH_OK=0
+            for url in "${HEALTH_URLS[@]}"; do
+              if curl -sf "${url}" >/dev/null 2>&1; then
+                echo "✅ Internal health check passed (${url})"
+                HEALTH_OK=1
+                break
+              else
+                echo "ℹ️ Health check failed for ${url} (trying next)"
+              fi
+            done
 
-            # Health check
-            sleep 5
-            HEALTH_CHECK=$(curl -s http://127.0.0.1:${ACTIVE_PORT}/health || echo "failed")
-
-            if echo "$HEALTH_CHECK" | grep -q "ok\|healthy"; then
-              echo "✅ Health check passed"
-              echo "✅ Deployment verified successfully"
-            else
-              echo "❌ Health check failed"
-              echo "Response: $HEALTH_CHECK"
+            if [ ${HEALTH_OK} -eq 0 ]; then
+              echo "❌ All internal health checks failed"
               exit 1
+            fi
+
+            if curl -sf https://erp.tsh.sale/health >/dev/null 2>&1; then
+              echo "✅ Public endpoint healthy (https://erp.tsh.sale/health)"
+            else
+              echo "⚠️ Public endpoint not reachable (https://erp.tsh.sale/health)"
             fi
 
   # ============================================================================

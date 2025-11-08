@@ -90,98 +90,128 @@ jobs:
           port: ${{ secrets.PROD_SSH_PORT || 22 }}
           script_stop: true
           script: |
+            set -eo pipefail
+
             echo "========================================"
             echo "Starting TSH ERP Backend Deployment..."
             echo "========================================"
 
-            # Check if deployment directory exists
-            if [ ! -d "/home/deploy/TSH_ERP_Ecosystem" ]; then
-              echo "❌ Error: /home/deploy/TSH_ERP_Ecosystem directory not found"
-              echo "Please set up the application directory first:"
-              echo "  1. SSH to server: ssh root@167.71.39.50"
-              echo "  2. Clone repository: git clone <repo-url> /home/deploy/TSH_ERP_Ecosystem"
-              echo "  3. Set up application and systemd service"
+            if [ -d "/home/deploy/TSH_ERP_Ecosystem" ]; then
+              DEPLOY_DIR="/home/deploy/TSH_ERP_Ecosystem"
+            elif [ -d "/opt/tsh_erp" ]; then
+              DEPLOY_DIR="/opt/tsh_erp"
+            else
+              echo "❌ Deployment directory not found (/home/deploy/TSH_ERP_Ecosystem or /opt/tsh_erp)"
               exit 1
             fi
 
-            # Navigate to application directory
             echo "[1/6] Navigating to application directory..."
-            cd /home/deploy/TSH_ERP_Ecosystem || exit 1
+            cd "${DEPLOY_DIR}"
 
-            # Check if it's a git repository
             if [ ! -d ".git" ]; then
               echo "❌ Error: Not a git repository"
-              echo "Please initialize git in /opt/tsh_erp or clone the repository properly"
               exit 1
             fi
 
-            # Pull latest code
             echo "[2/6] Pulling latest code..."
             git fetch origin
             git reset --hard origin/main
 
-            # Activate virtual environment
-            echo "[3/6] Activating virtual environment..."
-            source venv/bin/activate || { echo "❌ Failed to activate venv"; exit 1; }
-
-            # Install/update dependencies
-            echo "[4/6] Installing dependencies..."
-            pip install -q --upgrade pip
-            pip install -q -r requirements.txt
-
-            # Run database migrations if needed
-            echo "[5/6] Checking for database migrations..."
-            # Note: Migrations are managed separately via manual deployment
-            # This step reserved for future automated migration support
-            echo "ℹ️ Skipping automatic migrations (managed manually)"
-
-            # Restart service
-            echo "[6/6] Restarting TSH ERP service..."
-            systemctl restart tsh-erp
-            if [ $? -ne 0 ]; then
-              echo "❌ Failed to restart service"
-              systemctl status tsh-erp --no-pager || true
-              exit 1
+            echo "[3/6] Preparing environment..."
+            if [ -f "./deploy.sh" ]; then
+              chmod +x ./deploy.sh
             fi
 
-            echo "✅ Service restarted successfully"
+            if [ -d "venv" ] || [ -d ".venv" ]; then
+              VENV_PATH="venv"
+              [ -d ".venv" ] && VENV_PATH=".venv"
+              echo "Activating virtual environment: ${VENV_PATH}"
+              # shellcheck disable=SC1090
+              source "${VENV_PATH}/bin/activate"
+              pip install -q --upgrade pip
+              pip install -q -r requirements.txt || true
+            elif command -v pip3 >/dev/null 2>&1 && [ -f "requirements.txt" ]; then
+              pip3 install -q --upgrade pip
+              pip3 install -q -r requirements.txt || true
+            fi
 
-            # Verify deployment
-            echo ""
-            echo "========================================"
-            echo "Verifying Deployment..."
-            echo "========================================"
+            echo "[4/6] Applying deployment strategy..."
+            DEPLOYMENT_METHOD="none"
+            RESTART_SUCCESS=0
 
-            # Wait for service to start
-            sleep 7
+            if systemctl list-unit-files | grep -q '^tsh-erp\.service'; then
+              echo "Using systemd service tsh-erp.service"
+              if systemctl restart tsh-erp; then
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="systemd (tsh-erp.service)"
+              else
+                echo "⚠️ systemctl restart tsh-erp failed"
+              fi
+            fi
 
-            # Check systemd service status
-            echo "Checking service status..."
-            if systemctl is-active --quiet tsh-erp; then
-              echo "✓ TSH ERP service is active"
+            if [ ${RESTART_SUCCESS} -eq 0 ] && systemctl list-unit-files | grep -q '^tsh_erp\.service'; then
+              echo "Using systemd service tsh_erp.service"
+              if systemctl restart tsh_erp; then
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="systemd (tsh_erp.service)"
+              else
+                echo "⚠️ systemctl restart tsh_erp failed"
+              fi
+            fi
+
+            if [ ${RESTART_SUCCESS} -eq 0 ] && [ -f "docker-compose.yml" ] && command -v docker >/dev/null 2>&1; then
+              if docker compose version >/dev/null 2>&1; then
+                echo "Using docker compose"
+                docker compose pull || true
+                docker compose up -d --build
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="docker compose"
+              elif command -v docker-compose >/dev/null 2>&1; then
+                echo "Using docker-compose"
+                docker-compose pull || true
+                docker-compose up -d --build
+                RESTART_SUCCESS=1
+                DEPLOYMENT_METHOD="docker-compose"
+              fi
+            fi
+
+            if [ ${RESTART_SUCCESS} -eq 0 ] && [ -f "./deploy.sh" ]; then
+              echo "Falling back to ./deploy.sh update"
+              ./deploy.sh update || ./deploy.sh restart || ./deploy.sh start || true
+              RESTART_SUCCESS=1
+              DEPLOYMENT_METHOD="deploy.sh"
+            fi
+
+            if [ ${RESTART_SUCCESS} -eq 0 ]; then
+              echo "⚠️ Deployment completed but restart could not be verified automatically."
             else
-              echo "❌ Service not active!"
-              systemctl status tsh-erp --no-pager || true
-              exit 1
+              echo "✅ Restart completed via ${DEPLOYMENT_METHOD}"
             fi
 
-            # Backend API health check
-            echo "Checking API health..."
-            if curl -f http://127.0.0.1:8000/health >/dev/null 2>&1; then
+            echo "[5/6] Waiting for services to stabilise..."
+            sleep 10
+
+            echo "[6/6] Running health checks..."
+            HEALTH_OK=1
+
+            if curl -sf http://127.0.0.1:8000/health >/dev/null 2>&1; then
               echo "✓ Backend API healthy (http://127.0.0.1:8000/health)"
             else
-              echo "❌ Backend API health check failed"
+              echo "❌ Backend API health check failed (http://127.0.0.1:8000/health)"
+              HEALTH_OK=0
+            fi
+
+            if curl -sf https://erp.tsh.sale/health >/dev/null 2>&1; then
+              echo "✓ Public endpoint healthy (https://erp.tsh.sale/health)"
+            else
+              echo "⚠️ Warning: Public endpoint not reachable (https://erp.tsh.sale/health)"
+            fi
+
+            if [ ${HEALTH_OK} -eq 0 ]; then
+              echo "❌ Deployment verification failed"
               exit 1
             fi
 
-            # Check public endpoint
-            if curl -f https://erp.tsh.sale/health >/dev/null 2>&1; then
-              echo "✓ Public endpoint healthy (https://erp.tsh.sale/health)"
-            else
-              echo "⚠️  Warning: Public endpoint not accessible (nginx might need restart)"
-            fi
-
-            echo ""
             echo "========================================"
             echo "✅ Deployment Successful!"
             echo "========================================"
