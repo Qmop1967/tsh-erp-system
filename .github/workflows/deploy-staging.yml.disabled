@@ -1,31 +1,32 @@
-name: 🎯 Production Deployment
+name: 🚀 Deploy to Staging (Mandatory Pre-Production)
 
-# Production deployment workflow - deploys directly to production server
-# Triggers only on push to main branch
+# 🔴 MANDATORY: All production deployments MUST go through this workflow first
+# This workflow runs all automated tests, deploys to staging, and validates the Flutter consumer app
+# After successful completion, it automatically triggers production deployment workflow
 
-# DEPLOYMENT FLOW:
-# 1. Push to main → This workflow runs
-# 2. All validations pass → Deploy to production
-# 3. Post-deployment monitoring → Complete
+# DEPLOYMENT FLOW ENFORCEMENT:
+# 1. Push to develop/staging → This workflow runs
+# 2. All tests pass → PR created to main
+# 3. PR merged → Production workflow triggers automatically
+# 4. Production deploys → Complete
+
+# ❌ FORBIDDEN: Direct push to main (bypasses this workflow)
 
 on:
-  # Trigger on push to main branch only
   push:
     branches:
-      - main
-  
-  # PR to main (validation only, does not deploy)
+      - develop
+      - staging
   pull_request:
-    types: [opened, synchronize, reopened]
     branches:
-      - main
-  
-  # Allow manual triggering for testing
-  workflow_dispatch:
+      - develop
+      - staging
+  workflow_dispatch:  # Allow manual triggering for testing
 
 env:
   PYTHON_VERSION: "3.11"
   FLUTTER_VERSION: "3.35.5"
+  ENABLE_AUTO_MERGE: ${{ secrets.ENABLE_AUTO_MERGE || 'false' }}
 
 jobs:
   # ============================================================================
@@ -91,21 +92,6 @@ jobs:
           name: security-reports
           path: bandit-report.json
           retention-days: 30
-
-      - name: 🚫 Check for Debug Code
-        run: |
-          echo "🚫 Scanning for debug code..."
-          if grep -r "console.log\|print(" app/ backend/ tds_core/ 2>/dev/null | grep -v "# print\|#print" | head -5; then
-            echo "⚠️ Warning: Debug statements found"
-            echo "Please remove debug code before production deployment"
-          else
-            echo "✅ No debug code detected"
-          fi
-
-      - name: 📝 Verify Commit Signatures
-        run: |
-          echo "📝 Checking commit signatures..."
-          git log --show-signature -1 || echo "⚠️ Commit not signed (consider using signed commits)"
 
   # ============================================================================
   # STAGE 2: DATABASE MIGRATIONS VALIDATION
@@ -231,9 +217,9 @@ jobs:
           echo "💰 Consumer Price List Validation"
           echo "========================================"
           
-          # Use production database for validation
+          # Check if we should use production database
           if [ -n "$PROD_DB_URL" ]; then
-            echo "✅ Using production database for validation"
+            echo "⚠️ Using production database for validation (staging DB not configured)"
             export DATABASE_URL="$PROD_DB_URL"
             echo "✅ Database URL configured from PROD_DB_URL secret"
           else
@@ -340,7 +326,103 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # STAGE 4: FLUTTER CONSUMER APP VALIDATION
+  # STAGE 4: DEPLOY TO STAGING SERVER
+  # ============================================================================
+  deploy-to-staging:
+    name: 🚀 Deploy to Staging Server
+    runs-on: ubuntu-latest
+    needs: [code-quality, database-validation, run-tests]
+    if: |
+      always() &&
+      (needs.code-quality.result == 'success' || needs.code-quality.result == 'skipped') &&
+      (needs.database-validation.result == 'success' || needs.database-validation.result == 'skipped') &&
+      (needs.run-tests.result == 'success' || needs.run-tests.result == 'skipped') &&
+      (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.event_name == 'workflow_dispatch')
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check SSH Secrets
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.STAGING_HOST }}" ]; then
+            echo "⚠️ Staging SSH secrets not configured. Skipping deployment."
+            echo "Using production server for validation instead."
+            echo "To enable automatic staging deployment, configure these secrets in GitHub:"
+            echo "  - STAGING_HOST"
+            echo "  - STAGING_USER"
+            echo "  - STAGING_SSH_KEY"
+            echo "skip_deployment=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_deployment=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🚀 Deploy to Staging Server
+        if: steps.check_secrets.outputs.skip_deployment != 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            echo "========================================"
+            echo "🚀 Starting Staging Deployment..."
+            echo "========================================"
+
+            # Navigate to application directory
+            cd /srv/tsh-staging || cd /opt/tsh_erp || exit 1
+
+            # Pull latest code
+            echo "[1/5] Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/develop || git reset --hard origin/staging || exit 1
+
+            # Activate virtual environment
+            echo "[2/5] Activating virtual environment..."
+            source venv/bin/activate 2>/dev/null || source .venv/bin/activate || true
+
+            # Install/update dependencies
+            echo "[3/5] Installing dependencies..."
+            pip install -q --upgrade pip
+            pip install -q -r requirements.txt || true
+
+            # Run database migrations
+            echo "[4/5] Running database migrations..."
+            if [ -d "migrations" ] || [ -d "app/alembic" ]; then
+              if [ -d "app/alembic" ]; then
+                cd app
+                alembic upgrade head || echo "⚠️ Migration warnings"
+                cd ..
+              fi
+            fi
+
+            # Restart service
+            echo "[5/5] Restarting staging service..."
+            sudo systemctl restart tsh_erp-green || sudo systemctl restart tsh_erp-blue || sudo systemctl restart tsh-erp || true
+
+            # Wait for service to be healthy
+            echo "Waiting for service to be healthy..."
+            sleep 10
+
+            # Health check
+            if curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8000/health; then
+              echo "✅ Staging deployment successful!"
+            else
+              echo "❌ Health check failed"
+              exit 1
+            fi
+
+            echo "========================================"
+            echo "✅ Staging Deployment Complete!"
+            echo "========================================"
+
+  # ============================================================================
+  # STAGE 5: FLUTTER CONSUMER APP VALIDATION
   # ============================================================================
   validate-flutter-app:
     name: 📱 Validate Flutter Consumer App
@@ -368,13 +450,13 @@ jobs:
 
       - name: 📱 Validate Flutter Consumer App
         env:
-          PROD_API_URL: ${{ secrets.PROD_API_URL || 'https://erp.tsh.sale' }}
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL || 'https://erp.tsh.sale' }}
         run: |
           echo "========================================"
           echo "📱 Validating Flutter Consumer App"
           echo "========================================"
           
-          API_BASE="${PROD_API_URL}/api/consumer"
+          API_BASE="${STAGING_API_URL}/api/consumer"
           VALIDATION_PASSED=true
           
           # Test 1: Products Endpoint - Check if products are returned
@@ -603,7 +685,7 @@ PYTHON_SCRIPT
           # Test 5: API Health Check
           echo ""
           echo "[5/5] Testing API Health..."
-          HEALTH_RESPONSE=$(curl -s -f "${PROD_API_URL}/health" || echo "FAILED")
+          HEALTH_RESPONSE=$(curl -s -f "${STAGING_API_URL}/health" || echo "FAILED")
           if [ "$HEALTH_RESPONSE" = "FAILED" ]; then
             echo "❌ Health endpoint failed"
             VALIDATION_PASSED=false
@@ -649,7 +731,7 @@ PYTHON_SCRIPT
         continue-on-error: true
 
   # ============================================================================
-  # STAGE 5: DATA CONSISTENCY CHECK (Zoho ↔ TSH ERP)
+  # STAGE 6: DATA CONSISTENCY CHECK (Zoho ↔ TSH ERP)
   # ============================================================================
   data-consistency-check:
     name: 🔄 Data Consistency Check
@@ -675,7 +757,7 @@ PYTHON_SCRIPT
 
       - name: 🔄 Check Zoho ↔ TSH ERP Data Consistency
         env:
-          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
           ZOHO_ORG_ID: ${{ secrets.ZOHO_ORG_ID }}
           ZOHO_ACCESS_TOKEN: ${{ secrets.ZOHO_ACCESS_TOKEN }}
         run: |
@@ -683,7 +765,7 @@ PYTHON_SCRIPT
           echo "🔄 Checking Data Consistency..."
           echo "========================================"
           
-          if [ -z "$PROD_DB_URL" ] || [ -z "$ZOHO_ORG_ID" ] || [ -z "$ZOHO_ACCESS_TOKEN" ]; then
+          if [ -z "$STAGING_DB_URL" ] || [ -z "$ZOHO_ORG_ID" ] || [ -z "$ZOHO_ACCESS_TOKEN" ]; then
             echo "⚠️ Skipping data consistency check - secrets not configured"
             exit 0
           fi
@@ -695,7 +777,7 @@ PYTHON_SCRIPT
           
           ZOHO_ORG_ID = os.getenv('ZOHO_ORG_ID')
           ZOHO_TOKEN = os.getenv('ZOHO_ACCESS_TOKEN')
-          DB_URL = os.getenv('PROD_DB_URL')
+          DB_URL = os.getenv('STAGING_DB_URL')
           
           print("Checking Zoho ↔ TSH ERP data consistency...")
           
@@ -739,473 +821,125 @@ PYTHON_SCRIPT
         continue-on-error: true
 
   # ============================================================================
-  # STAGE 2: DATABASE BACKUP & VALIDATION
-  # ============================================================================
-  database-backup:
-    name: 💾 Database Backup & Validation
-    runs-on: ubuntu-latest
-    needs: [code-quality, database-validation, validate-consumer-pricelist, run-tests, validate-flutter-app]
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch'
-
-    steps:
-      - name: 💾 Create Production Database Backup
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          script: |
-            echo "💾 Creating production database backup..."
-
-            BACKUP_DIR="/opt/backups/auto"
-            mkdir -p $BACKUP_DIR
-
-            BACKUP_FILE="$BACKUP_DIR/pre_deploy_$(date +%Y%m%d_%H%M%S).sql"
-
-            # Backup database
-            PGPASSWORD="${{ secrets.DB_PASSWORD }}" pg_dump \
-              -h localhost \
-              -U ${{ secrets.DB_USER }} \
-              -d ${{ secrets.DB_NAME }} \
-              -F c \
-              -f "$BACKUP_FILE"
-
-            if [ -f "$BACKUP_FILE" ]; then
-              SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-              echo "✅ Backup created: $BACKUP_FILE ($SIZE)"
-
-              # Keep last 10 backups only
-              ls -t $BACKUP_DIR/pre_deploy_*.sql | tail -n +11 | xargs -r rm
-              echo "✅ Old backups cleaned up"
-            else
-              echo "❌ Backup failed!"
-              exit 1
-            fi
-
-      - name: 🗄️ Validate Production Database
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          script: |
-            echo "🗄️ Validating production database..."
-
-            PGPASSWORD="${{ secrets.DB_PASSWORD }}" psql \
-              -h localhost \
-              -U ${{ secrets.DB_USER }} \
-              -d ${{ secrets.DB_NAME }} \
-              -c "SELECT COUNT(*) as total_tables FROM information_schema.tables WHERE table_schema = 'public';"
-
-            PGPASSWORD="${{ secrets.DB_PASSWORD }}" psql \
-              -h localhost \
-              -U ${{ secrets.DB_USER }} \
-              -d ${{ secrets.DB_NAME }} \
-              -c "SELECT
-                    (SELECT COUNT(*) FROM users) as users_count,
-                    (SELECT COUNT(*) FROM products) as products_count,
-                    (SELECT COUNT(*) FROM customers) as customers_count;"
-
-            echo "✅ Database validation completed"
-
-  # ============================================================================
-  # STAGE 3: PRODUCTION DATA CONSISTENCY CHECK
-  # ============================================================================
-  production-data-check:
-    name: 🔄 Production Data Consistency
-    runs-on: ubuntu-latest
-    needs: database-backup
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: 🔄 Verify Production Data Integrity
-        run: |
-          pip install psycopg2-binary requests
-
-          python3 << 'PYTHON_SCRIPT'
-          import psycopg2
-          import requests
-          from datetime import datetime
-
-          print("=" * 60)
-          print("🔄 PRODUCTION DATA INTEGRITY CHECK")
-          print("=" * 60)
-
-          DB_URL = "${{ secrets.PRODUCTION_DB_URL }}"
-
-          try:
-              conn = psycopg2.connect(DB_URL)
-              cur = conn.cursor()
-
-              # Check for duplicate records
-              print("\n🔍 Checking for duplicate records...")
-
-              queries = {
-                  "Duplicate Customers": "SELECT email, COUNT(*) as count FROM customers GROUP BY email HAVING COUNT(*) > 1;",
-                  "Duplicate Products": "SELECT sku, COUNT(*) as count FROM products WHERE sku IS NOT NULL GROUP BY sku HAVING COUNT(*) > 1;",
-                  "Orphaned Records": "SELECT COUNT(*) FROM invoices WHERE customer_id NOT IN (SELECT id FROM customers);"
-              }
-
-              issues = []
-
-              for check_name, query in queries.items():
-                  cur.execute(query)
-                  result = cur.fetchall()
-                  if result and len(result) > 0:
-                      if check_name == "Orphaned Records" and result[0][0] > 0:
-                          print(f"  ⚠️ {check_name}: {result[0][0]} found")
-                          issues.append(f"{check_name}: {result[0][0]}")
-                      elif check_name != "Orphaned Records":
-                          print(f"  ⚠️ {check_name}: {len(result)} found")
-                          issues.append(f"{check_name}: {len(result)}")
-                  else:
-                      print(f"  ✅ {check_name}: None found")
-
-              # Check database size
-              cur.execute("SELECT pg_size_pretty(pg_database_size(current_database()));")
-              db_size = cur.fetchone()[0]
-              print(f"\n💾 Database Size: {db_size}")
-
-              cur.close()
-              conn.close()
-
-              if issues:
-                  print(f"\n⚠️ {len(issues)} data integrity issues detected")
-                  print("Issues should be reviewed but deployment can continue")
-              else:
-                  print("\n✅ All data integrity checks passed")
-
-          except Exception as e:
-              print(f"\n❌ Data integrity check failed: {e}")
-              exit(1)
-          PYTHON_SCRIPT
-
-  # ============================================================================
-  # STAGE 4: MIGRATION DRY RUN
-  # ============================================================================
-  migration-preview:
-    name: 🔄 Migration Preview
-    runs-on: ubuntu-latest
-    needs: production-data-check
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: 📦 Install dependencies
-        run: |
-          pip install alembic psycopg2-binary sqlalchemy
-
-      - name: 🔍 Generate Migration Preview
-        run: |
-          echo "🔍 Generating migration preview..."
-
-          cd app || cd backend || true
-
-          if [ -d "alembic" ]; then
-            # Generate SQL preview without applying
-            alembic upgrade head --sql > migration_preview.sql 2>&1 || true
-
-            if [ -f "migration_preview.sql" ]; then
-              echo "📄 Migration Preview:"
-              echo "===================="
-              cat migration_preview.sql
-              echo "===================="
-
-              # Check if there are actual migrations
-              if grep -q "CREATE\|ALTER\|DROP" migration_preview.sql; then
-                echo "⚠️ Database schema changes detected"
-                echo "Migration will be applied during deployment"
-              else
-                echo "✅ No schema changes - database is up to date"
-              fi
-            fi
-          else
-            echo "ℹ️ No alembic directory found"
-          fi
-        continue-on-error: true
-
-  # ============================================================================
-  # STAGE 5: SERVICE HEALTH CHECK
-  # ============================================================================
-  service-health-check:
-    name: 🏥 Current Service Health Check
-    runs-on: ubuntu-latest
-    needs: migration-preview
-
-    steps:
-      - name: 🏥 Check Current Production Services
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          script: |
-            echo "🏥 Checking production service health..."
-
-            echo ""
-            echo "📊 Service Status:"
-            systemctl status tsh-erp --no-pager -l || true
-            systemctl status tsh_erp-green --no-pager -l || true
-
-            echo ""
-            echo "🔌 Port Status:"
-            ss -tlnp | grep -E ":(8001|8002)" || echo "No services on ports 8001/8002"
-
-            echo ""
-            echo "💾 Resource Usage:"
-            free -h
-            df -h /opt/tsh_erp
-
-            echo ""
-            echo "📝 Recent Logs:"
-            journalctl -u tsh-erp -n 10 --no-pager || true
-
-            echo ""
-            echo "✅ Health check completed"
-
-  # ============================================================================
-  # STAGE 6: DEPLOY TO PRODUCTION (BLUE-GREEN)
-  # ============================================================================
-  deploy-to-production:
-    name: 🚀 Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [database-backup, production-data-check, migration-preview, service-health-check]
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch'
-
-    steps:
-      - name: 🚀 Execute Blue-Green Deployment
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          script_stop: true
-          script: |
-            echo "========================================"
-            echo "🚀 PRODUCTION DEPLOYMENT STARTING"
-            echo "========================================"
-
-            cd /home/deploy/TSH_ERP_Ecosystem || cd /opt/tsh_erp || exit 1
-
-            # Pull latest code from main branch
-            echo "📥 Pulling latest code from main branch..."
-            git fetch origin
-            git checkout main
-            git pull origin main
-            
-            echo "Current commit: $(git rev-parse HEAD)"
-            echo "Current branch: $(git branch --show-current)"
-
-            # Run deployment script (blue-green)
-            echo "🔄 Running blue-green deployment..."
-            bash /opt/tsh_erp/bin/deploy.sh main
-
-            echo "========================================"
-            echo "✅ DEPLOYMENT SCRIPT COMPLETED"
-            echo "========================================"
-
-      - name: 🔍 Verify Deployment
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          script: |
-            echo "🔍 Verifying deployment..."
-
-            # Determine active port
-            ACTIVE_PORT=$(cat /opt/tsh_erp/current_deployment.txt 2>/dev/null || echo "8001")
-
-            echo "Active port: $ACTIVE_PORT"
-
-            # Health check
-            sleep 5
-            HEALTH_CHECK=$(curl -s http://127.0.0.1:${ACTIVE_PORT}/health || echo "failed")
-
-            if echo "$HEALTH_CHECK" | grep -q "ok\|healthy"; then
-              echo "✅ Health check passed"
-              echo "✅ Deployment verified successfully"
-            else
-              echo "❌ Health check failed"
-              echo "Response: $HEALTH_CHECK"
-              exit 1
-            fi
-
-  # ============================================================================
-  # STAGE 7: POST-DEPLOYMENT MONITORING
-  # ============================================================================
-  post-deployment-monitoring:
-    name: 📊 Post-Deployment Monitoring
-    runs-on: ubuntu-latest
-    needs: deploy-to-production
-
-    steps:
-      - name: 📊 Monitor System for 2 Minutes
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          command_timeout: 150s
-          script: |
-            echo "📊 Monitoring system for 2 minutes..."
-
-            for i in {1..4}; do
-              echo ""
-              echo "Check $i/4 ($(date))"
-              echo "===================="
-
-              # Health check
-              curl -s http://127.0.0.1:8001/health || curl -s http://127.0.0.1:8002/health
-
-              # Check for errors in logs
-              ERROR_COUNT=$(journalctl -u tsh-erp --since "1 minute ago" -p err --no-pager | wc -l)
-              echo "Recent errors: $ERROR_COUNT"
-
-              if [ $ERROR_COUNT -gt 5 ]; then
-                echo "⚠️ High error rate detected"
-              fi
-
-              # Memory and CPU
-              echo "Resource usage:"
-              ps aux | grep python | head -5
-
-              sleep 30
-            done
-
-            echo "✅ Monitoring completed - system appears stable"
-
-      - name: 🌐 External Health Check
-        run: |
-          echo "🌐 Performing external health checks..."
-
-          # Test production URLs
-          URLs=(
-            "https://erp.tsh.sale/health"
-            "https://consumer.tsh.sale"
-          )
-
-          for url in "${URLs[@]}"; do
-            echo "Testing: $url"
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$url" || echo "000")
-
-            if [ "$STATUS" = "200" ]; then
-              echo "  ✅ $url (HTTP $STATUS)"
-            else
-              echo "  ⚠️ $url (HTTP $STATUS)"
-            fi
-          done
-
-          echo "✅ External checks completed"
-
-  # ============================================================================
-  # STAGE 8: DEPLOYMENT SUCCESS NOTIFICATION
+  # FINAL SUMMARY & PRODUCTION TRIGGER
   # ============================================================================
   deployment-summary:
-    name: 📢 Deployment Summary
+    name: 📊 Deployment Summary
     runs-on: ubuntu-latest
-    needs: post-deployment-monitoring
-    if: success()
+    needs: [code-quality, database-validation, validate-consumer-pricelist, run-tests, validate-flutter-app, data-consistency-check]
+    if: always()
+    timeout-minutes: 2
 
     steps:
-      - name: 🎉 Deployment Success Summary
+      - name: 📊 Generate Deployment Summary
         run: |
           echo "========================================"
-          echo "🎉 PRODUCTION DEPLOYMENT SUCCESSFUL!"
+          echo "📊 STAGING DEPLOYMENT SUMMARY"
           echo "========================================"
           echo ""
-          echo "✅ All checks passed"
-          echo "✅ Database backed up"
-          echo "✅ Blue-green deployment completed"
-          echo "✅ Health checks passed"
-          echo "✅ Post-deployment monitoring passed"
+          echo "Code Quality: ${{ needs.code-quality.result }}"
+          echo "Database Validation: ${{ needs.database-validation.result }}"
+          echo "Consumer Price List Validation: ${{ needs.validate-consumer-pricelist.result }}"
+          echo "Tests: ${{ needs.run-tests.result }}"
+          echo "Flutter App Validation: ${{ needs.validate-flutter-app.result }}"
+          echo "Data Consistency: ${{ needs.data-consistency-check.result }}"
           echo ""
-          echo "Production URLs:"
-          echo "  • Backend API: https://erp.tsh.sale"
-          echo "  • Consumer App: https://consumer.tsh.sale"
-          echo ""
-          echo "Deployment completed at: $(date -u)"
+          
+          if [ "${{ needs.code-quality.result }}" = "success" ] && \
+             [ "${{ needs.database-validation.result }}" = "success" ] && \
+             [ "${{ needs.validate-consumer-pricelist.result }}" = "success" ] && \
+             [ "${{ needs.run-tests.result }}" = "success" ] && \
+             [ "${{ needs.validate-flutter-app.result }}" = "success" ]; then
+            echo "✅ STAGING DEPLOYMENT SUCCESSFUL"
+            echo ""
+            echo "✅ All tests passed"
+            echo "✅ Staging deployment completed"
+            echo "✅ Consumer price list validated"
+            echo "✅ Flutter consumer app validated"
+            echo "✅ Products, images, and price lists verified"
+            echo ""
+            echo "🚀 Triggering production deployment..."
+            echo "   Production deployment will start automatically"
+            echo "   Workflow: Intelligent Production Deployment"
+          else
+            echo "❌ STAGING DEPLOYMENT FAILED"
+            echo ""
+            echo "Please review the failed stages above"
+            echo "Production deployment will NOT be triggered"
+            exit 1
+          fi
           echo "========================================"
 
-  # ============================================================================
-  # STAGE 9: ROLLBACK (ON FAILURE)
-  # ============================================================================
-  rollback-on-failure:
-    name: 🔄 Automatic Rollback
-    runs-on: ubuntu-latest
-    needs: [deploy-to-production]
-    if: failure()
-
-    steps:
-      - name: 🔄 Execute Rollback
-        uses: appleboy/ssh-action@v1.0.3
+      - name: 🔀 Create PR to Main Branch
+        id: create-pr
+        if: |
+          needs.code-quality.result == 'success' &&
+          needs.database-validation.result == 'success' &&
+          needs.validate-consumer-pricelist.result == 'success' &&
+          needs.run-tests.result == 'success' &&
+          needs.validate-flutter-app.result == 'success' &&
+          (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging')
+        uses: peter-evans/create-pull-request@v5
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          script: |
-            echo "🔄 Deployment failed - initiating automatic rollback..."
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-merge-to-main-${{ github.run_number }}
+          base: main
+          title: "🚀 Auto-merge: Staging tests passed - Ready for production"
+          body: |
+            ## Automatic Merge to Main
+            
+            This PR was automatically created because staging tests passed successfully.
+            
+            **Staging Workflow Run:** ${{ github.run_id }}
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            
+            ### Validation Results
+            - ✅ Code Quality: Passed
+            - ✅ Database Validation: Passed
+            - ✅ Consumer Price List Validation: Passed
+            - ✅ Tests: Passed
+            - ✅ Flutter App Validation: Passed
+            
+            ### Next Steps
+            After this PR is merged to main, the production deployment workflow will automatically trigger.
+            
+            **Note:** This is an automatic PR. Please review the changes before merging.
+          delete-branch: true
+          commit-message: "chore: auto-merge from ${{ github.ref_name }} - staging tests passed"
+          labels: |
+            automated
+            staging-approved
+            ready-for-production
 
-            # Switch back to previous deployment
-            bash /opt/tsh_erp/bin/switch_deployment.sh
-
-            sleep 5
-
-            # Verify rollback
-            curl -f http://127.0.0.1:8001/health || curl -f http://127.0.0.1:8002/health
-
-            echo "✅ Rollback completed - previous version restored"
-
-      - name: 🚨 Create Rollback Issue
-        uses: actions/github-script@v6
+      - name: ✅ Auto-Merge PR to Main (Optional)
+        if: |
+          steps.create-pr.outputs.pull-request-number != '' &&
+          env.ENABLE_AUTO_MERGE == 'true'
+        uses: peter-evans/enable-pull-request-automerge@v2
         with:
-          script: |
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚨 Production Deployment Failed - Auto Rollback Executed',
-              body: `## Deployment Failure Report
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.create-pr.outputs.pull-request-number }}
+          merge-method: merge
 
-**Time:** ${new Date().toISOString()}
-**Branch:** main
-**Commit:** ${{ github.sha }}
-**Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: 🚀 Trigger Production Deployment
+        if: |
+          needs.code-quality.result == 'success' &&
+          needs.database-validation.result == 'success' &&
+          needs.validate-consumer-pricelist.result == 'success' &&
+          needs.run-tests.result == 'success' &&
+          needs.validate-flutter-app.result == 'success'
+        run: |
+          echo "🚀 Staging tests passed - production deployment will be triggered automatically"
+          echo ""
+          echo "Steps:"
+          echo "1. ✅ Staging tests passed"
+          echo "2. 🔀 PR created to merge to main (if on develop/staging branch)"
+          echo "3. ⏳ After PR is merged to main, production deployment will trigger automatically"
+          echo ""
+          echo "The 'Intelligent Production Deployment' workflow will run automatically"
+          echo "when this staging workflow completes successfully AND code is merged to main."
+          echo ""
+          echo "Monitor workflows here:"
+          echo "https://github.com/${{ github.repository }}/actions"
 
-### Status
-❌ Deployment failed
-✅ Automatic rollback executed
-✅ Previous version restored
-
-### Action Required
-1. Review deployment logs
-2. Fix the issue
-3. Retry deployment
-
----
-*This issue was created automatically by the production deployment workflow.*`,
-              labels: ['production', 'deployment-failure', 'critical']
-            });

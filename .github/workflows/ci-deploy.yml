@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-      - develop
   pull_request:
     branches:
       - main
-      - develop
 
 env:
   PYTHON_VERSION: "3.11"
@@ -203,66 +201,3 @@ jobs:
         run: |
           echo "❌ Deployment failed!"
           # Add Slack/Discord/Telegram notification here if needed
-
-  deploy-staging:
-    name: Deploy to Staging Server
-    runs-on: ubuntu-latest
-    needs: test
-    # Only deploy if on develop branch
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-
-    steps:
-      - name: Check SSH secrets
-        run: |
-          if [ -z "${{ secrets.STAGING_HOST }}" ]; then
-            echo "⚠️ Staging SSH secrets not configured. Skipping staging deployment."
-            echo "To enable automatic staging deployment, configure these secrets in GitHub:"
-            echo "  - STAGING_HOST"
-            echo "  - STAGING_USER"
-            echo "  - STAGING_SSH_KEY"
-            exit 0
-          fi
-
-      - name: Deploy to Staging via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
-          script_stop: true
-          script: |
-            echo "========================================"
-            echo "Deploying Monolithic Backend to Staging..."
-            echo "========================================"
-
-            cd /srv/tsh-staging || cd /opt/tsh_erp || exit 1
-
-            # 1. Update code
-            echo "[1/3] Updating code..."
-            git fetch origin
-            git reset --hard origin/develop
-
-            # 2. Install dependencies
-            echo "[2/3] Installing dependencies..."
-            source venv/bin/activate 2>/dev/null || source .venv/bin/activate || true
-            pip install -q -r requirements.txt
-
-            # Run database migrations
-            if [ -d "alembic" ]; then
-              alembic upgrade head || true
-            fi
-
-            # Restart service
-            sudo systemctl restart tsh-erp || sudo systemctl restart tsh_erp-green || true
-
-            # 3. Verify deployment
-            echo "[3/3] Verifying deployment..."
-            sleep 5
-            curl -f http://127.0.0.1:8000/health || curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8001/health
-            echo "✓ Backend healthy"
-
-            echo "========================================"
-            echo "✅ Staging deployment successful!"
-            echo "========================================"
-            echo "Note: Flutter apps are mobile-only"

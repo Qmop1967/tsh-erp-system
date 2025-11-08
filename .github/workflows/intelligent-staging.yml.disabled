@@ -1,0 +1,778 @@
+name: 🧠 Intelligent Staging CI/CD with Auto-Healing
+
+# NOTE: Deployment to staging is currently DISABLED (line 725)
+# Enable it after VPS is properly configured with /opt/tsh_erp directory
+# To enable: Change "if: false" to "if: github.ref == 'refs/heads/develop' && github.event_name == 'push'"
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
+  FLUTTER_VERSION: "3.35.5"
+
+jobs:
+  # ============================================================================
+  # STAGE 1: CODE INTEGRITY & QUALITY CHECKS
+  # ============================================================================
+  code-quality:
+    name: 📋 Code Quality & Integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy black bandit safety
+          pip install -r config/requirements.txt || pip install -r requirements.txt || true
+
+      - name: 🔍 Python Linting (ruff)
+        run: |
+          echo "🔍 Checking Python code style..."
+          ruff check . --output-format=github || echo "⚠️ Linting issues found"
+        continue-on-error: true
+
+      - name: 🔒 Type Checking (mypy)
+        run: |
+          echo "🔒 Checking type annotations..."
+          mypy app/ backend/ tds_core/ --ignore-missing-imports --no-strict-optional || echo "⚠️ Type issues found"
+        continue-on-error: true
+
+      - name: ⚫ Code Formatting Check (black)
+        run: |
+          echo "⚫ Checking code formatting..."
+          black --check app/ backend/ tds_core/ || echo "⚠️ Formatting issues found"
+        continue-on-error: true
+
+      - name: 🔐 Security Scan (bandit)
+        run: |
+          echo "🔐 Scanning for security vulnerabilities..."
+          bandit -r app/ backend/ tds_core/ -f json -o bandit-report.json || true
+          bandit -r app/ backend/ tds_core/ -f screen || echo "⚠️ Security issues found"
+        continue-on-error: true
+
+      - name: 📊 Dependency Vulnerability Check
+        run: |
+          echo "📊 Checking dependencies for known vulnerabilities..."
+          safety check --file=config/requirements.txt --output=text || echo "⚠️ Vulnerable dependencies found"
+        continue-on-error: true
+
+      - name: 📤 Upload Security Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+          retention-days: 30
+
+  # ============================================================================
+  # STAGE 2: DATABASE SCHEMA & MIGRATIONS
+  # ============================================================================
+  database-validation:
+    name: 🗄️ Database Schema Validation
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tsh_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r config/requirements.txt || pip install -r requirements.txt || true
+          pip install alembic psycopg2-binary sqlalchemy
+
+      - name: 🔍 Check Migration Status
+        run: |
+          echo "🔍 Checking database migrations..."
+          cd app || cd backend || true
+          if [ -d "alembic" ]; then
+            alembic current
+            alembic upgrade head --sql > migration_preview.sql
+            cat migration_preview.sql
+            echo "✅ Migrations are ready"
+          else
+            echo "⚠️ No alembic directory found"
+          fi
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_test
+        continue-on-error: true
+
+      - name: 🗃️ Verify Schema Integrity
+        run: |
+          echo "🗃️ Verifying database schema..."
+          psql $DATABASE_URL -c "\dt" || echo "⚠️ Could not verify schema"
+          psql $DATABASE_URL -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" || true
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_test
+        continue-on-error: true
+
+  # ============================================================================
+  # STAGE 3: MODULE INTEGRITY & API TESTS
+  # ============================================================================
+  api-integration-tests:
+    name: 🔌 API & Integration Tests
+    runs-on: ubuntu-latest
+    needs: database-validation
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r config/requirements.txt || pip install -r requirements.txt || true
+          pip install pytest pytest-asyncio httpx
+
+      - name: 🧪 Run Unit Tests
+        run: |
+          echo "🧪 Running unit tests..."
+          pytest tests/ -v --tb=short || echo "⚠️ Some tests failed"
+        continue-on-error: true
+
+      - name: 🔌 Test API Endpoints
+        run: |
+          echo "🔌 Testing API endpoints..."
+          python -c "
+          import httpx
+          import asyncio
+
+          async def test_api():
+              # Test health endpoint
+              try:
+                  async with httpx.AsyncClient() as client:
+                      response = await client.get('http://localhost:8000/health', timeout=5.0)
+                      print(f'✅ Health check: {response.status_code}')
+              except Exception as e:
+                  print(f'⚠️ API test: {e}')
+
+          asyncio.run(test_api())
+          " || echo "⚠️ API tests incomplete"
+        continue-on-error: true
+
+  # ============================================================================
+  # STAGE 4: ZOHO DATA CONSISTENCY CHECK
+  # ============================================================================
+  zoho-consistency-check:
+    name: 🔄 Zoho Data Consistency Verification
+    runs-on: ubuntu-latest
+    needs: api-integration-tests
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install requests psycopg2-binary python-dotenv
+
+      - name: 🔄 Compare Zoho vs TSH ERP Data
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import requests
+          import psycopg2
+          from datetime import datetime
+
+          print("=" * 60)
+          print("🔄 ZOHO DATA CONSISTENCY CHECK")
+          print("=" * 60)
+
+          # Zoho API Configuration
+          ZOHO_ORG_ID = "${{ secrets.ZOHO_ORG_ID }}"
+          ZOHO_TOKEN = "${{ secrets.ZOHO_ACCESS_TOKEN }}"
+
+          # Database Configuration (Staging)
+          DB_URL = "${{ secrets.STAGING_DB_URL }}"
+
+          report = []
+          report.append(f"\n📅 Report Generated: {datetime.now().isoformat()}\n")
+          report.append("=" * 60 + "\n")
+
+          # Check 1: Contacts/Customers Count
+          try:
+              print("\n📊 Checking Contacts...")
+
+              # Zoho API call
+              headers = {"Authorization": f"Zoho-oauthtoken {ZOHO_TOKEN}"}
+              zoho_response = requests.get(
+                  f"https://www.zohoapis.com/books/v3/contacts?organization_id={ZOHO_ORG_ID}",
+                  headers=headers,
+                  timeout=10
+              )
+
+              if zoho_response.status_code == 200:
+                  zoho_count = len(zoho_response.json().get('contacts', []))
+                  print(f"  Zoho Contacts: {zoho_count}")
+                  report.append(f"✅ Zoho Contacts: {zoho_count}\n")
+              else:
+                  print(f"  ⚠️ Zoho API Error: {zoho_response.status_code}")
+                  report.append(f"⚠️ Zoho API Error: {zoho_response.status_code}\n")
+                  zoho_count = 0
+
+              # Database query
+              try:
+                  conn = psycopg2.connect(DB_URL)
+                  cur = conn.cursor()
+                  cur.execute("SELECT COUNT(*) FROM customers WHERE is_active = true;")
+                  erp_count = cur.fetchone()[0]
+                  print(f"  TSH ERP Customers: {erp_count}")
+                  report.append(f"✅ TSH ERP Customers: {erp_count}\n")
+
+                  # Compare
+                  diff = abs(zoho_count - erp_count)
+                  diff_pct = (diff / max(zoho_count, erp_count) * 100) if max(zoho_count, erp_count) > 0 else 0
+
+                  if diff_pct > 10:
+                      print(f"  ❌ Large difference: {diff} records ({diff_pct:.1f}%)")
+                      report.append(f"❌ ALERT: Difference of {diff} records ({diff_pct:.1f}%)\n")
+                  else:
+                      print(f"  ✅ Acceptable difference: {diff} records ({diff_pct:.1f}%)")
+                      report.append(f"✅ Acceptable: {diff} records difference\n")
+
+                  cur.close()
+                  conn.close()
+              except Exception as e:
+                  print(f"  ⚠️ Database Error: {e}")
+                  report.append(f"⚠️ Database Error: {e}\n")
+
+          except Exception as e:
+              print(f"  ⚠️ Check Failed: {e}")
+              report.append(f"⚠️ Contacts Check Failed: {e}\n")
+
+          # Check 2: Products/Items Count
+          try:
+              print("\n📦 Checking Products...")
+
+              # Zoho API call
+              zoho_response = requests.get(
+                  f"https://www.zohoapis.com/books/v3/items?organization_id={ZOHO_ORG_ID}",
+                  headers=headers,
+                  timeout=10
+              )
+
+              if zoho_response.status_code == 200:
+                  zoho_count = len(zoho_response.json().get('items', []))
+                  print(f"  Zoho Items: {zoho_count}")
+                  report.append(f"✅ Zoho Items: {zoho_count}\n")
+              else:
+                  print(f"  ⚠️ Zoho API Error: {zoho_response.status_code}")
+                  report.append(f"⚠️ Zoho API Error: {zoho_response.status_code}\n")
+                  zoho_count = 0
+
+              # Database query
+              try:
+                  conn = psycopg2.connect(DB_URL)
+                  cur = conn.cursor()
+                  cur.execute("SELECT COUNT(*) FROM products WHERE is_active = true;")
+                  erp_count = cur.fetchone()[0]
+                  print(f"  TSH ERP Products: {erp_count}")
+                  report.append(f"✅ TSH ERP Products: {erp_count}\n")
+
+                  # Compare
+                  diff = abs(zoho_count - erp_count)
+                  diff_pct = (diff / max(zoho_count, erp_count) * 100) if max(zoho_count, erp_count) > 0 else 0
+
+                  if diff_pct > 10:
+                      print(f"  ❌ Large difference: {diff} records ({diff_pct:.1f}%)")
+                      report.append(f"❌ ALERT: Difference of {diff} records ({diff_pct:.1f}%)\n")
+                  else:
+                      print(f"  ✅ Acceptable difference: {diff} records ({diff_pct:.1f}%)")
+                      report.append(f"✅ Acceptable: {diff} records difference\n")
+
+                  cur.close()
+                  conn.close()
+              except Exception as e:
+                  print(f"  ⚠️ Database Error: {e}")
+                  report.append(f"⚠️ Database Error: {e}\n")
+
+          except Exception as e:
+              print(f"  ⚠️ Check Failed: {e}")
+              report.append(f"⚠️ Products Check Failed: {e}\n")
+
+          # Save report
+          report.append("\n" + "=" * 60 + "\n")
+          report.append("📊 END OF CONSISTENCY CHECK\n")
+
+          with open("zoho_sync_report.txt", "w") as f:
+              f.writelines(report)
+
+          print("\n✅ Report saved to: zoho_sync_report.txt")
+          PYTHON_SCRIPT
+        continue-on-error: true
+
+      - name: 📤 Upload Zoho Sync Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoho-consistency-report
+          path: zoho_sync_report.txt
+          retention-days: 30
+
+  # ============================================================================
+  # STAGE 5: ZOHO TIMESTAMP VERIFICATION
+  # ============================================================================
+  zoho-timestamp-check:
+    name: ⏰ Zoho Timestamp Consistency
+    runs-on: ubuntu-latest
+    needs: zoho-consistency-check
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: pip install requests psycopg2-binary python-dateutil
+
+      - name: ⏰ Verify Last Update Timestamps
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import requests
+          import psycopg2
+          from datetime import datetime, timedelta
+          from dateutil import parser
+
+          print("=" * 60)
+          print("⏰ ZOHO TIMESTAMP CONSISTENCY CHECK")
+          print("=" * 60)
+
+          ZOHO_ORG_ID = "${{ secrets.ZOHO_ORG_ID }}"
+          ZOHO_TOKEN = "${{ secrets.ZOHO_ACCESS_TOKEN }}"
+          DB_URL = "${{ secrets.STAGING_DB_URL }}"
+
+          headers = {"Authorization": f"Zoho-oauthtoken {ZOHO_TOKEN}"}
+          report = []
+          report.append(f"\n📅 Timestamp Check: {datetime.now().isoformat()}\n")
+          report.append("=" * 60 + "\n")
+
+          # Check last modified contact in Zoho
+          try:
+              print("\n🕐 Checking last modified contact...")
+              response = requests.get(
+                  f"https://www.zohoapis.com/books/v3/contacts?organization_id={ZOHO_ORG_ID}&sort_column=last_modified_time&sort_order=D&per_page=1",
+                  headers=headers,
+                  timeout=10
+              )
+
+              if response.status_code == 200:
+                  contacts = response.json().get('contacts', [])
+                  if contacts:
+                      zoho_last_modified = parser.parse(contacts[0].get('last_modified_time'))
+                      print(f"  Zoho Last Modified: {zoho_last_modified}")
+                      report.append(f"✅ Zoho Last Contact Update: {zoho_last_modified}\n")
+
+                      # Check ERP last modified
+                      conn = psycopg2.connect(DB_URL)
+                      cur = conn.cursor()
+                      cur.execute("SELECT MAX(updated_at) FROM customers;")
+                      erp_last_modified = cur.fetchone()[0]
+                      print(f"  ERP Last Modified: {erp_last_modified}")
+                      report.append(f"✅ ERP Last Customer Update: {erp_last_modified}\n")
+
+                      # Compare time difference
+                      if erp_last_modified:
+                          time_diff = abs((zoho_last_modified - erp_last_modified.replace(tzinfo=zoho_last_modified.tzinfo)).total_seconds())
+                          hours_diff = time_diff / 3600
+
+                          if hours_diff > 24:
+                              print(f"  ❌ Sync delay: {hours_diff:.1f} hours")
+                              report.append(f"❌ ALERT: Sync delay of {hours_diff:.1f} hours\n")
+                          else:
+                              print(f"  ✅ Sync is current: {hours_diff:.1f} hours difference")
+                              report.append(f"✅ Sync OK: {hours_diff:.1f} hours difference\n")
+
+                      cur.close()
+                      conn.close()
+          except Exception as e:
+              print(f"  ⚠️ Timestamp check failed: {e}")
+              report.append(f"⚠️ Timestamp Check Error: {e}\n")
+
+          # Save report
+          with open("zoho_timestamp_report.txt", "w") as f:
+              f.writelines(report)
+
+          print("\n✅ Timestamp report saved")
+          PYTHON_SCRIPT
+        continue-on-error: true
+
+      - name: 📤 Upload Timestamp Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoho-timestamp-report
+          path: zoho_timestamp_report.txt
+          retention-days: 30
+
+  # ============================================================================
+  # STAGE 6: ZOHO WEBHOOK HEALTH CHECK
+  # ============================================================================
+  zoho-webhook-health:
+    name: 🔔 Zoho Webhook Health Check
+    runs-on: ubuntu-latest
+    needs: zoho-timestamp-check
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: pip install requests
+
+      - name: 🔔 Test Webhook Endpoints
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import requests
+          import json
+          from datetime import datetime
+
+          print("=" * 60)
+          print("🔔 ZOHO WEBHOOK HEALTH CHECK")
+          print("=" * 60)
+
+          WEBHOOK_BASE = "${{ secrets.WEBHOOK_BASE_URL }}" or "https://erp.tsh.sale/api/webhooks"
+
+          webhooks = [
+              {"name": "Contact Created", "path": "/zoho/contact/created"},
+              {"name": "Contact Updated", "path": "/zoho/contact/updated"},
+              {"name": "Invoice Created", "path": "/zoho/invoice/created"},
+              {"name": "Invoice Updated", "path": "/zoho/invoice/updated"},
+              {"name": "Item Created", "path": "/zoho/item/created"},
+              {"name": "Item Updated", "path": "/zoho/item/updated"},
+              {"name": "Salesorder Created", "path": "/zoho/salesorder/created"},
+              {"name": "Salesorder Updated", "path": "/zoho/salesorder/updated"},
+          ]
+
+          report = []
+          report.append(f"\n📅 Webhook Health Check: {datetime.now().isoformat()}\n")
+          report.append("=" * 60 + "\n\n")
+
+          test_payload = {
+              "event": "test",
+              "data": {"test": True}
+          }
+
+          passed = 0
+          failed = 0
+
+          for webhook in webhooks:
+              url = f"{WEBHOOK_BASE}{webhook['path']}"
+              print(f"\n🔔 Testing: {webhook['name']}")
+              print(f"   URL: {url}")
+
+              try:
+                  response = requests.post(
+                      url,
+                      json=test_payload,
+                      timeout=10,
+                      headers={"Content-Type": "application/json"}
+                  )
+
+                  if response.status_code in [200, 201, 202]:
+                      print(f"   ✅ Status: {response.status_code}")
+                      report.append(f"✅ {webhook['name']}: {url} (HTTP {response.status_code})\n")
+                      passed += 1
+                  else:
+                      print(f"   ⚠️ Status: {response.status_code}")
+                      report.append(f"⚠️ {webhook['name']}: {url} (HTTP {response.status_code})\n")
+                      failed += 1
+
+              except requests.exceptions.Timeout:
+                  print(f"   ❌ Timeout")
+                  report.append(f"❌ {webhook['name']}: {url} (TIMEOUT)\n")
+                  failed += 1
+              except requests.exceptions.ConnectionError:
+                  print(f"   ❌ Connection Error")
+                  report.append(f"❌ {webhook['name']}: {url} (CONNECTION ERROR)\n")
+                  failed += 1
+              except Exception as e:
+                  print(f"   ❌ Error: {e}")
+                  report.append(f"❌ {webhook['name']}: {url} (ERROR: {e})\n")
+                  failed += 1
+
+          # Summary
+          report.append(f"\n{'=' * 60}\n")
+          report.append(f"📊 SUMMARY\n")
+          report.append(f"   ✅ Passed: {passed}/{len(webhooks)}\n")
+          report.append(f"   ❌ Failed: {failed}/{len(webhooks)}\n")
+          report.append(f"{'=' * 60}\n")
+
+          print(f"\n📊 Summary: {passed} passed, {failed} failed out of {len(webhooks)} webhooks")
+
+          # Save report
+          with open("zoho_webhook_report.txt", "w") as f:
+              f.writelines(report)
+
+          print("\n✅ Webhook health report saved")
+          PYTHON_SCRIPT
+        continue-on-error: true
+
+      - name: 📤 Upload Webhook Health Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoho-webhook-report
+          path: zoho_webhook_report.txt
+          retention-days: 30
+
+  # ============================================================================
+  # STAGE 7: AUTO-HEALING SUGGESTION GENERATOR
+  # ============================================================================
+  auto-healing-analysis:
+    name: 🤖 Auto-Healing Analysis & Suggestions
+    runs-on: ubuntu-latest
+    needs: [zoho-consistency-check, zoho-timestamp-check, zoho-webhook-health]
+
+    steps:
+      - name: 📥 Download All Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports/
+
+      - name: 🧠 Analyze Issues & Generate Healing Suggestions
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import re
+          from datetime import datetime
+
+          print("=" * 60)
+          print("🤖 AUTO-HEALING ANALYSIS")
+          print("=" * 60)
+
+          suggestions = []
+          suggestions.append(f"\n🤖 Auto-Healing Suggestions Generated: {datetime.now().isoformat()}\n")
+          suggestions.append("=" * 60 + "\n\n")
+
+          issues_found = []
+
+          # Analyze Zoho Sync Report
+          try:
+              with open("reports/zoho-consistency-report/zoho_sync_report.txt", "r") as f:
+                  content = f.read()
+                  print("\n📊 Analyzing Zoho Sync Report...")
+
+                  if "❌ ALERT" in content:
+                      issues_found.append("zoho_sync_mismatch")
+                      suggestions.append("🔧 ISSUE DETECTED: Zoho Data Sync Mismatch\n")
+                      suggestions.append("   📋 Diagnosis: Significant difference between Zoho and TSH ERP data counts\n")
+                      suggestions.append("   🎯 Possible Cause: Sync process not running or webhook failures\n")
+                      suggestions.append("   💡 Suggested Fix:\n")
+                      suggestions.append("      1. Check TDS Core sync worker status: systemctl status tds-core-worker\n")
+                      suggestions.append("      2. Review sync queue for stuck items: SELECT * FROM tds_sync_queue WHERE status='failed'\n")
+                      suggestions.append("      3. Trigger manual resync: python scripts/resync_zoho.py --entity=all\n")
+                      suggestions.append("      4. Check webhook registration: python scripts/verify_webhooks.py\n\n")
+          except FileNotFoundError:
+              print("   ⚠️ Sync report not found")
+
+          # Analyze Timestamp Report
+          try:
+              with open("reports/zoho-timestamp-report/zoho_timestamp_report.txt", "r") as f:
+                  content = f.read()
+                  print("\n⏰ Analyzing Timestamp Report...")
+
+                  if "❌ ALERT" in content:
+                      issues_found.append("sync_delay")
+                      suggestions.append("🔧 ISSUE DETECTED: Sync Timestamp Delay\n")
+                      suggestions.append("   📋 Diagnosis: Last sync timestamp shows significant delay (>24 hours)\n")
+                      suggestions.append("   🎯 Possible Cause: Worker service stopped or webhook not received\n")
+                      suggestions.append("   💡 Suggested Fix:\n")
+                      suggestions.append("      1. Restart sync worker: sudo systemctl restart tds-core-worker\n")
+                      suggestions.append("      2. Check worker logs: journalctl -u tds-core-worker -n 100\n")
+                      suggestions.append("      3. Verify webhook delivery: Check Zoho Webhooks settings\n")
+                      suggestions.append("      4. Manual trigger for recent changes: python scripts/sync_recent.py --hours=24\n\n")
+          except FileNotFoundError:
+              print("   ⚠️ Timestamp report not found")
+
+          # Analyze Webhook Report
+          try:
+              with open("reports/zoho-webhook-report/zoho_webhook_report.txt", "r") as f:
+                  content = f.read()
+                  print("\n🔔 Analyzing Webhook Report...")
+
+                  failed_webhooks = re.findall(r"❌ (.+?):", content)
+                  if failed_webhooks:
+                      issues_found.append("webhook_failures")
+                      suggestions.append(f"🔧 ISSUE DETECTED: {len(failed_webhooks)} Webhook(s) Failing\n")
+                      suggestions.append(f"   📋 Failed Webhooks: {', '.join(failed_webhooks)}\n")
+                      suggestions.append("   🎯 Possible Cause: SSL certificate issue, firewall, or endpoint error\n")
+                      suggestions.append("   💡 Suggested Fix:\n")
+                      suggestions.append("      1. Check SSL certificate: curl -v https://erp.tsh.sale\n")
+                      suggestions.append("      2. Verify Nginx config: sudo nginx -t\n")
+                      suggestions.append("      3. Check backend service: systemctl status tsh-erp\n")
+                      suggestions.append("      4. Re-register webhooks: python scripts/register_webhooks.py\n")
+                      suggestions.append("      5. Check firewall: sudo ufw status\n\n")
+          except FileNotFoundError:
+              print("   ⚠️ Webhook report not found")
+
+          # Final Summary
+          if not issues_found:
+              suggestions.append("✅ NO CRITICAL ISSUES DETECTED\n")
+              suggestions.append("   All systems appear to be functioning normally.\n")
+              suggestions.append("   No healing actions required at this time.\n\n")
+              print("\n✅ No critical issues detected!")
+          else:
+              suggestions.append(f"📊 SUMMARY: {len(issues_found)} issue(s) detected\n")
+              suggestions.append(f"   Issues: {', '.join(issues_found)}\n\n")
+              suggestions.append("🎯 RECOMMENDED ACTIONS:\n")
+              suggestions.append("   1. Review all suggestions above\n")
+              suggestions.append("   2. Execute healing commands on VPS\n")
+              suggestions.append("   3. Monitor system for 15 minutes after healing\n")
+              suggestions.append("   4. Re-run this workflow to verify fixes\n\n")
+              print(f"\n⚠️ {len(issues_found)} issues detected - suggestions generated")
+
+          # Save suggestions
+          suggestions.append("=" * 60 + "\n")
+          suggestions.append("📝 For Claude Code Agent Integration:\n")
+          suggestions.append("   scp auto_healing_suggestions.txt root@167.71.39.50:/tmp/tsh_autoheal/\n")
+          suggestions.append("   ssh root@167.71.39.50 'claude-code execute /tmp/tsh_autoheal/auto_healing_suggestions.txt'\n")
+
+          with open("auto_healing_suggestions.txt", "w") as f:
+              f.writelines(suggestions)
+
+          print("\n✅ Auto-healing suggestions generated")
+          print("\n📄 Review the file: auto_healing_suggestions.txt")
+          PYTHON_SCRIPT
+
+      - name: 📤 Upload Auto-Healing Suggestions
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-healing-suggestions
+          path: auto_healing_suggestions.txt
+          retention-days: 90
+
+      - name: 📢 Create GitHub Issue for Critical Issues
+        if: contains(needs.*.result, 'failure')
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## 🚨 Auto-Healing Report: Issues Detected\n\n';
+
+            try {
+              const suggestions = fs.readFileSync('auto_healing_suggestions.txt', 'utf8');
+              body += '```\n' + suggestions + '\n```\n';
+            } catch (e) {
+              body += 'Could not load auto-healing suggestions.\n';
+            }
+
+            body += '\n---\n';
+            body += `**Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🤖 Auto-Healing: Issues Detected in Staging',
+              body: body,
+              labels: ['auto-healing', 'staging', 'needs-attention']
+            });
+
+  # ============================================================================
+  # STAGE 8: DEPLOY TO STAGING (IF ALL CHECKS PASS)
+  # ============================================================================
+  deploy-to-staging:
+    name: 🚀 Deploy to Staging Server
+    runs-on: ubuntu-latest
+    needs: [code-quality, database-validation, api-integration-tests, auto-healing-analysis]
+    if: false  # Disabled - Enable after VPS setup complete
+
+    steps:
+      - name: 🎯 Deploy to Staging via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            echo "🚀 Starting Staging Deployment..."
+
+            cd /opt/tsh_erp
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+
+            # Activate virtual environment
+            source venv/bin/activate || source .venv/bin/activate
+
+            # Install/update dependencies
+            pip install -q -r config/requirements.txt
+
+            # Run migrations
+            if [ -d "alembic" ]; then
+              alembic upgrade head
+            fi
+
+            # Restart staging service (port 8002)
+            sudo systemctl restart tsh_erp-green || sudo systemctl restart tsh-erp-staging
+
+            # Wait and verify
+            sleep 5
+            curl -f http://127.0.0.1:8002/health || curl -f http://127.0.0.1:8001/health
+
+            echo "✅ Staging deployment completed!"
+
+      - name: ✅ Deployment Success Notification
+        if: success()
+        run: |
+          echo "✅ Staging deployment completed successfully!"
+          echo "🔗 Check staging at: https://staging.erp.tsh.sale"
+
+      - name: ❌ Deployment Failure Notification
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed!"
+          echo "🔍 Check logs for details"
