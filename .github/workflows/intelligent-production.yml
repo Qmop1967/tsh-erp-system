@@ -948,6 +948,7 @@ PYTHON_SCRIPT
     name: 🏥 Current Service Health Check
     runs-on: ubuntu-latest
     needs: migration-preview
+    if: ${{ secrets.PROD_HOST != '' && secrets.PROD_USER != '' && secrets.PROD_SSH_KEY != '' }}
 
     steps:
       - name: 🏥 Check Current Production Services
@@ -988,9 +989,7 @@ PYTHON_SCRIPT
     name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
     needs: [database-backup, production-data-check, migration-preview, service-health-check]
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch'
+    if: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && secrets.PROD_HOST != '' && secrets.PROD_USER != '' && secrets.PROD_SSH_KEY != '' }}
 
     steps:
       - name: 🚀 Execute Blue-Green Deployment
@@ -1002,12 +1001,6 @@ PYTHON_SCRIPT
           port: ${{ secrets.PROD_SSH_PORT || 22 }}
           script_stop: true
           script: |
-            echo "========================================"
-            echo "🚀 PRODUCTION DEPLOYMENT STARTING"
-            echo "========================================"
-
-            cd /home/deploy/TSH_ERP_Ecosystem || cd /opt/tsh_erp || exit 1
-
             set -eo pipefail
 
             echo "========================================"
@@ -1137,6 +1130,7 @@ PYTHON_SCRIPT
     name: 📊 Post-Deployment Monitoring
     runs-on: ubuntu-latest
     needs: deploy-to-production
+    if: ${{ needs.deploy-to-production.result == 'success' }}
 
     steps:
       - name: 📊 Monitor System for 2 Minutes
@@ -1234,7 +1228,7 @@ PYTHON_SCRIPT
     name: 🔄 Automatic Rollback
     runs-on: ubuntu-latest
     needs: [deploy-to-production]
-    if: failure()
+    if: ${{ needs.deploy-to-production.result == 'failure' }}
 
     steps:
       - name: 🔄 Execute Rollback

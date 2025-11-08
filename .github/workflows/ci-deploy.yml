@@ -70,18 +70,23 @@ jobs:
 
     steps:
       - name: Check SSH secrets
+        id: check_secrets
         run: |
-          if [ -z "${{ secrets.PROD_HOST }}" ]; then
+          if [ -z "${{ secrets.PROD_HOST }}" ] || [ -z "${{ secrets.PROD_USER }}" ] || [ -z "${{ secrets.PROD_SSH_KEY }}" ]; then
             echo "⚠️ SSH secrets not configured. Skipping deployment."
             echo "To enable automatic deployment, configure these secrets in GitHub:"
             echo "  - PROD_HOST"
             echo "  - PROD_USER"
             echo "  - PROD_SSH_KEY"
             echo "For manual deployment, run: ssh root@erp.tsh.sale 'bash -s' < deployment/deploy_phase1.sh"
-            exit 0
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "✅ SSH secrets detected"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy via SSH
+        if: steps.check_secrets.outputs.skip != 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
