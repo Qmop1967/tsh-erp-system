@@ -313,7 +313,7 @@ async def get_product_details(
             'actual_available_stock': int(row.actual_available_stock) if row.actual_available_stock else 0,
             'warehouse_id': None,
             'is_active': row.is_active,
-            'price': float(row.price) if row.price else 0,
+            'price': float(row.price) if row.price and row.price > 0 else None,
             'currency': 'IQD',
             'created_at': row.created_at.isoformat() if row.created_at else None,
 
