@@ -321,7 +321,7 @@ async def get_product_details(
             'product_id': str(row.id),
             'product_name': row.name,
             'category_name': row.category or 'Uncategorized',
-            'selling_price': float(row.price) if row.price else 0,
+            'selling_price': float(row.price) if row.price and row.price > 0 else None,
             'cost_price': 0,
             'quantity': float(row.actual_available_stock) if row.actual_available_stock else 0,
             'barcode': row.sku,
