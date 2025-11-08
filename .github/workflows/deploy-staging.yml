@@ -397,43 +397,83 @@ jobs:
             VALIDATION_PASSED=false
           fi
           
-          # Test 3: Consumer Price List - Verify ALL products display Consumer pricelist
+          # Test 3: Consumer Price List - CRITICAL: Verify ALL products display Consumer pricelist with price > 0
           echo ""
-          echo "[3/5] Testing Consumer Price List Display..."
+          echo "[3/5] Testing Consumer Price List Display (CRITICAL VALIDATION)..."
           if [ "$PRODUCTS_RESPONSE" != "FAILED" ]; then
-            # Count products with prices
-            PRICE_COUNT=$(echo "$PRODUCTS_RESPONSE" | grep -o '"price":[0-9.]*' | wc -l || echo "0")
-            CURRENCY_COUNT=$(echo "$PRODUCTS_RESPONSE" | grep -o '"currency":"IQD"' | wc -l || echo "0")
+            # Use Python to properly parse JSON and validate prices
+            PRICE_VALIDATION=$(echo "$PRODUCTS_RESPONSE" | python3 << 'PYTHON_SCRIPT'
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    items = data.get('items', [])
+    
+    if not items:
+        print("ERROR:NO_ITEMS")
+        sys.exit(1)
+    
+    total_items = len(items)
+    items_with_price = 0
+    items_with_zero_price = 0
+    items_with_null_price = 0
+    items_with_iqd = 0
+    
+    for item in items:
+        price = item.get('price')
+        currency = item.get('currency', '')
+        
+        if price is None:
+            items_with_null_price += 1
+        elif price == 0 or price == 0.0:
+            items_with_zero_price += 1
+        elif price > 0:
+            items_with_price += 1
+        
+        if currency == 'IQD':
+            items_with_iqd += 1
+    
+    # CRITICAL: Fail if ANY product has zero or null price
+    if items_with_zero_price > 0 or items_with_null_price > 0:
+        print(f"ERROR:ZERO_PRICES|total={total_items}|with_price={items_with_price}|zero_price={items_with_zero_price}|null_price={items_with_null_price}|iqd={items_with_iqd}")
+        sys.exit(1)
+    
+    # CRITICAL: Fail if not all products have IQD currency
+    if items_with_iqd != total_items:
+        print(f"ERROR:WRONG_CURRENCY|total={total_items}|iqd={items_with_iqd}")
+        sys.exit(1)
+    
+    print(f"SUCCESS|total={total_items}|with_price={items_with_price}|iqd={items_with_iqd}")
+except Exception as e:
+    print(f"ERROR:PARSE_ERROR|{str(e)}")
+    sys.exit(1)
+PYTHON_SCRIPT
+)
             
-            if [ "$PRICE_COUNT" -eq 0 ]; then
-              echo "❌ No prices found in products"
+            if echo "$PRICE_VALIDATION" | grep -q "ERROR:"; then
+              echo "❌ CRITICAL: Consumer Price List validation FAILED"
+              echo "$PRICE_VALIDATION"
+              echo ""
+              echo "Issues found:"
+              if echo "$PRICE_VALIDATION" | grep -q "ZERO_PRICES"; then
+                echo "  ❌ Products with zero or null prices detected"
+                echo "  ❌ Consumer pricelist is not being applied correctly"
+              fi
+              if echo "$PRICE_VALIDATION" | grep -q "WRONG_CURRENCY"; then
+                echo "  ❌ Not all products have IQD currency"
+              fi
               VALIDATION_PASSED=false
             else
-              echo "✅ Found $PRICE_COUNT products with prices"
-              
-              # Verify all prices are in IQD (Consumer pricelist currency)
-              if [ "$CURRENCY_COUNT" -eq "$PRICE_COUNT" ]; then
-                echo "✅ All $PRICE_COUNT products have Consumer pricelist prices (IQD)"
-              else
-                echo "⚠️ Warning: Only $CURRENCY_COUNT/$PRICE_COUNT products have IQD currency"
-              fi
-              
-              # Extract sample prices to verify they're reasonable (not 0 or null)
-              SAMPLE_PRICE=$(echo "$PRODUCTS_RESPONSE" | grep -o '"price":[0-9.]*' | head -1 | cut -d':' -f2)
-              if [ -n "$SAMPLE_PRICE" ] && [ "$SAMPLE_PRICE" != "0" ] && [ "$SAMPLE_PRICE" != "null" ]; then
-                echo "✅ Sample product price: $SAMPLE_PRICE IQD (Consumer pricelist)"
-              else
-                echo "⚠️ Warning: Some products may have missing or zero prices"
-              fi
+              echo "✅ Consumer Price List validation PASSED"
+              echo "$PRICE_VALIDATION"
             fi
           else
-            echo "⚠️ Skipping price check - products endpoint failed"
+            echo "❌ CRITICAL: Products endpoint failed - cannot validate prices"
             VALIDATION_PASSED=false
           fi
           
-          # Test 4: Item Count Validation - Verify count matches Zoho items with stock
+          # Test 4: Item Count Validation - CRITICAL: Verify count matches Zoho items with stock exactly
           echo ""
-          echo "[4/5] Testing Item Count vs Zoho Items with Stock..."
+          echo "[4/5] Testing Item Count vs Zoho Items with Stock (CRITICAL VALIDATION)..."
           if [ "$PRODUCTS_RESPONSE" != "FAILED" ] && [ -n "$PRODUCT_COUNT" ]; then
             # Get Zoho items count with stock (requires Zoho API access)
             if [ -n "${{ secrets.ZOHO_ORG_ID }}" ] && [ -n "${{ secrets.ZOHO_ACCESS_TOKEN }}" ]; then
@@ -442,46 +482,69 @@ jobs:
                 "https://www.zohoapis.com/books/v3/items?organization_id=${{ secrets.ZOHO_ORG_ID }}&per_page=200" || echo "FAILED")
               
               if [ "$ZOHO_RESPONSE" != "FAILED" ]; then
-                # Count Zoho items with stock > 0 (using Python for JSON parsing)
-                ZOHO_COUNT=$(echo "$ZOHO_RESPONSE" | python3 -c "
+                # Count Zoho items with stock > 0 and is_active = true (using Python for accurate parsing)
+                COUNT_RESULT=$(echo "$ZOHO_RESPONSE" | python3 << 'PYTHON_SCRIPT'
 import sys, json
 try:
     data = json.load(sys.stdin)
     items = data.get('items', [])
     # Count items with stock > 0 and is_active = true
     count = sum(1 for item in items if item.get('stock_on_hand', 0) > 0 and item.get('is_active', True))
-    print(count)
-except:
-    print('0')
-" 2>/dev/null || echo "0")
+    print(f"SUCCESS|{count}")
+except Exception as e:
+    print(f"ERROR|{str(e)}")
+PYTHON_SCRIPT
+)
                 
-                if [ -n "$ZOHO_COUNT" ] && [ "$ZOHO_COUNT" != "0" ]; then
+                if echo "$COUNT_RESULT" | grep -q "SUCCESS"; then
+                  ZOHO_COUNT=$(echo "$COUNT_RESULT" | cut -d'|' -f2)
+                  
                   echo "✅ Zoho items with stock: $ZOHO_COUNT"
                   echo "✅ TSH ERP products displayed: $PRODUCT_COUNT"
                   
-                  # Calculate difference (allow 5% variance)
+                  # Calculate difference
                   DIFF=$((PRODUCT_COUNT - ZOHO_COUNT))
                   ABS_DIFF=${DIFF#-}  # Absolute value
-                  PERCENT_DIFF=$((ABS_DIFF * 100 / ZOHO_COUNT))
                   
-                  if [ "$PERCENT_DIFF" -le 5 ]; then
+                  # CRITICAL: Allow maximum 2% variance (strict validation)
+                  if [ "$ZOHO_COUNT" -gt 0 ]; then
+                    PERCENT_DIFF=$((ABS_DIFF * 100 / ZOHO_COUNT))
+                  else
+                    PERCENT_DIFF=100
+                  fi
+                  
+                  if [ "$PERCENT_DIFF" -le 2 ]; then
                     echo "✅ Item count matches Zoho (difference: $DIFF, $PERCENT_DIFF%)"
                   else
-                    echo "⚠️ Warning: Item count difference exceeds 5% (difference: $DIFF, $PERCENT_DIFF%)"
-                    echo "   Expected: ~$ZOHO_COUNT items, Found: $PRODUCT_COUNT items"
+                    echo "❌ CRITICAL: Item count mismatch exceeds 2% threshold"
+                    echo "   Expected: $ZOHO_COUNT items (Zoho items with stock)"
+                    echo "   Found: $PRODUCT_COUNT items (TSH ERP displayed)"
+                    echo "   Difference: $DIFF items ($PERCENT_DIFF%)"
+                    echo ""
+                    echo "   Possible causes:"
+                    echo "   - Products not synced from Zoho"
+                    echo "   - Stock filtering not matching Zoho stock levels"
+                    echo "   - Products missing Consumer pricelist prices"
+                    VALIDATION_PASSED=false
                   fi
                 else
-                  echo "⚠️ Warning: Could not determine Zoho items count with stock"
+                  echo "❌ CRITICAL: Could not determine Zoho items count with stock"
+                  echo "   Error: $(echo "$COUNT_RESULT" | cut -d'|' -f2)"
+                  VALIDATION_PASSED=false
                 fi
               else
-                echo "⚠️ Warning: Could not fetch Zoho items (API unavailable or credentials missing)"
+                echo "❌ CRITICAL: Could not fetch Zoho items (API unavailable)"
+                echo "   This validation is required - deployment will fail"
+                VALIDATION_PASSED=false
               fi
             else
-              echo "⚠️ Skipping Zoho count check - Zoho credentials not configured"
-              echo "   Configure ZOHO_ORG_ID and ZOHO_ACCESS_TOKEN secrets to enable this check"
+              echo "❌ CRITICAL: Zoho credentials not configured"
+              echo "   This validation is required - configure ZOHO_ORG_ID and ZOHO_ACCESS_TOKEN secrets"
+              VALIDATION_PASSED=false
             fi
           else
-            echo "⚠️ Skipping count check - products endpoint failed"
+            echo "❌ CRITICAL: Products endpoint failed - cannot validate item count"
+            VALIDATION_PASSED=false
           fi
           
           # Test 5: API Health Check
@@ -510,11 +573,17 @@ except:
             echo "========================================"
             echo "Please review the validation output above"
             echo ""
-            echo "Required checks:"
+            echo "Required checks (ALL MUST PASS):"
             echo "  ❌ Products endpoint must return products"
-            echo "  ❌ All products must have images displayed"
-            echo "  ❌ All products must display Consumer pricelist prices (IQD)"
-            echo "  ❌ Item count must match Zoho items with stock"
+            echo "  ❌ All products must have images displayed (95% threshold)"
+            echo "  ❌ All products must display Consumer pricelist prices (IQD) - NO ZERO PRICES ALLOWED"
+            echo "  ❌ Item count must match Zoho items with stock (max 2% variance)"
+            echo ""
+            echo "CRITICAL ISSUES DETECTED:"
+            echo "  1. Consumer pricelist prices are showing as 0 or null"
+            echo "  2. Item count does not match Zoho items with stock"
+            echo ""
+            echo "These issues MUST be fixed before deployment can proceed."
             exit 1
           fi
           echo "========================================"

@@ -3,10 +3,12 @@ Mobile BFF Router
 Optimized API endpoints for Flutter mobile apps
 """
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
-from app.db.database import get_db
+from app.db.database import get_db, get_async_db
+from app.bff.services.cache_service import cache_service
 from app.bff.mobile.schemas import (
     MobileHomeResponse,
     MobileProductDetail,
@@ -1168,6 +1170,417 @@ async def mark_review_helpful(
         "success": True,
         "message": "Thank you for your feedback"
     }
+
+
+# ============================================================================
+# Consumer App - Products (Consumer Pricelist)
+# ============================================================================
+
+@router.get(
+    "/consumer/products",
+    summary="Get products for Consumer app",
+    description="""
+    Get products optimized for Consumer app with Consumer pricelist pricing.
+    
+    Features:
+    - Consumer pricelist pricing only
+    - Active products with stock > 0
+    - Category filtering
+    - Search functionality
+    - Image URLs optimized
+    - Pagination support
+    
+    **Performance:**
+    - Caching: 5 minutes TTL
+    - Response time: ~150ms
+    """
+)
+async def get_consumer_products(
+    request: Request,
+    category: Optional[str] = Query(None, description="Filter by category"),
+    search: Optional[str] = Query(None, description="Search in name/SKU"),
+    skip: int = Query(0, ge=0, description="Pagination offset"),
+    limit: int = Query(100, ge=1, le=200, description="Items per page"),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get products for Consumer app with Consumer pricelist"""
+    base_url = str(request.base_url).rstrip('/')
+    cache_key = f"bff:consumer:products:{category or 'all'}:{search or 'none'}:{skip}:{limit}"
+    
+    # Try cache first
+    cached = await cache_service.get(cache_key)
+    if cached:
+        return cached
+    
+    # Build query with Consumer pricelist
+    # CRITICAL: Only show products with stock > 0 and Consumer pricelist prices
+    query_params = {"limit": limit, "skip": skip}
+    where_conditions = [
+        "p.is_active = true", 
+        "p.actual_available_stock > 0",
+        "p.zoho_item_id IS NOT NULL"  # Ensure product is synced from Zoho
+    ]
+    
+    if category and category != 'All':
+        where_conditions.append("p.category = :category")
+        query_params["category"] = category
+    
+    if search:
+        where_conditions.append("(p.name ILIKE :search OR p.sku ILIKE :search)")
+        query_params["search"] = f"%{search}%"
+    
+    where_clause = " AND ".join(where_conditions)
+    
+    query = text(f"""
+        SELECT DISTINCT ON (p.id)
+            p.id,
+            p.zoho_item_id,
+            p.sku,
+            p.name,
+            p.description,
+            COALESCE(p.cdn_image_url, p.image_url) as image_url,
+            p.category,
+            p.actual_available_stock,
+            p.is_active,
+            CASE 
+                WHEN consumer_price.price IS NOT NULL AND consumer_price.price > 0 
+                THEN consumer_price.price
+                WHEN p.price IS NOT NULL AND p.price > 0 
+                THEN p.price
+                ELSE NULL
+            END as price,
+            COALESCE(consumer_price.currency, 'IQD') as currency
+        FROM products p
+        LEFT JOIN LATERAL (
+            SELECT pp.price, pp.currency
+            FROM product_prices pp
+            JOIN pricelists pl ON pp.pricelist_id = pl.id
+            WHERE pp.product_id = p.id
+              AND pl.name ILIKE '%Consumer%'
+              AND (pp.currency = 'IQD' OR pp.currency IS NULL)
+              AND pp.price > 0
+            ORDER BY pp.price DESC
+            LIMIT 1
+        ) consumer_price ON true
+        WHERE {where_clause}
+          AND (
+              consumer_price.price IS NOT NULL 
+              OR (p.price IS NOT NULL AND p.price > 0)
+          )
+        ORDER BY p.id, p.name
+        LIMIT :limit OFFSET :skip
+    """)
+    
+    result = await db.execute(query, query_params)
+    products = []
+    
+    for row in result:
+        # Build image URL
+        image_url = f"{base_url}/static/placeholder-product.png"
+        if row.zoho_item_id:
+            image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
+        elif row.image_url and 'zohoapis.com' not in str(row.image_url):
+            image_url = str(row.image_url)
+        
+        products.append({
+            'id': str(row.id),
+            'zoho_item_id': str(row.zoho_item_id) if row.zoho_item_id else '',
+            'sku': row.sku,
+            'name': row.name,
+            'description': row.description,
+            'image_url': image_url,
+            'cdn_image_url': row.image_url if row.image_url else None,
+            'category': row.category or 'Uncategorized',
+            'stock_quantity': int(row.actual_available_stock) if row.actual_available_stock else 0,
+            'actual_available_stock': int(row.actual_available_stock) if row.actual_available_stock else 0,
+            'warehouse_id': None,
+            'is_active': True,
+            'price': float(row.price) if row.price and row.price > 0 else None,
+            'currency': 'IQD',
+        })
+    
+    # Get total count
+    # CRITICAL: Match the same filtering logic as main query
+    count_query = text(f"""
+        SELECT COUNT(DISTINCT p.id) as total
+        FROM products p
+        LEFT JOIN LATERAL (
+            SELECT pp.price
+            FROM product_prices pp
+            JOIN pricelists pl ON pp.pricelist_id = pl.id
+            WHERE pp.product_id = p.id
+              AND pl.name ILIKE '%Consumer%'
+              AND (pp.currency = 'IQD' OR pp.currency IS NULL)
+              AND pp.price > 0
+            ORDER BY pp.price DESC
+            LIMIT 1
+        ) consumer_price ON true
+        WHERE {where_clause}
+          AND (
+              consumer_price.price IS NOT NULL 
+              OR (p.price IS NOT NULL AND p.price > 0)
+          )
+    """)
+    count_result = await db.execute(count_query, {k: v for k, v in query_params.items() if k not in ['limit', 'skip']})
+    total = count_result.scalar() or 0
+    
+    response = {
+        'status': 'success',
+        'count': len(products),
+        'total': total,
+        'items': products,
+        'pagination': {
+            'skip': skip,
+            'limit': limit,
+            'has_more': (skip + limit) < total
+        }
+    }
+    
+    # Cache for 5 minutes
+    await cache_service.set(cache_key, response, ttl=300)
+    
+    return response
+
+
+@router.get(
+    "/consumer/products/{product_id}",
+    summary="Get product details for Consumer app",
+    description="Get complete product details with Consumer pricelist pricing"
+)
+async def get_consumer_product_details(
+    product_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get product details for Consumer app"""
+    base_url = str(request.base_url).rstrip('/')
+    cache_key = f"bff:consumer:product:{product_id}"
+    
+    # Try cache first
+    cached = await cache_service.get(cache_key)
+    if cached:
+        return cached
+    
+    query = text("""
+        SELECT
+            p.id,
+            p.zoho_item_id,
+            p.sku,
+            p.name,
+            p.description,
+            COALESCE(p.cdn_image_url, p.image_url) as image_url,
+            p.category,
+            p.actual_available_stock,
+            p.is_active,
+            CASE 
+                WHEN consumer_price.price IS NOT NULL AND consumer_price.price > 0 
+                THEN consumer_price.price
+                WHEN p.price IS NOT NULL AND p.price > 0 
+                THEN p.price
+                ELSE NULL
+            END as price,
+            COALESCE(consumer_price.currency, 'IQD') as currency,
+            p.created_at
+        FROM products p
+        LEFT JOIN LATERAL (
+            SELECT pp.price, pp.currency
+            FROM product_prices pp
+            JOIN pricelists pl ON pp.pricelist_id = pl.id
+            WHERE pp.product_id = p.id
+              AND pl.name ILIKE '%Consumer%'
+              AND (pp.currency = 'IQD' OR pp.currency IS NULL)
+              AND pp.price > 0
+            ORDER BY pp.price DESC
+            LIMIT 1
+        ) consumer_price ON true
+        WHERE (p.id = :product_id::uuid OR p.zoho_item_id = :product_id)
+          AND p.is_active = true
+    """)
+    
+    result = await db.execute(query, {"product_id": product_id})
+    row = result.first()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Build image URL
+    image_url = f"{base_url}/static/placeholder-product.png"
+    if row.zoho_item_id:
+        image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
+    elif row.image_url and 'zohoapis.com' not in str(row.image_url):
+        image_url = str(row.image_url)
+    
+    product_data = {
+        'id': str(row.id),
+        'zoho_item_id': str(row.zoho_item_id) if row.zoho_item_id else '',
+        'sku': row.sku,
+        'name': row.name,
+        'description': row.description,
+        'image_url': image_url,
+        'cdn_image_url': row.image_url if row.image_url else None,
+        'category': row.category or 'Uncategorized',
+        'stock_quantity': int(row.actual_available_stock) if row.actual_available_stock else 0,
+        'actual_available_stock': int(row.actual_available_stock) if row.actual_available_stock else 0,
+        'warehouse_id': None,
+        'is_active': row.is_active,
+        'price': float(row.price) if row.price and row.price > 0 else None,
+        'currency': 'IQD',
+        'created_at': row.created_at.isoformat() if row.created_at else None,
+    }
+    
+    response = {
+        'status': 'success',
+        'product': product_data
+    }
+    
+    # Cache for 5 minutes
+    await cache_service.set(cache_key, response, ttl=300)
+    
+    return response
+
+
+@router.get(
+    "/consumer/categories",
+    summary="Get categories for Consumer app",
+    description="Get all product categories with caching"
+)
+async def get_consumer_categories(
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get categories for Consumer app"""
+    cache_key = "bff:consumer:categories"
+    
+    # Try cache first
+    cached = await cache_service.get(cache_key)
+    if cached:
+        return cached
+    
+    query = text("""
+        SELECT DISTINCT category
+        FROM products
+        WHERE category IS NOT NULL 
+          AND category != ''
+          AND is_active = true
+        ORDER BY category
+    """)
+    result = await db.execute(query)
+    categories = [row.category for row in result]
+    
+    response = {
+        'status': 'success',
+        'categories': categories
+    }
+    
+    # Cache for 10 minutes (categories don't change often)
+    await cache_service.set(cache_key, response, ttl=600)
+    
+    return response
+
+
+@router.get(
+    "/consumer/orders/history",
+    summary="Get consumer order history",
+    description="""
+    Get customer order history with filters.
+    
+    **Caching:** 5 minutes TTL
+    """
+)
+async def get_consumer_order_history(
+    customer_email: str = Query(..., description="Customer email"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get consumer order history"""
+    cache_key = f"bff:consumer:orders:{customer_email}:{status or 'all'}:{page}"
+    
+    # Try cache first
+    cached = await cache_service.get(cache_key)
+    if cached:
+        return cached
+    
+    # Build query
+    query_params = {
+        "email": customer_email,
+        "limit": page_size,
+        "skip": (page - 1) * page_size
+    }
+    
+    where_conditions = ["so.customer_email = :email"]
+    
+    if status:
+        where_conditions.append("so.status = :status")
+        query_params["status"] = status
+    
+    if date_from:
+        where_conditions.append("so.order_date >= :date_from")
+        query_params["date_from"] = date_from
+    
+    if date_to:
+        where_conditions.append("so.order_date <= :date_to")
+        query_params["date_to"] = date_to
+    
+    where_clause = " AND ".join(where_conditions)
+    
+    query = text(f"""
+        SELECT 
+            so.id,
+            so.order_number,
+            so.order_date,
+            so.status,
+            so.total_amount,
+            so.currency,
+            COUNT(soi.id) as item_count
+        FROM sales_orders so
+        LEFT JOIN sales_order_items soi ON soi.order_id = so.id
+        WHERE {where_clause}
+        GROUP BY so.id
+        ORDER BY so.order_date DESC
+        LIMIT :limit OFFSET :skip
+    """)
+    
+    result = await db.execute(query, query_params)
+    orders = []
+    
+    for row in result:
+        orders.append({
+            'id': str(row.id),
+            'order_number': row.order_number,
+            'order_date': row.order_date.isoformat() if row.order_date else None,
+            'status': row.status,
+            'total_amount': float(row.total_amount) if row.total_amount else 0.0,
+            'currency': row.currency or 'IQD',
+            'item_count': int(row.item_count) if row.item_count else 0,
+        })
+    
+    # Get total count
+    count_query = text(f"""
+        SELECT COUNT(DISTINCT so.id) as total
+        FROM sales_orders so
+        WHERE {where_clause}
+    """)
+    count_result = await db.execute(count_query, {k: v for k, v in query_params.items() if k not in ['limit', 'skip']})
+    total = count_result.scalar() or 0
+    
+    response = {
+        'success': True,
+        'data': {
+            'orders': orders,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'has_more': (page * page_size) < total
+        }
+    }
+    
+    # Cache for 5 minutes
+    await cache_service.set(cache_key, response, ttl=300)
+    
+    return response
 
 
 # ============================================================================

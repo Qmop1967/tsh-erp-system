@@ -6,13 +6,14 @@ Provides endpoints for the TSH Consumer mobile app with Zoho integration
 """
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 import logging
 
-from ..db.database import get_db
+from ..db.database import get_async_db
+from ..bff.services.cache_service import cache_response
 # Removed InventoryItem - using products table directly
 from ..models.product import Product, Category
 # ✅ UPDATED: Using TDS unified Zoho integration
@@ -97,13 +98,14 @@ class OrderResponse(BaseModel):
 # ============================================
 
 @router.get("/products", summary="Get all products with Zoho sync")
+@cache_response(ttl_seconds=300, prefix="consumer:products")
 async def get_products(
     request: Request,
     category: Optional[str] = None,
     search: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Get products from database (synced from Zoho)
@@ -116,7 +118,12 @@ async def get_products(
         query_params = {"limit": limit, "skip": skip}
 
         # Build WHERE clause based on filters
-        where_conditions = ["p.is_active = true", "p.actual_available_stock > 0"]
+        # CRITICAL: Only show products with stock > 0 (matching Zoho items with stock)
+        where_conditions = [
+            "p.is_active = true", 
+            "p.actual_available_stock > 0",
+            "p.zoho_item_id IS NOT NULL"  # Ensure product is synced from Zoho
+        ]
 
         if category and category != 'All':
             where_conditions.append("p.category = :category")
@@ -129,6 +136,7 @@ async def get_products(
         where_clause = " AND ".join(where_conditions)
 
         # Use subquery to get ONLY Consumer pricelist price
+        # CRITICAL: Use ILIKE for case-insensitive matching and ensure price > 0
         query = text(f"""
             SELECT DISTINCT ON (p.id)
                 p.id,
@@ -140,7 +148,13 @@ async def get_products(
                 p.category,
                 p.actual_available_stock,
                 p.is_active,
-                COALESCE(consumer_price.price, p.price, 0) as price,
+                CASE 
+                    WHEN consumer_price.price IS NOT NULL AND consumer_price.price > 0 
+                    THEN consumer_price.price
+                    WHEN p.price IS NOT NULL AND p.price > 0 
+                    THEN p.price
+                    ELSE NULL
+                END as price,
                 COALESCE(consumer_price.currency, 'IQD') as currency
             FROM products p
             LEFT JOIN LATERAL (
@@ -148,16 +162,22 @@ async def get_products(
                 FROM product_prices pp
                 JOIN pricelists pl ON pp.pricelist_id = pl.id
                 WHERE pp.product_id = p.id
-                  AND pl.name = 'Consumer'
-                  AND pp.currency = 'IQD'
+                  AND pl.name ILIKE '%Consumer%'
+                  AND (pp.currency = 'IQD' OR pp.currency IS NULL)
+                  AND pp.price > 0
+                ORDER BY pp.price DESC
                 LIMIT 1
             ) consumer_price ON true
             WHERE {where_clause}
+              AND (
+                  consumer_price.price IS NOT NULL 
+                  OR (p.price IS NOT NULL AND p.price > 0)
+              )
             ORDER BY p.id, p.name
             LIMIT :limit OFFSET :skip
         """)
 
-        result = db.execute(query, query_params)
+        result = await db.execute(query, query_params)
         products = []
 
         for row in result:
@@ -186,7 +206,7 @@ async def get_products(
                 'actual_available_stock': int(row.actual_available_stock) if row.actual_available_stock else 0,
                 'warehouse_id': None,
                 'is_active': True,
-                'price': float(row.price) if row.price else 0,
+                'price': float(row.price) if row.price and row.price > 0 else None,
                 'currency': 'IQD',
 
                 # Legacy fields for backward compatibility (can be removed later)
@@ -214,16 +234,18 @@ async def get_products(
 
 
 @router.get("/products/{product_id}", summary="Get product details")
+@cache_response(ttl_seconds=300, prefix="consumer:product")
 async def get_product_details(
     product_id: str,
     request: Request,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get detailed information for a specific product"""
     try:
         base_url = str(request.base_url).rstrip('/')
 
         # Query product directly with Consumer price
+        # CRITICAL: Use ILIKE for case-insensitive matching and ensure price > 0
         query = text("""
             SELECT
                 p.id,
@@ -235,7 +257,13 @@ async def get_product_details(
                 p.category,
                 p.actual_available_stock,
                 p.is_active,
-                COALESCE(consumer_price.price, p.price, 0) as price,
+                CASE 
+                    WHEN consumer_price.price IS NOT NULL AND consumer_price.price > 0 
+                    THEN consumer_price.price
+                    WHEN p.price IS NOT NULL AND p.price > 0 
+                    THEN p.price
+                    ELSE NULL
+                END as price,
                 COALESCE(consumer_price.currency, 'IQD') as currency,
                 p.created_at
             FROM products p
@@ -244,57 +272,61 @@ async def get_product_details(
                 FROM product_prices pp
                 JOIN pricelists pl ON pp.pricelist_id = pl.id
                 WHERE pp.product_id = p.id
-                  AND pl.name = 'Consumer'
-                  AND pp.currency = 'IQD'
+                  AND pl.name ILIKE '%Consumer%'
+                  AND (pp.currency = 'IQD' OR pp.currency IS NULL)
+                  AND pp.price > 0
+                ORDER BY pp.price DESC
                 LIMIT 1
             ) consumer_price ON true
-            WHERE p.id = :product_id::uuid
+            WHERE (p.id = :product_id::uuid OR p.zoho_item_id = :product_id)
+              AND p.is_active = true
         """)
 
-        result = db.execute(query, {"product_id": product_id}).first()
+        result = await db.execute(query, {"product_id": product_id})
+        row = result.first()
 
-        if not result:
+        if not row:
             raise HTTPException(status_code=404, detail="Product not found")
 
         # Use local product images (already downloaded from Zoho)
         image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
 
-        if result.zoho_item_id:
+        if row.zoho_item_id:
             # Use local product images stored on server
-            image_url = f"{base_url}/product-images/{result.zoho_item_id}.jpg"
-        elif result.image_url and 'zohoapis.com' not in result.image_url:
+            image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
+        elif row.image_url and 'zohoapis.com' not in str(row.image_url):
             # Use CDN or other non-Zoho image URL as-is
-            image_url = result.image_url
+            image_url = str(row.image_url)
 
         # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
         product_data = {
             # Primary fields (Flutter model expects these)
-            'id': str(result.id),
-            'zoho_item_id': str(result.zoho_item_id),
-            'sku': result.sku,
-            'name': result.name,
-            'description': result.description,
+            'id': str(row.id),
+            'zoho_item_id': str(row.zoho_item_id) if row.zoho_item_id else '',
+            'sku': row.sku,
+            'name': row.name,
+            'description': row.description,
             'image_url': image_url,
-            'cdn_image_url': result.image_url if result.image_url else None,
-            'category': result.category or 'Uncategorized',
-            'stock_quantity': int(result.actual_available_stock) if result.actual_available_stock else 0,
-            'actual_available_stock': int(result.actual_available_stock) if result.actual_available_stock else 0,
+            'cdn_image_url': row.image_url if row.image_url else None,
+            'category': row.category or 'Uncategorized',
+            'stock_quantity': int(row.actual_available_stock) if row.actual_available_stock else 0,
+            'actual_available_stock': int(row.actual_available_stock) if row.actual_available_stock else 0,
             'warehouse_id': None,
-            'is_active': result.is_active,
-            'price': float(result.price) if result.price else 0,
+            'is_active': row.is_active,
+            'price': float(row.price) if row.price else 0,
             'currency': 'IQD',
-            'created_at': result.created_at.isoformat() if result.created_at else None,
+            'created_at': row.created_at.isoformat() if row.created_at else None,
 
             # Legacy fields for backward compatibility
-            'product_id': str(result.id),
-            'product_name': result.name,
-            'category_name': result.category or 'Uncategorized',
-            'selling_price': float(result.price) if result.price else 0,
+            'product_id': str(row.id),
+            'product_name': row.name,
+            'category_name': row.category or 'Uncategorized',
+            'selling_price': float(row.price) if row.price else 0,
             'cost_price': 0,
-            'quantity': float(result.actual_available_stock) if result.actual_available_stock else 0,
-            'barcode': result.sku,
+            'quantity': float(row.actual_available_stock) if row.actual_available_stock else 0,
+            'barcode': row.sku,
             'image_path': image_url,
-            'in_stock': (result.actual_available_stock or 0) > 0
+            'in_stock': (row.actual_available_stock or 0) > 0
         }
 
         return {
@@ -310,7 +342,8 @@ async def get_product_details(
 
 
 @router.get("/categories", summary="Get all product categories")
-async def get_categories(db: Session = Depends(get_db)):
+@cache_response(ttl_seconds=600, prefix="consumer:categories")
+async def get_categories(db: AsyncSession = Depends(get_async_db)):
     """Get list of all product categories"""
     try:
         # Get distinct categories from products table
@@ -320,7 +353,7 @@ async def get_categories(db: Session = Depends(get_db)):
             WHERE category IS NOT NULL AND category != ''
             ORDER BY category
         """)
-        result = db.execute(query)
+        result = await db.execute(query)
         category_list = [row.category for row in result]
 
         return {
@@ -341,7 +374,7 @@ async def get_categories(db: Session = Depends(get_db)):
 async def create_order(
     order_data: CreateOrderRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Create a sales order in Zoho Books and update inventory
@@ -388,11 +421,10 @@ async def create_order(
             if zoho_response and 'salesorder' in zoho_response:
                 salesorder = zoho_response['salesorder']
 
-                # Update local inventory quantities
+                # Update local inventory quantities (async background task)
                 background_tasks.add_task(
-                    update_inventory_after_order,
-                    order_data.line_items,
-                    db
+                    update_inventory_after_order_async,
+                    order_data.line_items
                 )
 
                 return OrderResponse(
@@ -426,34 +458,37 @@ async def create_order(
             await zoho_client.close_session()
 
 
-def update_inventory_after_order(line_items: List[OrderLineItem], db: Session):
-    """Background task to update inventory quantities after order"""
-    try:
-        for item in line_items:
-            # Update product stock directly
-            update_query = text("""
-                UPDATE products
-                SET actual_available_stock = actual_available_stock - :quantity,
-                    stock_quantity = stock_quantity - :quantity,
-                    updated_at = NOW()
-                WHERE zoho_item_id = :item_id
-                  AND actual_available_stock >= :quantity
-            """)
-            result = db.execute(update_query, {
-                "quantity": item.quantity,
-                "item_id": item.item_id
-            })
+async def update_inventory_after_order_async(line_items: List[OrderLineItem]):
+    """Background task to update inventory quantities after order (async)"""
+    from ..db.database import AsyncSessionLocal
+    
+    async with AsyncSessionLocal() as db:
+        try:
+            for item in line_items:
+                # Update product stock directly
+                update_query = text("""
+                    UPDATE products
+                    SET actual_available_stock = actual_available_stock - :quantity,
+                        stock_quantity = stock_quantity - :quantity,
+                        updated_at = NOW()
+                    WHERE zoho_item_id = :item_id
+                      AND actual_available_stock >= :quantity
+                """)
+                result = await db.execute(update_query, {
+                    "quantity": item.quantity,
+                    "item_id": item.item_id
+                })
 
-            if result.rowcount > 0:
-                logger.info(f"Updated inventory for {item.product_name}: reduced by {item.quantity}")
-            else:
-                logger.warning(f"Could not update inventory for {item.product_name}: insufficient stock or not found")
+                if result.rowcount > 0:
+                    logger.info(f"Updated inventory for {item.product_name}: reduced by {item.quantity}")
+                else:
+                    logger.warning(f"Could not update inventory for {item.product_name}: insufficient stock or not found")
 
-        db.commit()
+            await db.commit()
 
-    except Exception as e:
-        logger.error(f"Error updating inventory: {e}")
-        db.rollback()
+        except Exception as e:
+            logger.error(f"Error updating inventory: {e}")
+            await db.rollback()
 
 
 # ============================================
@@ -461,7 +496,7 @@ def update_inventory_after_order(line_items: List[OrderLineItem], db: Session):
 # ============================================
 
 @router.post("/sync/inventory", summary="Sync inventory from Zoho")
-async def sync_inventory_from_zoho(db: Session = Depends(get_db)):
+async def sync_inventory_from_zoho(db: AsyncSession = Depends(get_async_db)):
     """
     Manually trigger inventory sync from Zoho
     تشغيل مزامنة المخزون من Zoho يدوياً
@@ -501,7 +536,7 @@ async def sync_inventory_from_zoho(db: Session = Depends(get_db)):
                     updated_at = NOW()
                 WHERE zoho_item_id = :item_id
             """)
-            result = db.execute(update_query, {
+            result = await db.execute(update_query, {
                 "stock": zoho_item.get('stock_on_hand', 0),
                 "price": zoho_item.get('rate', 0),
                 "item_id": zoho_item.get('item_id')
@@ -510,7 +545,7 @@ async def sync_inventory_from_zoho(db: Session = Depends(get_db)):
             if result.rowcount > 0:
                 updated_count += 1
 
-        db.commit()
+        await db.commit()
 
         return {
             'status': 'success',
@@ -529,7 +564,8 @@ async def sync_inventory_from_zoho(db: Session = Depends(get_db)):
 
 
 @router.get("/sync/status", summary="Get sync status")
-async def get_sync_status(db: Session = Depends(get_db)):
+@cache_response(ttl_seconds=60, prefix="consumer:sync-status")
+async def get_sync_status(db: AsyncSession = Depends(get_async_db)):
     """Get the current sync status and last sync time"""
     try:
         # Get product counts from products table
@@ -542,14 +578,15 @@ async def get_sync_status(db: Session = Depends(get_db)):
             FROM products
             WHERE is_active = true
         """)
-        result = db.execute(count_query).first()
+        result = await db.execute(count_query)
+        row = result.first()
 
         return {
             'status': 'success',
-            'total_products': int(result.total_products) if result.total_products else 0,
-            'in_stock_products': int(result.in_stock_products) if result.in_stock_products else 0,
-            'out_of_stock_products': int(result.out_of_stock_products) if result.out_of_stock_products else 0,
-            'last_sync': result.last_sync.isoformat() if result.last_sync else None
+            'total_products': int(row.total_products) if row.total_products else 0,
+            'in_stock_products': int(row.in_stock_products) if row.in_stock_products else 0,
+            'out_of_stock_products': int(row.out_of_stock_products) if row.out_of_stock_products else 0,
+            'last_sync': row.last_sync.isoformat() if row.last_sync else None
         }
 
     except Exception as e:
