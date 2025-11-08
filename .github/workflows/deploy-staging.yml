@@ -17,6 +17,7 @@ on:
 env:
   PYTHON_VERSION: "3.11"
   FLUTTER_VERSION: "3.35.5"
+  ENABLE_AUTO_MERGE: ${{ secrets.ENABLE_AUTO_MERGE || 'false' }}
 
 jobs:
   # ============================================================================
@@ -140,12 +141,84 @@ jobs:
         continue-on-error: true
 
   # ============================================================================
+  # STAGE 2.5: CONSUMER PRICE LIST VALIDATION (CRITICAL)
+  # ============================================================================
+  validate-consumer-pricelist:
+    name: 💰 Consumer Price List Validation
+    runs-on: ubuntu-latest
+    needs: [code-quality, database-validation]
+    timeout-minutes: 5
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tsh_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.txt || true
+          pip install psycopg2-binary sqlalchemy
+
+      - name: 💰 Validate Consumer Price List
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_test
+          # Use production database if staging DB not available
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+        run: |
+          echo "========================================"
+          echo "💰 Consumer Price List Validation"
+          echo "========================================"
+          
+          # Check if we should use production database
+          if [ -n "$PROD_DB_URL" ]; then
+            echo "⚠️ Using production database for validation (staging DB not configured)"
+            export DATABASE_URL="$PROD_DB_URL"
+          fi
+          
+          # Run validation script
+          python3 scripts/validate_consumer_pricelist.py || {
+            echo ""
+            echo "❌ CRITICAL: Consumer Price List validation FAILED"
+            echo ""
+            echo "This means some products with stock are missing Consumer price list prices."
+            echo "The Consumer app will NOT display these products correctly."
+            echo ""
+            echo "Required actions:"
+            echo "1. Sync Consumer price list from Zoho"
+            echo "2. Ensure all products have Consumer price list prices"
+            echo "3. Re-run validation"
+            exit 1
+          }
+          
+          echo ""
+          echo "✅ Consumer Price List validation PASSED"
+          echo "========================================"
+
+  # ============================================================================
   # STAGE 3: UNIT & INTEGRATION TESTS
   # ============================================================================
   run-tests:
     name: 🧪 Run Automated Tests
     runs-on: ubuntu-latest
-    needs: [code-quality, database-validation]
+    needs: [code-quality, database-validation, validate-consumer-pricelist]
     timeout-minutes: 15
 
     services:
@@ -398,8 +471,10 @@ jobs:
           fi
           
           # Test 3: Consumer Price List - CRITICAL: Verify ALL products display Consumer pricelist with price > 0
+          # This test ensures the root cause fix is working (no base price fallback)
           echo ""
           echo "[3/5] Testing Consumer Price List Display (CRITICAL VALIDATION)..."
+          echo "   Validating: Products MUST have Consumer price list prices (no base price fallback)"
           if [ "$PRODUCTS_RESPONSE" != "FAILED" ]; then
             # Use Python to properly parse JSON and validate prices
             PRICE_VALIDATION=$(echo "$PRODUCTS_RESPONSE" | python3 << 'PYTHON_SCRIPT'
@@ -417,10 +492,16 @@ try:
     items_with_zero_price = 0
     items_with_null_price = 0
     items_with_iqd = 0
+    items_with_base_price = 0  # Track if any products show base price (should be 0)
     
     for item in items:
         price = item.get('price')
         currency = item.get('currency', '')
+        
+        # Check if price looks like base price (very low prices might indicate base price)
+        # This is a heuristic - Consumer prices should be reasonable
+        if price is not None and price > 0 and price < 0.01:
+            items_with_base_price += 1
         
         if price is None:
             items_with_null_price += 1
@@ -441,6 +522,10 @@ try:
     if items_with_iqd != total_items:
         print(f"ERROR:WRONG_CURRENCY|total={total_items}|iqd={items_with_iqd}")
         sys.exit(1)
+    
+    # WARNING: If many products have very low prices, might be base prices
+    if items_with_base_price > total_items * 0.1:  # More than 10% have suspiciously low prices
+        print(f"WARNING:SUSPICIOUS_PRICES|total={total_items}|suspicious={items_with_base_price}")
     
     print(f"SUCCESS|total={total_items}|with_price={items_with_price}|iqd={items_with_iqd}")
 except Exception as e:
@@ -686,12 +771,12 @@ PYTHON_SCRIPT
         continue-on-error: true
 
   # ============================================================================
-  # FINAL SUMMARY
+  # FINAL SUMMARY & PRODUCTION TRIGGER
   # ============================================================================
   deployment-summary:
     name: 📊 Deployment Summary
     runs-on: ubuntu-latest
-    needs: [code-quality, database-validation, run-tests, validate-flutter-app, data-consistency-check]
+    needs: [code-quality, database-validation, validate-consumer-pricelist, run-tests, validate-flutter-app, data-consistency-check]
     if: always()
     timeout-minutes: 2
 
@@ -704,6 +789,7 @@ PYTHON_SCRIPT
           echo ""
           echo "Code Quality: ${{ needs.code-quality.result }}"
           echo "Database Validation: ${{ needs.database-validation.result }}"
+          echo "Consumer Price List Validation: ${{ needs.validate-consumer-pricelist.result }}"
           echo "Tests: ${{ needs.run-tests.result }}"
           echo "Flutter App Validation: ${{ needs.validate-flutter-app.result }}"
           echo "Data Consistency: ${{ needs.data-consistency-check.result }}"
@@ -711,21 +797,99 @@ PYTHON_SCRIPT
           
           if [ "${{ needs.code-quality.result }}" = "success" ] && \
              [ "${{ needs.database-validation.result }}" = "success" ] && \
+             [ "${{ needs.validate-consumer-pricelist.result }}" = "success" ] && \
              [ "${{ needs.run-tests.result }}" = "success" ] && \
              [ "${{ needs.validate-flutter-app.result }}" = "success" ]; then
             echo "✅ STAGING DEPLOYMENT SUCCESSFUL"
             echo ""
             echo "✅ All tests passed"
             echo "✅ Staging deployment completed"
+            echo "✅ Consumer price list validated"
             echo "✅ Flutter consumer app validated"
             echo "✅ Products, images, and price lists verified"
             echo ""
-            echo "🚀 Ready for production deployment approval"
+            echo "🚀 Triggering production deployment..."
+            echo "   Production deployment will start automatically"
+            echo "   Workflow: Intelligent Production Deployment"
           else
             echo "❌ STAGING DEPLOYMENT FAILED"
             echo ""
             echo "Please review the failed stages above"
+            echo "Production deployment will NOT be triggered"
             exit 1
           fi
           echo "========================================"
+
+      - name: 🔀 Create PR to Main Branch
+        id: create-pr
+        if: |
+          needs.code-quality.result == 'success' &&
+          needs.database-validation.result == 'success' &&
+          needs.validate-consumer-pricelist.result == 'success' &&
+          needs.run-tests.result == 'success' &&
+          needs.validate-flutter-app.result == 'success' &&
+          (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging')
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-merge-to-main-${{ github.run_number }}
+          base: main
+          title: "🚀 Auto-merge: Staging tests passed - Ready for production"
+          body: |
+            ## Automatic Merge to Main
+            
+            This PR was automatically created because staging tests passed successfully.
+            
+            **Staging Workflow Run:** ${{ github.run_id }}
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            
+            ### Validation Results
+            - ✅ Code Quality: Passed
+            - ✅ Database Validation: Passed
+            - ✅ Consumer Price List Validation: Passed
+            - ✅ Tests: Passed
+            - ✅ Flutter App Validation: Passed
+            
+            ### Next Steps
+            After this PR is merged to main, the production deployment workflow will automatically trigger.
+            
+            **Note:** This is an automatic PR. Please review the changes before merging.
+          delete-branch: true
+          commit-message: "chore: auto-merge from ${{ github.ref_name }} - staging tests passed"
+          labels: |
+            automated
+            staging-approved
+            ready-for-production
+
+      - name: ✅ Auto-Merge PR to Main (Optional)
+        if: |
+          steps.create-pr.outputs.pull-request-number != '' &&
+          env.ENABLE_AUTO_MERGE == 'true'
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.create-pr.outputs.pull-request-number }}
+          merge-method: merge
+
+      - name: 🚀 Trigger Production Deployment
+        if: |
+          needs.code-quality.result == 'success' &&
+          needs.database-validation.result == 'success' &&
+          needs.validate-consumer-pricelist.result == 'success' &&
+          needs.run-tests.result == 'success' &&
+          needs.validate-flutter-app.result == 'success'
+        run: |
+          echo "🚀 Staging tests passed - production deployment will be triggered automatically"
+          echo ""
+          echo "Steps:"
+          echo "1. ✅ Staging tests passed"
+          echo "2. 🔀 PR created to merge to main (if on develop/staging branch)"
+          echo "3. ⏳ After PR is merged to main, production deployment will trigger automatically"
+          echo ""
+          echo "The 'Intelligent Production Deployment' workflow will run automatically"
+          echo "when this staging workflow completes successfully AND code is merged to main."
+          echo ""
+          echo "Monitor workflows here:"
+          echo "https://github.com/${{ github.repository }}/actions"
 

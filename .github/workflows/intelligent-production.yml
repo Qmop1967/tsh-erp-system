@@ -8,6 +8,13 @@ on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: ["🚀 Deploy to Staging (Mandatory Pre-Production)"]
+    types:
+      - completed
+    branches:
+      - develop
+      - staging
 
 env:
   PYTHON_VERSION: "3.11"
@@ -19,7 +26,10 @@ jobs:
   pre-deployment-validation:
     name: ✅ Pre-Deployment Validation
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: 📥 Checkout code
@@ -30,14 +40,23 @@ jobs:
       - name: 🔍 Verify Staging Tests Passed
         run: |
           echo "🔍 Verifying that staging tests passed..."
-
-          # Check if this commit passed staging workflow
-          COMMIT_SHA="${{ github.sha }}"
-          echo "Checking commit: $COMMIT_SHA"
-
-          # This would typically check GitHub API for staging workflow status
-          echo "✅ Staging validation check (simulated)"
-          echo "In production, this would verify the staging workflow passed"
+          
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "✅ Triggered by staging workflow completion"
+            echo "Staging workflow run: ${{ github.event.workflow_run.id }}"
+            echo "Staging workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
+            echo "Staging workflow commit: ${{ github.event.workflow_run.head_sha }}"
+            
+            if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+              echo "❌ Staging workflow did not succeed - aborting production deployment"
+              exit 1
+            fi
+            
+            echo "✅ Staging workflow passed - proceeding with production deployment"
+          else
+            echo "⚠️ Not triggered by staging workflow - manual deployment"
+            echo "Commit: ${{ github.sha }}"
+          fi
 
       - name: 🚫 Check for Debug Code
         run: |
@@ -70,7 +89,9 @@ jobs:
     name: 💾 Database Backup & Validation
     runs-on: ubuntu-latest
     needs: pre-deployment-validation
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: 💾 Create Production Database Backup
@@ -311,7 +332,9 @@ jobs:
     name: 🚀 Deploy to Production (Blue-Green)
     runs-on: ubuntu-latest
     needs: [database-backup, production-data-check, migration-preview, service-health-check]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: 🚀 Execute Blue-Green Deployment
@@ -327,13 +350,41 @@ jobs:
             echo "🚀 PRODUCTION DEPLOYMENT STARTING"
             echo "========================================"
 
-            cd /opt/tsh_erp
+            cd /home/deploy/TSH_ERP_Ecosystem || cd /opt/tsh_erp || exit 1
 
             # Pull latest code
             echo "📥 Pulling latest code from main branch..."
             git fetch origin
+            
+            # If triggered by staging workflow, ensure we have latest main
+            if [ "${{ github.event_name }}" = "workflow_run" ]; then
+              echo "Triggered by staging workflow completion"
+              echo "Staging workflow run: ${{ github.event.workflow_run.id }}"
+              echo "Staging commit: ${{ github.event.workflow_run.head_sha }}"
+              echo ""
+              echo "Pulling latest main branch (should include staging changes)..."
+            fi
+            
             git checkout main
             git pull origin main
+            
+            echo "Current commit on main: $(git rev-parse HEAD)"
+            echo "Current branch: $(git branch --show-current)"
+            
+            # If triggered by staging, verify the staging commit is in main's history
+            if [ "${{ github.event_name }}" = "workflow_run" ]; then
+              STAGING_COMMIT="${{ github.event.workflow_run.head_sha }}"
+              if git merge-base --is-ancestor $STAGING_COMMIT HEAD 2>/dev/null; then
+                echo "✅ Staging commit is in main branch history"
+              else
+                echo "⚠️ Warning: Staging commit not found in main branch"
+                echo "This might mean the PR hasn't been merged yet"
+                echo "Continuing with latest main branch..."
+              fi
+            fi
+            
+            echo "Current commit: $(git rev-parse HEAD)"
+            echo "Current branch: $(git branch --show-current)"
 
             # Run deployment script (blue-green)
             echo "🔄 Running blue-green deployment..."

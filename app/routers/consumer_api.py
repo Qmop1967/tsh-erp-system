@@ -136,7 +136,7 @@ async def get_products(
         where_clause = " AND ".join(where_conditions)
 
         # Use subquery to get ONLY Consumer pricelist price
-        # CRITICAL: Use ILIKE for case-insensitive matching and ensure price > 0
+        # CRITICAL: Only return products with Consumer price list prices (no fallback to base price)
         query = text(f"""
             SELECT DISTINCT ON (p.id)
                 p.id,
@@ -148,31 +148,23 @@ async def get_products(
                 p.category,
                 p.actual_available_stock,
                 p.is_active,
-                CASE 
-                    WHEN consumer_price.price IS NOT NULL AND consumer_price.price > 0 
-                    THEN consumer_price.price
-                    WHEN p.price IS NOT NULL AND p.price > 0 
-                    THEN p.price
-                    ELSE NULL
-                END as price,
+                consumer_price.price as price,
                 COALESCE(consumer_price.currency, 'IQD') as currency
             FROM products p
             LEFT JOIN LATERAL (
                 SELECT pp.price, pp.currency
                 FROM product_prices pp
-                JOIN pricelists pl ON pp.pricelist_id = pl.id
+                JOIN price_lists pl ON pp.pricelist_id = pl.id
                 WHERE pp.product_id = p.id
-                  AND pl.name ILIKE '%Consumer%'
+                  AND pl.code = 'consumer_iqd'
                   AND (pp.currency = 'IQD' OR pp.currency IS NULL)
                   AND pp.price > 0
                 ORDER BY pp.price DESC
                 LIMIT 1
             ) consumer_price ON true
             WHERE {where_clause}
-              AND (
-                  consumer_price.price IS NOT NULL 
-                  OR (p.price IS NOT NULL AND p.price > 0)
-              )
+              AND consumer_price.price IS NOT NULL 
+              AND consumer_price.price > 0
             ORDER BY p.id, p.name
             LIMIT :limit OFFSET :skip
         """)
@@ -245,7 +237,7 @@ async def get_product_details(
         base_url = str(request.base_url).rstrip('/')
 
         # Query product directly with Consumer price
-        # CRITICAL: Use ILIKE for case-insensitive matching and ensure price > 0
+        # CRITICAL: Only return product if it has Consumer price list price (no fallback to base price)
         query = text("""
             SELECT
                 p.id,
@@ -257,22 +249,16 @@ async def get_product_details(
                 p.category,
                 p.actual_available_stock,
                 p.is_active,
-                CASE 
-                    WHEN consumer_price.price IS NOT NULL AND consumer_price.price > 0 
-                    THEN consumer_price.price
-                    WHEN p.price IS NOT NULL AND p.price > 0 
-                    THEN p.price
-                    ELSE NULL
-                END as price,
+                consumer_price.price as price,
                 COALESCE(consumer_price.currency, 'IQD') as currency,
                 p.created_at
             FROM products p
             LEFT JOIN LATERAL (
                 SELECT pp.price, pp.currency
                 FROM product_prices pp
-                JOIN pricelists pl ON pp.pricelist_id = pl.id
+                JOIN price_lists pl ON pp.pricelist_id = pl.id
                 WHERE pp.product_id = p.id
-                  AND pl.name ILIKE '%Consumer%'
+                  AND pl.code = 'consumer_iqd'
                   AND (pp.currency = 'IQD' OR pp.currency IS NULL)
                   AND pp.price > 0
                 ORDER BY pp.price DESC
@@ -280,6 +266,8 @@ async def get_product_details(
             ) consumer_price ON true
             WHERE (p.id = :product_id::uuid OR p.zoho_item_id = :product_id)
               AND p.is_active = true
+              AND consumer_price.price IS NOT NULL 
+              AND consumer_price.price > 0
         """)
 
         result = await db.execute(query, {"product_id": product_id})

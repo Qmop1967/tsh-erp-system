@@ -2162,31 +2162,41 @@ async def get_investigation_dashboard(
 
 #### 5.1 Consumer Price List Requirement
 
-**CRITICAL REQUIREMENT**: The Flutter Consumer App MUST display products using the **Consumer Price List** only.
+**CRITICAL REQUIREMENT**: The Flutter Consumer App MUST display products using the **Consumer Price List** only. **NO FALLBACK TO BASE PRICE IS ALLOWED**.
 
 **Implementation Details**:
 
 1. **Backend Endpoints**:
-   - `GET /api/consumer/products` - Returns products with Consumer pricelist pricing
-   - `GET /api/bff/mobile/consumer/products` - BFF endpoint with Consumer pricelist pricing
+   - `GET /api/consumer/products` - Returns products with Consumer pricelist pricing ONLY
+   - `GET /api/bff/mobile/consumer/products` - BFF endpoint with Consumer pricelist pricing ONLY
    
 2. **Price List Selection**:
-   - Products MUST use the pricelist named **"Consumer"**
+   - Products MUST use the pricelist with code **"consumer_iqd"**
    - Currency MUST be **"IQD"** (Iraqi Dinar)
-   - Fallback: If Consumer pricelist price not found, use product base price
+   - **CRITICAL**: NO fallback to base price - products without Consumer prices are NOT displayed
    
-3. **Query Implementation** (`app/routers/consumer_api.py:133-151` and `app/bff/mobile/router.py:1243-1251`):
+3. **Query Implementation** (`app/routers/consumer_api.py:138-170` and `app/bff/mobile/router.py:1234-1264`):
    ```sql
    LEFT JOIN LATERAL (
        SELECT pp.price, pp.currency
        FROM product_prices pp
-       JOIN pricelists pl ON pp.pricelist_id = pl.id
+       JOIN price_lists pl ON pp.pricelist_id = pl.id
        WHERE pp.product_id = p.id
-         AND pl.name = 'Consumer'
-         AND pp.currency = 'IQD'
+         AND pl.code = 'consumer_iqd'  -- Use code for exact match
+         AND (pp.currency = 'IQD' OR pp.currency IS NULL)
+         AND pp.price > 0
+       ORDER BY pp.price DESC
        LIMIT 1
    ) consumer_price ON true
+   WHERE ...
+     AND consumer_price.price IS NOT NULL 
+     AND consumer_price.price > 0  -- CRITICAL: Only show products with Consumer prices
    ```
+   
+   **Important Notes**:
+   - Table name is `price_lists` (with underscore), NOT `pricelists`
+   - Use `pl.code = 'consumer_iqd'` for exact match (more reliable than name matching)
+   - WHERE clause MUST require Consumer price (no OR condition allowing base price)
    
 4. **Response Format**:
    ```json
@@ -2197,9 +2207,19 @@ async def get_investigation_dashboard(
    ```
 
 5. **Validation in CI/CD**:
-   - GitHub Actions workflow MUST verify Consumer pricelist is used
-   - All products MUST have Consumer pricelist prices (or fallback to base price)
+   - GitHub Actions workflow (`deploy-staging.yml`) includes `validate-consumer-pricelist` step
+   - Validation script (`scripts/validate_consumer_pricelist.py`) checks:
+     - Consumer price list exists
+     - All products with stock have Consumer prices
+     - No products are missing Consumer prices
+   - Deployment FAILS if any product lacks Consumer price list price
    - Price currency MUST be IQD
+
+6. **Root Cause Fix (November 2025)**:
+   - **Issue**: Queries used wrong table name (`pricelists` instead of `price_lists`)
+   - **Issue**: Fallback logic allowed base prices when Consumer prices missing
+   - **Fix**: Changed table name to `price_lists`, removed fallback, enforced Consumer price requirement
+   - **Result**: Consumer app now ONLY shows products with Consumer price list prices
 
 **Flutter App Requirements**:
 - Display Consumer pricelist price for all products
