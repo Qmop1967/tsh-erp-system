@@ -269,6 +269,63 @@ def cached(prefix: str, ttl: int = 300):
     return decorator
 
 
+def cache_response(ttl_seconds: int = 300, prefix: Optional[str] = None):
+    """
+    FastAPI endpoint decorator for caching responses
+    
+    Usage:
+        @router.get("/dashboard")
+        @cache_response(ttl_seconds=30)
+        async def get_dashboard(db: AsyncSession = Depends(get_async_db)):
+            return {"data": "..."}
+    
+    Args:
+        ttl_seconds: Time to live in seconds (default: 5 minutes)
+        prefix: Optional cache key prefix (defaults to function name)
+    
+    Returns:
+        Decorated FastAPI endpoint with caching
+    """
+    def decorator(func: Callable):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Generate cache key prefix from function name if not provided
+            cache_prefix = prefix or f"bff:tds:{func.__name__}"
+            
+            # Generate cache key from function arguments
+            cache_key = cache_service._generate_cache_key(cache_prefix, *args, **kwargs)
+            
+            # Try to get from cache
+            cached_result = cache_service.get(cache_key)
+            if cached_result is not None:
+                # Add cache metadata
+                if isinstance(cached_result, dict):
+                    if "metadata" not in cached_result:
+                        cached_result["metadata"] = {}
+                    cached_result["metadata"]["cached"] = True
+                    cached_result["metadata"]["cache_key"] = cache_key
+                return cached_result
+            
+            # Execute function
+            result = await func(*args, **kwargs)
+            
+            # Cache result
+            if result is not None:
+                # Add cache metadata
+                if isinstance(result, dict):
+                    if "metadata" not in result:
+                        result["metadata"] = {}
+                    result["metadata"]["cached"] = False
+                    result["metadata"]["cache_key"] = cache_key
+                
+                cache_service.set(cache_key, result, ttl_seconds)
+            
+            return result
+        
+        return wrapper
+    return decorator
+
+
 # ============================================================================
 # Cache Invalidation Helpers
 # ============================================================================

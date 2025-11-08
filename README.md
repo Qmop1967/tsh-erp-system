@@ -179,9 +179,14 @@ cd mobile/[app_name] && flutter test
 ## 🐳 Docker Deployment
 
 ```bash
-# Build and run with Docker Compose
-docker-compose up -d
+# Local development (hot reload + pgAdmin)
+APP_ENV_FILE=.env.dev docker compose --profile dev -f docker-compose.yml -f docker-compose.dev.yml up
+
+# Production-style (with Nginx reverse proxy)
+docker compose --profile proxy up -d
 ```
+
+See `docs/docker/README.md` for full container orchestration guidance.
 
 ## 📋 Development Guidelines
 

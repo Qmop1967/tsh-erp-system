@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 import '../models/product.dart';
-import '../services/api_service.dart';
+import '../services/bff_api_service.dart';
 import '../providers/cart_provider.dart';
 import '../utils/tsh_theme.dart';
 import '../widgets/enhanced_product_card.dart';
 
 final productsProvider = FutureProvider<List<Product>>((ref) async {
-  return await ApiService.getProducts();
+  final result = await BFFApiService.getConsumerProducts();
+  return result['products'] as List<Product>;
 });
 
 class ProductsScreenEnhanced extends ConsumerStatefulWidget {
@@ -51,7 +52,7 @@ class _ProductsScreenEnhancedState extends ConsumerState<ProductsScreenEnhanced>
   }
 
   Future<void> _loadCategories() async {
-    final categories = await ApiService.getCategories();
+    final categories = await BFFApiService.getConsumerCategories();
     if (mounted) {
       setState(() {
         _categories = ['الكل', ...categories];
