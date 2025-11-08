@@ -17,11 +17,12 @@ This is the core principle that guides all work on the TSH ERP Ecosystem. Every 
 1. [Overview](#overview)
 2. [Architecture Philosophy](#architecture-philosophy)
 3. [Deployment Strategy](#deployment-strategy)
-4. [Zoho Integration Strategy](#zoho-integration-strategy)
-5. [Development Workflow](#development-workflow)
-6. [Troubleshooting Guide](#troubleshooting-guide)
-7. [Maintenance & Monitoring](#maintenance--monitoring)
-8. [Team Transition Plan](#team-transition-plan)
+4. [🔴 MANDATORY Deployment Flow: Staging → Production](#mandatory-deployment-flow-staging--production) ⭐ **CRITICAL**
+5. [Zoho Integration Strategy](#zoho-integration-strategy)
+6. [Development Workflow](#development-workflow)
+7. [Troubleshooting Guide](#troubleshooting-guide)
+8. [Maintenance & Monitoring](#maintenance--monitoring)
+9. [Team Transition Plan](#team-transition-plan)
 
 ---
 
@@ -44,6 +45,310 @@ This is the core principle that guides all work on the TSH ERP Ecosystem. Every 
 - **SSL**: Let's Encrypt (Auto-renewal via Certbot)
 - **OS**: Ubuntu 22.04 LTS
 - **Docker**: Docker Compose v3.8
+
+---
+
+## 🔴 MANDATORY Deployment Flow: Staging → Production
+
+**CRITICAL RULE**: ALL production deployments MUST go through GitHub staging workflow first. This is ENFORCED by GitHub Actions workflows.
+
+### Deployment Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│         MANDATORY DEPLOYMENT FLOW (ENFORCED)                 │
+└─────────────────────────────────────────────────────────────┘
+
+Developer Work:
+┌──────────────┐
+│ 1. Push to   │
+│    develop/  │
+│    staging   │
+└──────┬───────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ GitHub Staging Workflow (AUTOMATIC)                         │
+│ .github/workflows/deploy-staging.yml                         │
+├─────────────────────────────────────────────────────────────┤
+│ ✅ Code Quality Checks                                       │
+│ ✅ Database Validation                                       │
+│ ✅ Consumer Price List Validation (CRITICAL)                │
+│ ✅ Unit & Integration Tests                                  │
+│ ✅ Deploy to Staging Server                                  │
+│ ✅ Flutter Consumer App Validation                           │
+│ ✅ Data Consistency Check                                    │
+└──────┬───────────────────────────────────────────────────────┘
+       │
+   ┌───┴───┐
+   │       │
+ ✅ PASS  ❌ FAIL
+   │       │
+   │       └───> STOP: Fix issues, re-push to develop
+   │
+   ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Auto-Create PR to Main                                      │
+│ - PR created automatically                                  │
+│ - Includes all validation results                           │
+│ - Ready for review/merge                                    │
+└──────┬───────────────────────────────────────────────────────┘
+       │
+   ┌───┴───┐
+   │       │
+Manual   Auto-Merge
+Merge    (if enabled)
+   │       │
+   └───┬───┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Code Merged to Main Branch                                   │
+│ → Triggers Production Workflow Automatically                │
+└──────┬───────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ GitHub Production Workflow (AUTOMATIC)                       │
+│ .github/workflows/intelligent-production.yml                 │
+├─────────────────────────────────────────────────────────────┤
+│ ✅ Pre-Deployment Validation                                │
+│ ✅ Database Backup                                           │
+│ ✅ Production Data Consistency Check                        │
+│ ✅ Migration Preview                                         │
+│ ✅ Service Health Check                                      │
+│ ✅ Deploy to Production Server (167.71.39.50)               │
+│ ✅ Post-Deployment Monitoring                               │
+└──────┬───────────────────────────────────────────────────────┘
+       │
+   ┌───┴───┐
+   │       │
+ ✅ PASS  ❌ FAIL
+   │       │
+   │       └───> Automatic Rollback
+   │
+   ▼
+┌─────────────────────────────────────────────────────────────┐
+│ ✅ Production Deployment Complete                            │
+│    - Code live on production server                         │
+│    - Health checks passed                                    │
+│    - Monitoring active                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Step-by-Step Deployment Instructions
+
+#### **Step 1: Push to Develop/Staging Branch**
+
+```bash
+# NEVER push directly to main!
+git checkout develop
+git pull origin develop
+
+# Make your changes, commit
+git add .
+git commit -m "feat: your feature description"
+git push origin develop
+
+# OR push to staging branch
+git checkout staging
+git push origin staging
+```
+
+**What Happens:**
+- GitHub Actions detects push to develop/staging
+- Staging workflow (`.github/workflows/deploy-staging.yml`) runs automatically
+- All validation checks execute
+
+#### **Step 2: Monitor Staging Workflow**
+
+**View in GitHub:**
+1. Go to: `https://github.com/YOUR_REPO/actions`
+2. Click on "🚀 Deploy to Staging" workflow run
+3. Monitor each stage:
+   - Code Quality ✅
+   - Database Validation ✅
+   - Consumer Price List Validation ✅ (CRITICAL)
+   - Tests ✅
+   - Flutter App Validation ✅
+
+**Or use GitHub CLI:**
+```bash
+gh run list --workflow="deploy-staging.yml" --limit 5
+gh run watch  # Watch latest run
+```
+
+#### **Step 3: Review Auto-Created PR**
+
+**After staging passes:**
+- PR is automatically created to `main` branch
+- PR title: "🚀 Auto-merge: Staging tests passed - Ready for production"
+- PR includes all validation results
+
+**Review PR:**
+```bash
+gh pr list --state open
+gh pr view <PR_NUMBER>
+```
+
+**Merge Options:**
+
+**Option A: Manual Merge (Recommended)**
+```bash
+# Review PR, then merge
+gh pr merge <PR_NUMBER> --merge
+```
+
+**Option B: Auto-Merge (If Enabled)**
+- Set GitHub secret: `ENABLE_AUTO_MERGE = "true"`
+- PR auto-merges after staging passes
+- ⚠️ Use with caution - no manual review
+
+#### **Step 4: Production Deployment (Automatic)**
+
+**After PR is merged to main:**
+- Production workflow triggers automatically
+- No manual steps required
+- Monitor deployment in GitHub Actions
+
+**Monitor Production Deployment:**
+```bash
+gh run list --workflow="intelligent-production.yml" --limit 5
+gh run watch  # Watch latest production deployment
+```
+
+**Or check in browser:**
+- Go to: `https://github.com/YOUR_REPO/actions`
+- Click on "🎯 Intelligent Production Deployment" workflow
+
+### 🔴 What is FORBIDDEN
+
+**❌ NEVER DO THESE:**
+
+1. **Direct push to main branch:**
+   ```bash
+   # ❌ FORBIDDEN
+   git checkout main
+   git push origin main  # Bypasses staging!
+   ```
+
+2. **Manual production deployment without staging:**
+   ```bash
+   # ❌ FORBIDDEN
+   ssh root@167.71.39.50 "cd /home/deploy/TSH_ERP_Ecosystem && git pull && docker restart"
+   ```
+
+3. **Skipping validation steps:**
+   - ❌ Don't disable Consumer Price List validation
+   - ❌ Don't skip tests
+   - ❌ Don't bypass Flutter app validation
+
+### ✅ What is REQUIRED
+
+**✅ ALWAYS DO THESE:**
+
+1. **Push to develop/staging first:**
+   ```bash
+   # ✅ CORRECT
+   git push origin develop
+   ```
+
+2. **Wait for staging workflow to complete:**
+   - All checks must pass
+   - Consumer Price List validation must pass (CRITICAL)
+
+3. **Review PR before merging:**
+   - Check validation results
+   - Review code changes
+   - Ensure Consumer prices are validated
+
+4. **Monitor production deployment:**
+   - Watch GitHub Actions workflow
+   - Verify health checks pass
+   - Check logs if issues occur
+
+### Emergency Manual Deployment
+
+**⚠️ ONLY IN CRITICAL EMERGENCIES:**
+
+If you must deploy manually (e.g., critical security fix):
+
+```bash
+# 1. Document the emergency
+git commit -m "EMERGENCY: [Reason] - Manual deployment required
+
+Reason: [Explain why staging was bypassed]
+Approved by: [Name]
+Time: $(date)"
+
+# 2. Push to main (triggers production workflow)
+git checkout main
+git pull origin main
+git push origin main
+
+# 3. Monitor production workflow
+gh run watch
+
+# 4. Follow up: Create issue documenting why staging was bypassed
+gh issue create --title "Post-Deployment Review: Emergency Manual Deployment" \
+  --body "Reason: [Explain]\n\nThis deployment bypassed staging workflow. Review required."
+```
+
+### Workflow Configuration
+
+**Required GitHub Secrets:**
+
+1. **Staging Secrets:**
+   - `STAGING_HOST` - Staging server hostname
+   - `STAGING_USER` - SSH username
+   - `STAGING_SSH_KEY` - SSH private key
+
+2. **Production Secrets:**
+   - `PROD_HOST` - Production server (167.71.39.50)
+   - `PROD_USER` - SSH username (root)
+   - `PROD_SSH_KEY` - SSH private key
+   - `DB_PASSWORD` - Database password
+   - `DB_USER` - Database user (tsh_admin)
+   - `DB_NAME` - Database name (tsh_erp)
+
+3. **Optional:**
+   - `ENABLE_AUTO_MERGE` - Set to `"true"` for auto-merge PRs
+
+**Workflow Files:**
+- `.github/workflows/deploy-staging.yml` - Staging workflow
+- `.github/workflows/intelligent-production.yml` - Production workflow
+
+### Monitoring & Troubleshooting
+
+**Check Workflow Status:**
+```bash
+# List recent staging runs
+gh run list --workflow="deploy-staging.yml" --limit 10
+
+# List recent production runs
+gh run list --workflow="intelligent-production.yml" --limit 10
+
+# View specific run
+gh run view <RUN_ID>
+```
+
+**Check Deployment on Server:**
+```bash
+ssh root@167.71.39.50
+cd /home/deploy/TSH_ERP_Ecosystem
+git log --oneline -5
+docker ps
+docker logs tsh_erp_app --tail 50
+```
+
+**Verify Consumer Price List Fix:**
+```bash
+# Test API endpoint
+curl https://erp.tsh.sale/api/consumer/products | jq '.items[0].price'
+
+# Should return Consumer price list price, NOT base price
+# Should be > 0 and currency = "IQD"
+```
 
 ---
 
@@ -708,6 +1013,41 @@ WHERE received_at > NOW() - INTERVAL '24 hours';
 
 ## Development Workflow
 
+### 🔴 MANDATORY DEPLOYMENT FLOW: Staging → Production
+
+**CRITICAL RULE**: ALL production deployments MUST go through GitHub staging workflow first. Direct production deployment is FORBIDDEN.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│           MANDATORY DEPLOYMENT FLOW                          │
+└─────────────────────────────────────────────────────────────┘
+
+1. Developer pushes to develop/staging branch
+   ↓
+2. GitHub Staging Workflow runs automatically
+   ├─ Code Quality Checks
+   ├─ Database Validation
+   ├─ Consumer Price List Validation (CRITICAL)
+   ├─ Unit & Integration Tests
+   ├─ Flutter App Validation
+   └─ Data Consistency Check
+   ↓
+3. If ALL tests pass:
+   ├─ Creates PR to main branch
+   ├─ (Optional) Auto-merges PR if ENABLE_AUTO_MERGE=true
+   └─ Triggers Production Workflow automatically
+   ↓
+4. Production Deployment runs automatically
+   ├─ Pre-Deployment Validation
+   ├─ Database Backup
+   ├─ Deploy to Production Server
+   └─ Post-Deployment Monitoring
+   ↓
+5. ✅ Production deployment complete
+
+❌ FORBIDDEN: Direct push to main → production (bypasses staging)
+```
+
 ### Senior Engineer's Deployment Checklist
 
 #### **Phase 1: Local Development**
@@ -715,7 +1055,7 @@ WHERE received_at > NOW() - INTERVAL '24 hours';
 ```bash
 # 1. Pull latest code
 cd /path/to/TSH_ERP_Ecosystem
-git pull origin main
+git pull origin develop
 
 # 2. Create feature branch
 git checkout -b feature/your-feature-name
@@ -746,107 +1086,154 @@ curl http://localhost:8000/api/zoho/sync/stats
 git add .
 git commit -m "feat: your feature description
 
-Detailed explanation of changes...
+Detailed explanation of changes..."
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-
-# 10. Push to remote
+# 10. Push to develop branch (NOT main!)
 git push origin feature/your-feature-name
 
-# 11. Create Pull Request
-gh pr create --title "feat: your feature" --body "..."
+# 11. Create Pull Request to develop branch
+gh pr create --title "feat: your feature" --body "..." --base develop
 ```
 
-#### **Phase 2: Production Deployment**
+#### **Phase 2: Staging Deployment (MANDATORY)**
 
-**Standard Deployment Process**:
+**🔴 CRITICAL: You MUST push to develop/staging branch, NOT main**
 
 ```bash
-#!/bin/bash
-# deploy.sh - Production Deployment Script
+# After PR is merged to develop, push to trigger staging workflow
+git checkout develop
+git pull origin develop
+git push origin develop
 
-set -e  # Exit on error
+# OR push to staging branch
+git checkout staging
+git pull origin staging
+git push origin staging
+```
 
-# Configuration
-VPS_HOST="root@167.71.39.50"
-DEPLOY_DIR="/home/deploy/TSH_ERP_Ecosystem"
-DOCKER_IMAGE="tsh_erp_docker-app"
-DATE_TAG=$(date +%Y%m%d-%H%M%S)
+**What Happens Automatically:**
 
-echo "🚀 Starting deployment to production..."
+1. **GitHub Staging Workflow** (`.github/workflows/deploy-staging.yml`) runs:
+   - ✅ Code Quality & Security Checks
+   - ✅ Database Schema Validation
+   - ✅ Consumer Price List Validation (NEW - Critical)
+   - ✅ Unit & Integration Tests
+   - ✅ Deploy to Staging Server
+   - ✅ Flutter Consumer App Validation
+   - ✅ Data Consistency Check
 
-# Step 1: Merge to main (after PR approval)
-echo "📝 Step 1: Ensure code is merged to main"
+2. **If ALL tests pass:**
+   - Creates Pull Request to `main` branch automatically
+   - PR title: "🚀 Auto-merge: Staging tests passed - Ready for production"
+   - PR includes all validation results
+
+3. **PR Merging Options:**
+   - **Manual**: Review PR and merge manually (recommended for critical changes)
+   - **Auto-merge**: If `ENABLE_AUTO_MERGE` secret is set to `"true"`, PR auto-merges
+
+4. **After PR is merged to main:**
+   - Production workflow triggers automatically
+   - Deploys to production server (167.71.39.50)
+   - All safety checks run
+
+**Monitor Progress:**
+
+```bash
+# View staging workflow
+gh run list --workflow="deploy-staging.yml"
+
+# View production workflow  
+gh run list --workflow="intelligent-production.yml"
+
+# Or check GitHub Actions tab in browser
+# https://github.com/YOUR_REPO/actions
+```
+
+#### **Phase 3: Production Deployment (Automatic)**
+
+**⚠️ DO NOT MANUALLY DEPLOY TO PRODUCTION**
+
+Production deployment happens automatically after:
+1. ✅ Staging workflow completes successfully
+2. ✅ PR is merged to main branch
+3. ✅ Production workflow triggers automatically
+
+**Manual Production Deployment (EMERGENCY ONLY):**
+
+```bash
+# ⚠️ ONLY USE IN EMERGENCIES
+# Normal flow: develop → staging → main (automatic)
+
+# Emergency manual deployment:
 git checkout main
 git pull origin main
+git push origin main  # This triggers production workflow
 
-# Step 2: Connect to VPS and pull latest code
-echo "📥 Step 2: Pulling latest code on VPS"
-ssh $VPS_HOST "cd $DEPLOY_DIR && git pull origin main"
-
-# Step 3: Backup current Docker image
-echo "💾 Step 3: Backing up current image"
-ssh $VPS_HOST "docker tag $DOCKER_IMAGE:latest $DOCKER_IMAGE:backup-$(date +%Y%m%d)"
-
-# Step 4: Build new Docker image
-echo "🔨 Step 4: Building new Docker image"
-ssh $VPS_HOST "cd $DEPLOY_DIR && docker build -t $DOCKER_IMAGE:latest -t $DOCKER_IMAGE:$DATE_TAG ."
-
-# Step 5: Stop old container
-echo "🛑 Step 5: Stopping old container"
-ssh $VPS_HOST "docker stop tsh_erp_app || true"
-ssh $VPS_HOST "docker rm tsh_erp_app || true"
-
-# Step 6: Start new container
-echo "▶️  Step 6: Starting new container"
-ssh $VPS_HOST "docker run -d \
-  --name tsh_erp_app \
-  --network tsh_erp_docker_tsh_network \
-  -p 8000:8000 \
-  --env-file $DEPLOY_DIR/.env \
-  --restart unless-stopped \
-  $DOCKER_IMAGE:latest"
-
-# Step 7: Wait for health check
-echo "🏥 Step 7: Waiting for health check..."
-sleep 15
-
-# Step 8: Verify deployment
-echo "✅ Step 8: Verifying deployment"
-HEALTH_CHECK=$(curl -s https://erp.tsh.sale/health)
-if echo "$HEALTH_CHECK" | grep -q '"status":"healthy"'; then
-  echo "✅ Deployment successful!"
-  echo "🎉 Version $DATE_TAG is now live!"
-else
-  echo "❌ Health check failed!"
-  echo "🔄 Rolling back to previous version..."
-  ssh $VPS_HOST "docker stop tsh_erp_app && docker rm tsh_erp_app"
-  ssh $VPS_HOST "docker run -d --name tsh_erp_app --network tsh_erp_docker_tsh_network -p 8000:8000 --env-file $DEPLOY_DIR/.env --restart unless-stopped $DOCKER_IMAGE:backup-$(date +%Y%m%d)"
-  exit 1
-fi
-
-# Step 9: Clean up old images (keep last 5 versions)
-echo "🧹 Step 9: Cleaning up old images"
-ssh $VPS_HOST "docker images | grep $DOCKER_IMAGE | tail -n +6 | awk '{print \$3}' | xargs -r docker rmi"
-
-# Step 10: Check logs
-echo "📋 Step 10: Recent logs"
-ssh $VPS_HOST "docker logs tsh_erp_app --tail 20"
-
-echo "✨ Deployment complete!"
+# Then monitor GitHub Actions for deployment status
 ```
 
-**Make script executable**:
+**What Happens in Production Workflow:**
+
+1. **Pre-Deployment Validation**:
+   - Verify staging tests passed
+   - Check for debug code
+   - Security scan
+
+2. **Database Backup**:
+   - Automatic backup before deployment
+   - Stored in `/opt/backups/auto/`
+
+3. **Deployment**:
+   - Pulls latest code from main
+   - Builds Docker image
+   - Deploys to production server
+   - Health checks
+
+4. **Post-Deployment**:
+   - 2-minute monitoring period
+   - External health checks
+   - Automatic rollback on failure
+
+**Old Manual Deployment Process (DEPRECATED)**:
+
 ```bash
-chmod +x deploy.sh
+# ⚠️ DEPRECATED: Manual deployment script
+# Use GitHub workflows instead (staging → production)
+
+# This script is kept for emergency manual deployment only
+# Normal flow: Use GitHub Actions workflows
 ```
 
-**Usage**:
-```bash
-./deploy.sh
-```
+**✅ NEW MANDATORY PROCESS: Use GitHub Workflows**
+
+**Step-by-Step Deployment Guide:**
+
+1. **Push to develop/staging branch**:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   # Make your changes
+   git add .
+   git commit -m "feat: your changes"
+   git push origin develop
+   ```
+
+2. **Monitor Staging Workflow**:
+   - Go to: https://github.com/YOUR_REPO/actions
+   - Watch "🚀 Deploy to Staging" workflow
+   - Wait for all tests to pass
+
+3. **Review Auto-Created PR**:
+   - After staging passes, PR is created to main
+   - Review the PR (or auto-merge if enabled)
+   - Merge PR to main
+
+4. **Production Deploys Automatically**:
+   - Production workflow triggers after PR merge
+   - Monitor "🎯 Intelligent Production Deployment" workflow
+   - Deployment happens automatically
+
+**No manual steps required!** The workflow handles everything.
 
 #### **Phase 3: Rollback Procedure**
 
