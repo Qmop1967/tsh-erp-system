@@ -513,7 +513,7 @@ async def mark_alert_as_read(
         raise HTTPException(status_code=500, detail=f"Error marking alert as read: {str(e)}")
 
 @router.get("/system-health")
-async def get_system_health(db: Session = Depends(get_db)):
+def get_system_health(db: Session = Depends(get_db)):
     """
     Get comprehensive system health status
     """

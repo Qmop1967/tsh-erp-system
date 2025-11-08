@@ -43,7 +43,7 @@ class ExpenseDetailResponse(ExpenseResponse):
         from_attributes = True
 
 @router.get("/", response_model=List[ExpenseResponse])
-async def get_expenses(
+def get_expenses(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     status: Optional[ExpenseStatusEnum] = None,
@@ -62,7 +62,7 @@ async def get_expenses(
     return expenses
 
 @router.get("/{expense_id}", response_model=ExpenseDetailResponse)
-async def get_expense(expense_id: int, db: Session = Depends(get_db)):
+def get_expense(expense_id: int, db: Session = Depends(get_db)):
     """Get a specific expense by ID"""
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
     if not expense:

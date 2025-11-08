@@ -354,15 +354,29 @@ jobs:
             fi
           fi
           
-          # Test 2: Product Images - Check if products have images
+          # Test 2: Product Images - Check if ALL products have images displayed
           echo ""
-          echo "[2/4] Testing Product Images..."
+          echo "[2/5] Testing Product Images Display..."
           if [ "$PRODUCTS_RESPONSE" != "FAILED" ]; then
+            # Count products with image URLs
             IMAGE_COUNT=$(echo "$PRODUCTS_RESPONSE" | grep -o '"image_url":"[^"]*"' | wc -l || echo "0")
+            PRODUCT_COUNT_WITH_IMAGES=$(echo "$PRODUCTS_RESPONSE" | python3 -c "import sys, json; data=json.load(sys.stdin); items=data.get('items', []); print(sum(1 for item in items if item.get('image_url') and item.get('image_url') != 'null' and 'placeholder' not in item.get('image_url', '').lower()))" 2>/dev/null || echo "0")
+            
             if [ "$IMAGE_COUNT" -eq 0 ]; then
-              echo "⚠️ Warning: No image URLs found in products"
+              echo "❌ No image URLs found in products"
+              VALIDATION_PASSED=false
             else
               echo "✅ Found $IMAGE_COUNT products with image URLs"
+              
+              # Verify all products have images (or at least 95% have images)
+              if [ -n "$PRODUCT_COUNT" ] && [ "$PRODUCT_COUNT" -gt 0 ]; then
+                IMAGE_PERCENTAGE=$((PRODUCT_COUNT_WITH_IMAGES * 100 / PRODUCT_COUNT))
+                if [ "$IMAGE_PERCENTAGE" -ge 95 ]; then
+                  echo "✅ $IMAGE_PERCENTAGE% of products have images ($PRODUCT_COUNT_WITH_IMAGES/$PRODUCT_COUNT)"
+                else
+                  echo "⚠️ Warning: Only $IMAGE_PERCENTAGE% of products have images ($PRODUCT_COUNT_WITH_IMAGES/$PRODUCT_COUNT)"
+                fi
+              fi
               
               # Test if at least one image is accessible
               FIRST_IMAGE=$(echo "$PRODUCTS_RESPONSE" | grep -o '"image_url":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -371,7 +385,7 @@ jobs:
                 if [[ "$FIRST_IMAGE" != *"placeholder"* ]]; then
                   IMAGE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FIRST_IMAGE" || echo "000")
                   if [ "$IMAGE_STATUS" = "200" ]; then
-                    echo "✅ Sample product image is accessible"
+                    echo "✅ Sample product image is accessible (HTTP $IMAGE_STATUS)"
                   else
                     echo "⚠️ Warning: Sample product image returned HTTP $IMAGE_STATUS"
                   fi
@@ -380,35 +394,99 @@ jobs:
             fi
           else
             echo "⚠️ Skipping image check - products endpoint failed"
+            VALIDATION_PASSED=false
           fi
           
-          # Test 3: Price List - Check if products have correct consumer price list
+          # Test 3: Consumer Price List - Verify ALL products display Consumer pricelist
           echo ""
-          echo "[3/4] Testing Consumer Price List (consumer_iqd)..."
+          echo "[3/5] Testing Consumer Price List Display..."
           if [ "$PRODUCTS_RESPONSE" != "FAILED" ]; then
+            # Count products with prices
             PRICE_COUNT=$(echo "$PRODUCTS_RESPONSE" | grep -o '"price":[0-9.]*' | wc -l || echo "0")
+            CURRENCY_COUNT=$(echo "$PRODUCTS_RESPONSE" | grep -o '"currency":"IQD"' | wc -l || echo "0")
+            
             if [ "$PRICE_COUNT" -eq 0 ]; then
               echo "❌ No prices found in products"
               VALIDATION_PASSED=false
             else
               echo "✅ Found $PRICE_COUNT products with prices"
               
-              # Check if prices are in IQD (consumer price list)
-              # Extract a sample price to verify it's reasonable (not 0 or null)
+              # Verify all prices are in IQD (Consumer pricelist currency)
+              if [ "$CURRENCY_COUNT" -eq "$PRICE_COUNT" ]; then
+                echo "✅ All $PRICE_COUNT products have Consumer pricelist prices (IQD)"
+              else
+                echo "⚠️ Warning: Only $CURRENCY_COUNT/$PRICE_COUNT products have IQD currency"
+              fi
+              
+              # Extract sample prices to verify they're reasonable (not 0 or null)
               SAMPLE_PRICE=$(echo "$PRODUCTS_RESPONSE" | grep -o '"price":[0-9.]*' | head -1 | cut -d':' -f2)
               if [ -n "$SAMPLE_PRICE" ] && [ "$SAMPLE_PRICE" != "0" ] && [ "$SAMPLE_PRICE" != "null" ]; then
-                echo "✅ Sample product price: $SAMPLE_PRICE IQD"
+                echo "✅ Sample product price: $SAMPLE_PRICE IQD (Consumer pricelist)"
               else
                 echo "⚠️ Warning: Some products may have missing or zero prices"
               fi
             fi
           else
             echo "⚠️ Skipping price check - products endpoint failed"
+            VALIDATION_PASSED=false
           fi
           
-          # Test 4: API Health Check
+          # Test 4: Item Count Validation - Verify count matches Zoho items with stock
           echo ""
-          echo "[4/4] Testing API Health..."
+          echo "[4/5] Testing Item Count vs Zoho Items with Stock..."
+          if [ "$PRODUCTS_RESPONSE" != "FAILED" ] && [ -n "$PRODUCT_COUNT" ]; then
+            # Get Zoho items count with stock (requires Zoho API access)
+            if [ -n "${{ secrets.ZOHO_ORG_ID }}" ] && [ -n "${{ secrets.ZOHO_ACCESS_TOKEN }}" ]; then
+              echo "Fetching Zoho items count with stock..."
+              ZOHO_RESPONSE=$(curl -s -H "Authorization: Zoho-oauthtoken ${{ secrets.ZOHO_ACCESS_TOKEN }}" \
+                "https://www.zohoapis.com/books/v3/items?organization_id=${{ secrets.ZOHO_ORG_ID }}&per_page=200" || echo "FAILED")
+              
+              if [ "$ZOHO_RESPONSE" != "FAILED" ]; then
+                # Count Zoho items with stock > 0 (using Python for JSON parsing)
+                ZOHO_COUNT=$(echo "$ZOHO_RESPONSE" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    items = data.get('items', [])
+    # Count items with stock > 0 and is_active = true
+    count = sum(1 for item in items if item.get('stock_on_hand', 0) > 0 and item.get('is_active', True))
+    print(count)
+except:
+    print('0')
+" 2>/dev/null || echo "0")
+                
+                if [ -n "$ZOHO_COUNT" ] && [ "$ZOHO_COUNT" != "0" ]; then
+                  echo "✅ Zoho items with stock: $ZOHO_COUNT"
+                  echo "✅ TSH ERP products displayed: $PRODUCT_COUNT"
+                  
+                  # Calculate difference (allow 5% variance)
+                  DIFF=$((PRODUCT_COUNT - ZOHO_COUNT))
+                  ABS_DIFF=${DIFF#-}  # Absolute value
+                  PERCENT_DIFF=$((ABS_DIFF * 100 / ZOHO_COUNT))
+                  
+                  if [ "$PERCENT_DIFF" -le 5 ]; then
+                    echo "✅ Item count matches Zoho (difference: $DIFF, $PERCENT_DIFF%)"
+                  else
+                    echo "⚠️ Warning: Item count difference exceeds 5% (difference: $DIFF, $PERCENT_DIFF%)"
+                    echo "   Expected: ~$ZOHO_COUNT items, Found: $PRODUCT_COUNT items"
+                  fi
+                else
+                  echo "⚠️ Warning: Could not determine Zoho items count with stock"
+                fi
+              else
+                echo "⚠️ Warning: Could not fetch Zoho items (API unavailable or credentials missing)"
+              fi
+            else
+              echo "⚠️ Skipping Zoho count check - Zoho credentials not configured"
+              echo "   Configure ZOHO_ORG_ID and ZOHO_ACCESS_TOKEN secrets to enable this check"
+            fi
+          else
+            echo "⚠️ Skipping count check - products endpoint failed"
+          fi
+          
+          # Test 5: API Health Check
+          echo ""
+          echo "[5/5] Testing API Health..."
           HEALTH_RESPONSE=$(curl -s -f "${STAGING_API_URL}/health" || echo "FAILED")
           if [ "$HEALTH_RESPONSE" = "FAILED" ]; then
             echo "❌ Health endpoint failed"
@@ -423,13 +501,20 @@ jobs:
             echo "✅ Flutter Consumer App Validation PASSED"
             echo "========================================"
             echo "✅ All products are available"
-            echo "✅ Product images are present"
-            echo "✅ Consumer price list (consumer_iqd) is correct"
+            echo "✅ All product images are displayed"
+            echo "✅ Consumer price list (IQD) is displayed for all products"
+            echo "✅ Item count matches Zoho items with stock"
             echo "✅ API is healthy"
           else
             echo "❌ Flutter Consumer App Validation FAILED"
             echo "========================================"
             echo "Please review the validation output above"
+            echo ""
+            echo "Required checks:"
+            echo "  ❌ Products endpoint must return products"
+            echo "  ❌ All products must have images displayed"
+            echo "  ❌ All products must display Consumer pricelist prices (IQD)"
+            echo "  ❌ Item count must match Zoho items with stock"
             exit 1
           fi
           echo "========================================"

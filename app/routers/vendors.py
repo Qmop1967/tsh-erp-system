@@ -35,7 +35,7 @@ router = APIRouter(prefix="/vendors", tags=["vendors"])
 
 
 @router.get("/", response_model=List[Vendor])
-async def get_vendors(
+def get_vendors(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
@@ -58,7 +58,7 @@ async def get_vendors(
 
 
 @router.get("/{vendor_id}", response_model=Vendor)
-async def get_vendor(
+def get_vendor(
     vendor_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -74,7 +74,7 @@ async def get_vendor(
 
 
 @router.post("/", response_model=Vendor)
-async def create_vendor(
+def create_vendor(
     vendor: VendorCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -88,7 +88,7 @@ async def create_vendor(
 
 
 @router.put("/{vendor_id}", response_model=Vendor)
-async def update_vendor(
+def update_vendor(
     vendor_id: int,
     vendor: VendorUpdate,
     db: Session = Depends(get_db),
@@ -111,7 +111,7 @@ async def update_vendor(
 
 
 @router.delete("/{vendor_id}")
-async def delete_vendor(
+def delete_vendor(
     vendor_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

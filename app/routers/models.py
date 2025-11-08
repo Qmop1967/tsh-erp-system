@@ -10,7 +10,7 @@ from app import models
 router = APIRouter()
 
 @router.get("/models")
-async def get_database_models(db: Session = Depends(get_db)):
+def get_database_models(db: Session = Depends(get_db)):
     """Get all database models and their structure"""
     
     # Get all model classes
@@ -82,7 +82,7 @@ async def get_database_models(db: Session = Depends(get_db)):
     }
 
 @router.get("/models/{model_name}")
-async def get_model_details(model_name: str, db: Session = Depends(get_db)):
+def get_model_details(model_name: str, db: Session = Depends(get_db)):
     """Get detailed information about a specific model"""
     
     # Find the model class

@@ -80,7 +80,7 @@ class SupportTicketRequest(BaseModel):
     language: str = "ar"
 
 @router.get("/dashboard")
-async def get_ai_assistant_dashboard(db: Session = Depends(get_db)):
+def get_ai_assistant_dashboard(db: Session = Depends(get_db)):
     """
     🤖 AI Assistant Dashboard
     24/7 Bilingual Customer Support Analytics

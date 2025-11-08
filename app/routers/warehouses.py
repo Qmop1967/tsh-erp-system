@@ -16,7 +16,7 @@ router = APIRouter(prefix="/warehouses", tags=["warehouses"])
 
 
 @router.get("/", response_model=List[WarehouseSchema])
-async def get_warehouses(
+def get_warehouses(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -28,7 +28,7 @@ async def get_warehouses(
 
 
 @router.get("/{warehouse_id}", response_model=WarehouseSchema)
-async def get_warehouse(
+def get_warehouse(
     warehouse_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -44,7 +44,7 @@ async def get_warehouse(
 
 
 @router.post("/", response_model=WarehouseSchema)
-async def create_warehouse(
+def create_warehouse(
     warehouse: WarehouseCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -58,7 +58,7 @@ async def create_warehouse(
 
 
 @router.put("/{warehouse_id}", response_model=WarehouseSchema)
-async def update_warehouse(
+def update_warehouse(
     warehouse_id: int,
     warehouse: WarehouseUpdate,
     db: Session = Depends(get_db),
@@ -81,7 +81,7 @@ async def update_warehouse(
 
 
 @router.delete("/{warehouse_id}")
-async def delete_warehouse(
+def delete_warehouse(
     warehouse_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

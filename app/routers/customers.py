@@ -17,7 +17,7 @@ router = APIRouter(tags=["customers"])
 
 # Customer endpoints
 @router.get("/generate-code")
-async def generate_customer_code(
+def generate_customer_code(
     prefix: str = Query("CUST", description="Customer code prefix"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -32,7 +32,7 @@ async def generate_customer_code(
 
 @router.post("/", response_model=Customer, status_code=201)
 @simple_require_permission("create_customer")
-async def create_customer(
+def create_customer(
     customer: CustomerCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -43,7 +43,7 @@ async def create_customer(
 
 @router.get("/", response_model=List[Customer])
 @simple_require_permission("customers.view")
-async def get_customers(
+def get_customers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     search: Optional[str] = Query(None, description="البحث في الاسم أو رقم العميل"),
@@ -56,7 +56,7 @@ async def get_customers(
 
 
 @router.get("/salespersons", response_model=List[dict])
-async def get_salespersons(
+def get_salespersons(
     db: Session = Depends(get_db),
     # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):
@@ -70,7 +70,7 @@ async def get_salespersons(
 
 
 @router.get("/{customer_id}", response_model=Customer)
-async def get_customer(
+def get_customer(
     customer_id: int,
     db: Session = Depends(get_db),
     # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
@@ -281,7 +281,7 @@ def delete_supplier(
 
 
 @router.get("/branches", response_model=List[dict])
-async def get_branches(
+def get_branches(
     db: Session = Depends(get_db),
     # current_user: User = Depends(get_current_user)  # Temporarily disabled for development
 ):

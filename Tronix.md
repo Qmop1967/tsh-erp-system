@@ -2160,7 +2160,53 @@ async def get_investigation_dashboard(
 
 **Philosophy**: Only show products with available stock
 
-#### 5.1 API Filtering Rules
+#### 5.1 Consumer Price List Requirement
+
+**CRITICAL REQUIREMENT**: The Flutter Consumer App MUST display products using the **Consumer Price List** only.
+
+**Implementation Details**:
+
+1. **Backend Endpoints**:
+   - `GET /api/consumer/products` - Returns products with Consumer pricelist pricing
+   - `GET /api/bff/mobile/consumer/products` - BFF endpoint with Consumer pricelist pricing
+   
+2. **Price List Selection**:
+   - Products MUST use the pricelist named **"Consumer"**
+   - Currency MUST be **"IQD"** (Iraqi Dinar)
+   - Fallback: If Consumer pricelist price not found, use product base price
+   
+3. **Query Implementation** (`app/routers/consumer_api.py:133-151` and `app/bff/mobile/router.py:1243-1251`):
+   ```sql
+   LEFT JOIN LATERAL (
+       SELECT pp.price, pp.currency
+       FROM product_prices pp
+       JOIN pricelists pl ON pp.pricelist_id = pl.id
+       WHERE pp.product_id = p.id
+         AND pl.name = 'Consumer'
+         AND pp.currency = 'IQD'
+       LIMIT 1
+   ) consumer_price ON true
+   ```
+   
+4. **Response Format**:
+   ```json
+   {
+     "price": 15000.00,
+     "currency": "IQD"
+   }
+   ```
+
+5. **Validation in CI/CD**:
+   - GitHub Actions workflow MUST verify Consumer pricelist is used
+   - All products MUST have Consumer pricelist prices (or fallback to base price)
+   - Price currency MUST be IQD
+
+**Flutter App Requirements**:
+- Display Consumer pricelist price for all products
+- Format prices in IQD currency
+- Show currency symbol (IQD) or formatted as "15,000 IQD"
+
+#### 5.2 API Filtering Rules
 
 **Already Implemented**: `app/routers/consumer_api.py:119`
 

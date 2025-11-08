@@ -18,7 +18,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/roles", response_model=List[dict])
 @simple_require_permission("read_user")
-async def get_roles(
+def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -30,7 +30,7 @@ async def get_roles(
 
 @router.get("/branches", response_model=List[dict])
 @simple_require_permission("read_user")
-async def get_branches(
+def get_branches(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -42,7 +42,7 @@ async def get_branches(
 
 @router.get("/")
 @simple_require_permission("read_user")
-async def get_users(
+def get_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ async def get_users(
 
 @router.get("/by-type/{user_type}")
 @simple_require_permission("read_user")
-async def get_users_by_type(
+def get_users_by_type(
     user_type: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -140,7 +140,7 @@ async def get_users_by_type(
 
 
 @router.get("/{user_id}", response_model=UserSchema)
-async def get_user(
+def get_user(
     user_id: int,
     db: Session = Depends(get_db),
     # current_user: User = Depends(get_current_user)  # Temporarily disabled
@@ -156,7 +156,7 @@ async def get_user(
 
 
 @router.get("/summary", include_in_schema=True)
-async def get_users_summary(
+def get_users_summary(
     db: Session = Depends(get_db)
 ):
     """Get users summary for dashboard - جلب ملخص المستخدمين للوحة التحكم"""
@@ -196,7 +196,7 @@ async def get_users_summary(
 
 
 @router.post("/", response_model=UserSchema)
-async def create_user(
+def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
     # current_user: User = Depends(get_current_user)  # Temporarily disabled
@@ -222,7 +222,7 @@ async def create_user(
 
 
 @router.put("/{user_id}", response_model=UserSchema)
-async def update_user(
+def update_user(
     user_id: int,
     user: UserUpdate,
     db: Session = Depends(get_db),
@@ -251,7 +251,7 @@ async def update_user(
 
 
 @router.delete("/{user_id}")
-async def delete_user(
+def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
     # current_user: User = Depends(get_current_user)  # Temporarily disabled
