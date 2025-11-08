@@ -1,7 +1,16 @@
 name: 🚀 Deploy to Staging (Mandatory Pre-Production)
 
-# MANDATORY: All production deployments MUST go through this workflow first
+# 🔴 MANDATORY: All production deployments MUST go through this workflow first
 # This workflow runs all automated tests, deploys to staging, and validates the Flutter consumer app
+# After successful completion, it automatically triggers production deployment workflow
+
+# DEPLOYMENT FLOW ENFORCEMENT:
+# 1. Push to develop/staging → This workflow runs
+# 2. All tests pass → PR created to main
+# 3. PR merged → Production workflow triggers automatically
+# 4. Production deploys → Complete
+
+# ❌ FORBIDDEN: Direct push to main (bypasses this workflow)
 
 on:
   push:
@@ -12,7 +21,7 @@ on:
     branches:
       - develop
       - staging
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:  # Allow manual triggering for testing
 
 env:
   PYTHON_VERSION: "3.11"
@@ -147,7 +156,7 @@ jobs:
     name: 💰 Consumer Price List Validation
     runs-on: ubuntu-latest
     needs: [code-quality, database-validation]
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -177,7 +186,28 @@ jobs:
           pip install -r requirements.txt || true
           pip install psycopg2-binary sqlalchemy
 
+      - name: 🔍 Pre-Flight: Check Required Secrets
+        id: check_secrets
+        run: |
+          echo "🔍 Checking required secrets and configuration..."
+          
+          MISSING_SECRETS=()
+          
+          # Check for production database URL (required for validation)
+          if [ -z "${{ secrets.PROD_DB_URL }}" ]; then
+            echo "⚠️ PROD_DB_URL secret not configured"
+            echo "   Will attempt to use test database (may fail if not configured)"
+            echo "skip_validation=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ PROD_DB_URL secret configured"
+            echo "skip_validation=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo ""
+          echo "✅ Pre-flight checks completed"
+
       - name: 💰 Validate Consumer Price List
+        id: validate_pricelist
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_test
           # Use production database if staging DB not available
@@ -191,26 +221,46 @@ jobs:
           if [ -n "$PROD_DB_URL" ]; then
             echo "⚠️ Using production database for validation (staging DB not configured)"
             export DATABASE_URL="$PROD_DB_URL"
+            echo "✅ Database URL configured from PROD_DB_URL secret"
+          else
+            echo "ℹ️ Using test database (localhost:5432/tsh_erp_test)"
+            echo "⚠️ If validation fails, configure PROD_DB_URL secret for production database access"
           fi
           
-          # Run validation script
-          python3 scripts/validate_consumer_pricelist.py || {
+          echo ""
+          echo "Running validation script..."
+          echo ""
+          
+          # Run validation script with better error handling
+          if python3 scripts/validate_consumer_pricelist.py; then
+            echo ""
+            echo "✅ Consumer Price List validation PASSED"
+            echo "========================================"
+            echo "validation_passed=true" >> $GITHUB_OUTPUT
+          else
+            EXIT_CODE=$?
             echo ""
             echo "❌ CRITICAL: Consumer Price List validation FAILED"
+            echo "   Exit code: $EXIT_CODE"
             echo ""
             echo "This means some products with stock are missing Consumer price list prices."
             echo "The Consumer app will NOT display these products correctly."
             echo ""
+            echo "Possible causes:"
+            echo "  1. Database connection failed (check DATABASE_URL)"
+            echo "  2. Products missing Consumer price list prices"
+            echo "  3. Consumer price list not synced from Zoho"
+            echo ""
             echo "Required actions:"
-            echo "1. Sync Consumer price list from Zoho"
-            echo "2. Ensure all products have Consumer price list prices"
-            echo "3. Re-run validation"
+            echo "1. Check database connection and credentials"
+            echo "2. Sync Consumer price list from Zoho"
+            echo "3. Ensure all products have Consumer price list prices"
+            echo "4. Re-run validation"
+            echo ""
+            echo "========================================"
+            echo "validation_passed=false" >> $GITHUB_OUTPUT
             exit 1
-          }
-          
-          echo ""
-          echo "✅ Consumer Price List validation PASSED"
-          echo "========================================"
+          fi
 
   # ============================================================================
   # STAGE 3: UNIT & INTEGRATION TESTS

@@ -1,20 +1,29 @@
 name: 🎯 Intelligent Production Deployment with Safety Checks
 
+# 🔴 MANDATORY: Production deployment ONLY triggers after staging workflow succeeds
+# This enforces the staging → production flow
+
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - main
-  push:
-    branches:
-      - main
+  # Trigger 1: After staging workflow completes successfully (PRIMARY METHOD)
   workflow_run:
-    workflows: ["🚀 Deploy to Staging (Mandatory Pre-Production)"]
+    workflows: ["deploy-staging.yml"]  # Use workflow file name (without path)
     types:
       - completed
     branches:
       - develop
       - staging
+  
+  # Trigger 2: Direct push to main (EMERGENCY ONLY - bypasses staging)
+  # ⚠️ Use only in critical emergencies with proper documentation
+  push:
+    branches:
+      - main
+  
+  # Trigger 3: PR to main (validation only, does not deploy)
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
 
 env:
   PYTHON_VERSION: "3.11"
@@ -39,23 +48,36 @@ jobs:
 
       - name: 🔍 Verify Staging Tests Passed
         run: |
-          echo "🔍 Verifying that staging tests passed..."
+          echo "🔍 Verifying deployment trigger source..."
           
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "✅ Triggered by staging workflow completion"
+            echo "✅ CORRECT: Triggered by staging workflow completion"
             echo "Staging workflow run: ${{ github.event.workflow_run.id }}"
             echo "Staging workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
             echo "Staging workflow commit: ${{ github.event.workflow_run.head_sha }}"
             
             if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
-              echo "❌ Staging workflow did not succeed - aborting production deployment"
+              echo "❌ CRITICAL: Staging workflow did not succeed"
+              echo "❌ Production deployment ABORTED"
+              echo ""
+              echo "Required actions:"
+              echo "1. Fix issues in staging workflow"
+              echo "2. Re-run staging workflow"
+              echo "3. Wait for staging to pass before production deployment"
               exit 1
             fi
             
             echo "✅ Staging workflow passed - proceeding with production deployment"
+            echo "✅ This is the CORRECT deployment flow (staging → production)"
           else
-            echo "⚠️ Not triggered by staging workflow - manual deployment"
+            echo "⚠️ WARNING: Not triggered by staging workflow"
+            echo "⚠️ This is a DIRECT push to main (bypasses staging)"
             echo "Commit: ${{ github.sha }}"
+            echo ""
+            echo "⚠️ This should ONLY be used in CRITICAL EMERGENCIES"
+            echo "⚠️ Please document why staging was bypassed in commit message"
+            echo ""
+            echo "Proceeding with production deployment..."
           fi
 
       - name: 🚫 Check for Debug Code

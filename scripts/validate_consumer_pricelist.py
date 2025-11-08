@@ -22,6 +22,7 @@ from typing import Dict, Any, List, Tuple, Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import OperationalError, DatabaseError
 
 # Add parent directory to path to import app modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -132,30 +133,37 @@ class ConsumerPricelistValidator:
 
     async def _check_consumer_pricelist_exists(self) -> Optional[Dict[str, Any]]:
         """Check if Consumer price list exists"""
-        async for db in get_async_db():
-            try:
-                query = text("""
-                    SELECT id, code, name_en, name_ar, currency, is_active
-                    FROM price_lists
-                    WHERE code = 'consumer_iqd'
-                       OR name_en ILIKE '%Consumer%'
-                    LIMIT 1
-                """)
-                result = await db.execute(query)
-                row = result.first()
-                
-                if row:
-                    return {
-                        "id": row[0],
-                        "code": row[1],
-                        "name_en": row[2],
-                        "name_ar": row[3],
-                        "currency": row[4],
-                        "is_active": row[5]
-                    }
-                return None
-            finally:
-                break
+        try:
+            async for db in get_async_db():
+                try:
+                    query = text("""
+                        SELECT id, code, name_en, name_ar, currency, is_active
+                        FROM price_lists
+                        WHERE code = 'consumer_iqd'
+                           OR name_en ILIKE '%Consumer%'
+                        LIMIT 1
+                    """)
+                    result = await db.execute(query)
+                    row = result.first()
+                    
+                    if row:
+                        return {
+                            "id": row[0],
+                            "code": row[1],
+                            "name_en": row[2],
+                            "name_ar": row[3],
+                            "currency": row[4],
+                            "is_active": row[5]
+                        }
+                    return None
+                except Exception as e:
+                    print(f"   ⚠️ Error querying price_lists table: {str(e)}")
+                    raise
+                finally:
+                    break
+        except Exception as e:
+            print(f"   ❌ Database error: {str(e)}")
+            raise
 
     async def _count_products_with_stock(self) -> int:
         """Count products with stock > 0"""
@@ -235,11 +243,62 @@ class ConsumerPricelistValidator:
 
 async def main():
     """Main entry point"""
-    validator = ConsumerPricelistValidator()
-    is_valid, report = await validator.validate()
-    
-    # Exit with appropriate code
-    sys.exit(0 if is_valid else 1)
+    try:
+        # Check database connection first
+        print("🔍 Checking database connection...")
+        database_url = os.getenv("DATABASE_URL")
+        if not database_url:
+            print("❌ ERROR: DATABASE_URL environment variable not set")
+            print("")
+            print("Required environment variables:")
+            print("  - DATABASE_URL: PostgreSQL connection string")
+            print("")
+            print("Example:")
+            print("  export DATABASE_URL='postgresql://user:pass@host:5432/dbname'")
+            sys.exit(1)
+        
+        # Test database connection
+        try:
+            async for db in get_async_db():
+                try:
+                    await db.execute(text("SELECT 1"))
+                    print("✅ Database connection successful")
+                    break
+                finally:
+                    break
+        except (OperationalError, DatabaseError) as e:
+            print(f"❌ ERROR: Database connection failed")
+            print(f"   Error: {str(e)}")
+            print("")
+            print("Please check:")
+            print("  1. DATABASE_URL is correct")
+            print("  2. Database server is accessible")
+            print("  3. Database credentials are valid")
+            sys.exit(1)
+        except Exception as e:
+            print(f"❌ ERROR: Unexpected error connecting to database")
+            print(f"   Error: {str(e)}")
+            print(f"   Type: {type(e).__name__}")
+            sys.exit(1)
+        
+        # Run validation
+        validator = ConsumerPricelistValidator()
+        is_valid, report = await validator.validate()
+        
+        # Exit with appropriate code
+        sys.exit(0 if is_valid else 1)
+        
+    except KeyboardInterrupt:
+        print("\n⚠️ Validation interrupted by user")
+        sys.exit(130)
+    except Exception as e:
+        print(f"\n❌ CRITICAL ERROR: Validation script failed unexpectedly")
+        print(f"   Error: {str(e)}")
+        print(f"   Type: {type(e).__name__}")
+        import traceback
+        print("\nFull traceback:")
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
