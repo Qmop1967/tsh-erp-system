@@ -333,7 +333,7 @@ jobs:
           echo "📱 Validating Flutter Consumer App"
           echo "========================================"
           
-          API_BASE="${STAGING_API_URL}/api/shop"
+          API_BASE="${STAGING_API_URL}/api/consumer"
           VALIDATION_PASSED=true
           
           # Test 1: Products Endpoint - Check if products are returned
