@@ -141,15 +141,32 @@ class ZohoService:
         # Initialize core components
         self.auth = ZohoAuthManager(credentials, auto_refresh=True)
         self.client = UnifiedZohoClient(self.auth, credentials.organization_id)
-        self.sync = ZohoSyncOrchestrator(self.client, db=db)
-        self.webhooks = ZohoWebhookManager(self.client, db=db)
-        self.stock_sync = UnifiedStockSyncService(self.client, db=db)
 
-        # Initialize processors
+        # Initialize sync orchestrator with db
+        self.sync = ZohoSyncOrchestrator(
+            zoho_client=self.client,
+            db=db
+        )
+
+        # Initialize webhooks (requires sync orchestrator, not client!)
+        import os
+        webhook_secret = os.getenv('ZOHO_WEBHOOK_SECRET', '')
+        self.webhooks = ZohoWebhookManager(
+            sync_orchestrator=self.sync,
+            secret_key=webhook_secret if webhook_secret else None
+        )
+
+        # Initialize stock sync (requires both client and sync orchestrator)
+        self.stock_sync = UnifiedStockSyncService(
+            zoho_client=self.client,
+            sync_orchestrator=self.sync
+        )
+
+        # Initialize processors (these don't need db in constructor)
         self.processors = {
-            EntityType.PRODUCTS: ProductProcessor(self.client, db),
-            EntityType.CUSTOMERS: CustomerProcessor(self.client, db),
-            EntityType.INVENTORY: InventoryProcessor(self.client, db),
+            EntityType.PRODUCTS: ProductProcessor(),
+            EntityType.CUSTOMERS: CustomerProcessor(),
+            EntityType.INVENTORY: InventoryProcessor(),
         }
 
         if auto_start:

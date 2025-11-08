@@ -4,7 +4,7 @@ Provides mobile and web-optimized endpoints for data sync monitoring
 """
 import logging
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
@@ -966,6 +966,301 @@ async def get_complete_health(db: AsyncSession = Depends(get_async_db)):
 
 
 # ============================================================================
+# ZOHO WEBHOOKS
+# ============================================================================
+
+@router.post(
+    "/zoho/webhooks",
+    summary="Receive Zoho Webhooks",
+    description="Real-time webhook receiver for Zoho events (items, orders, contacts, etc.)"
+)
+async def receive_zoho_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Receive and process Zoho webhooks in real-time
+
+    Features:
+    - Signature validation
+    - Duplicate detection
+    - Auto-sync on entity changes
+    - Event-driven processing
+
+    Supported Events:
+    - item.created, item.updated, item.deleted
+    - salesorder.created, salesorder.updated, salesorder.deleted
+    - invoice.created, invoice.updated, invoice.deleted
+    - contact.created, contact.updated, contact.deleted
+    """
+    from fastapi import Request
+
+    try:
+        # Get raw payload for signature validation
+        raw_payload = await request.body()
+        payload = await request.json()
+
+        # Get signature from headers
+        signature = request.headers.get('X-Zoho-Signature')
+
+        logger.info(f"📥 Webhook received: {payload.get('event_type', 'unknown')}")
+
+        # Initialize TDS Zoho Service
+        from app.tds.zoho import ZohoService
+
+        zoho_service = ZohoService(db=db)
+        await zoho_service.start()
+
+        try:
+            # Process webhook through TDS
+            result = await zoho_service.webhooks.handle_webhook(
+                payload=payload,
+                signature=signature,
+                raw_payload=raw_payload.decode('utf-8')
+            )
+
+            logger.info(
+                f"✅ Webhook processed: {result.event_id} - {result.status} "
+                f"({result.processing_time_ms:.2f}ms)"
+            )
+
+            return {
+                "success": True,
+                "status": "received",
+                "event_id": result.event_id,
+                "processing_status": str(result.status),
+                "processing_time_ms": round(result.processing_time_ms, 2)
+            }
+
+        finally:
+            await zoho_service.stop()
+
+    except Exception as e:
+        logger.error(f"❌ Webhook processing error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Webhook processing failed: {str(e)}"
+        )
+
+
+@router.get(
+    "/zoho/webhooks/health",
+    summary="Zoho webhook system health",
+    description="Get health status of Zoho webhook processing system"
+)
+async def get_webhook_health(db: AsyncSession = Depends(get_async_db)):
+    """Get webhook system health and statistics"""
+    from app.tds.zoho import ZohoService
+
+    zoho_service = ZohoService(db=db)
+    await zoho_service.start()
+
+    try:
+        health = zoho_service.webhooks.get_health()
+        return {
+            "status": "healthy" if health.get("is_healthy") else "degraded",
+            "statistics": {
+                "total_received": health.get("total_received", 0),
+                "total_processed": health.get("total_processed", 0),
+                "total_failed": health.get("total_failed", 0),
+                "total_duplicates": health.get("total_duplicates", 0),
+            },
+            "queue_size": health.get("queue_size", 0),
+            "features": {
+                "deduplication_enabled": health.get("deduplication_enabled", True),
+                "validation_enabled": health.get("validation_enabled", True),
+            },
+            "last_received": health.get("last_received"),
+            "last_processed": health.get("last_processed"),
+        }
+    finally:
+        await zoho_service.stop()
+
+
+@router.get(
+    "/zoho/webhooks/recent",
+    summary="Get recent webhook events",
+    description="Get list of recently received webhook events"
+)
+async def get_recent_webhooks(
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get recently received webhooks"""
+    from app.tds.zoho import ZohoService
+
+    zoho_service = ZohoService(db=db)
+    await zoho_service.start()
+
+    try:
+        recent = zoho_service.webhooks.get_recent_webhooks(limit=limit)
+        return {
+            "webhooks": recent,
+            "count": len(recent)
+        }
+    finally:
+        await zoho_service.stop()
+
+
+# ============================================================================
+# AUTO-HEALING ENDPOINTS
+# ============================================================================
+
+@router.post(
+    "/auto-healing/run",
+    summary="Trigger auto-healing cycle",
+    description="Manually trigger an auto-healing cycle to recover stuck tasks and retry DLQ items"
+)
+async def trigger_auto_healing(db: AsyncSession = Depends(get_async_db)):
+    """Trigger auto-healing cycle manually"""
+    from app.tds.services.auto_healing import AutoHealingService
+
+    healing_service = AutoHealingService(db)
+    results = await healing_service.run_healing_cycle()
+
+    return {
+        "success": True,
+        "results": results,
+        "message": f"Auto-healing complete: {results.get('stuck_tasks', 0)} stuck tasks, {results.get('dlq_retries', 0)} DLQ retries"
+    }
+
+
+@router.get(
+    "/auto-healing/stats",
+    summary="Get auto-healing statistics",
+    description="Get statistics about auto-healing operations"
+)
+async def get_auto_healing_stats(db: AsyncSession = Depends(get_async_db)):
+    """Get auto-healing statistics"""
+    from app.tds.services.auto_healing import AutoHealingService
+
+    healing_service = AutoHealingService(db)
+    return healing_service.get_stats()
+
+
+# ============================================================================
+# CIRCUIT BREAKER ENDPOINTS
+# ============================================================================
+
+@router.get(
+    "/circuit-breakers",
+    summary="Get all circuit breakers status",
+    description="Get status of all registered circuit breakers"
+)
+async def get_circuit_breakers():
+    """Get all circuit breakers status"""
+    from app.tds.utils.circuit_breaker import circuit_breaker_registry
+
+    stats = circuit_breaker_registry.get_all_stats()
+    open_breakers = circuit_breaker_registry.get_open_breakers()
+
+    return {
+        "circuit_breakers": stats,
+        "open_count": len(open_breakers),
+        "open_breakers": open_breakers,
+        "total_breakers": len(stats)
+    }
+
+
+@router.post(
+    "/circuit-breakers/{name}/reset",
+    summary="Reset circuit breaker",
+    description="Manually reset a circuit breaker to closed state"
+)
+async def reset_circuit_breaker(name: str):
+    """Reset specific circuit breaker"""
+    from app.tds.utils.circuit_breaker import circuit_breaker_registry
+
+    breaker = circuit_breaker_registry.get(name)
+    if not breaker:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Circuit breaker '{name}' not found"
+        )
+
+    await breaker.reset()
+    return {"success": True, "message": f"Circuit breaker '{name}' reset to CLOSED"}
+
+
+# ============================================================================
+# DATA VALIDATION ENDPOINTS
+# ============================================================================
+
+@router.post(
+    "/data-validation/products",
+    summary="Validate products",
+    description="Run comprehensive validation on products in database"
+)
+async def validate_products(
+    limit: int = Query(1000, ge=1, le=10000),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Validate products in database"""
+    from app.tds.services.data_validator import DataValidator
+
+    validator = DataValidator(db)
+    report = await validator.validate_product_batch(limit=limit)
+
+    return {
+        "timestamp": report.timestamp.isoformat(),
+        "entity_type": report.entity_type,
+        "statistics": {
+            "total_records": report.total_records,
+            "valid_records": report.valid_records,
+            "invalid_records": report.invalid_records,
+            "validation_rate": round(report.validation_rate, 2),
+        },
+        "issues": [
+            {
+                "severity": issue.severity.value,
+                "entity_id": issue.entity_id,
+                "field": issue.field,
+                "issue": issue.issue,
+                "current_value": str(issue.current_value),
+                "recommendation": issue.recommendation,
+            }
+            for issue in report.issues[:100]  # Limit to first 100 issues
+        ],
+        "total_issues": len(report.issues)
+    }
+
+
+@router.get(
+    "/data-validation/integrity",
+    summary="Check data integrity",
+    description="Run comprehensive data integrity checks"
+)
+async def check_data_integrity(db: AsyncSession = Depends(get_async_db)):
+    """Check data integrity"""
+    from app.tds.services.data_validator import DataValidator
+
+    validator = DataValidator(db)
+    report = await validator.check_data_integrity()
+
+    return report
+
+
+@router.get(
+    "/data-validation/orphans",
+    summary="Check for orphaned records",
+    description="Find orphaned records with invalid foreign keys"
+)
+async def check_orphaned_records(db: AsyncSession = Depends(get_async_db)):
+    """Check for orphaned records"""
+    from app.tds.services.data_validator import DataValidator
+
+    validator = DataValidator(db)
+    orphans = await validator.check_orphaned_records()
+
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "orphaned_records": orphans,
+        "total_types": len(orphans),
+        "total_orphans": sum(len(records) for records in orphans.values())
+    }
+
+
+# ============================================================================
 # HEALTH CHECK
 # ============================================================================
 
@@ -982,7 +1277,7 @@ async def health_check(db: AsyncSession = Depends(get_async_db)):
     return {
         "status": "healthy",
         "service": "TDS (TSH Data Sync)",
-        "version": "2.0.0",
+        "version": "3.0.0",
         "features": [
             "Event-driven architecture",
             "Modular monolith design",
@@ -990,6 +1285,11 @@ async def health_check(db: AsyncSession = Depends(get_async_db)):
             "Real-time monitoring",
             "Automatic retry with backoff",
             "Pagination batch stock sync",
+            "Zoho webhook support",
+            "Auto-healing service",
+            "Circuit breaker pattern",
+            "Structured logging",
+            "Data validation & integrity",
         ],
         "queue_depth": sum(stats["queue_status"].values()),
         "active_alerts": stats["active_alerts"],
