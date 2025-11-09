@@ -170,6 +170,9 @@ app.add_middleware(
     expose_headers=["X-Total-Count", "X-Page-Count", "X-Request-ID"],
 )
 
+# Import Socket.IO server for real-time updates
+from app.tds.websocket.server import sio
+
 # استيراد الـ routers
 from app.routers import (
     sales_router, inventory_router, accounting_router, pos_router,
@@ -471,3 +474,15 @@ async def root():
 async def health_check():
     """فحص حالة التطبيق"""
     return {"status": "healthy", "message": "النظام يعمل بشكل طبيعي"}
+
+# ============================================================================
+# Socket.IO Integration for Real-Time Updates
+# ============================================================================
+# Mount Socket.IO server for TDS Admin Dashboard real-time updates
+import socketio
+
+# Create ASGI app with Socket.IO
+socket_app = socketio.ASGIApp(sio, app)
+
+# Export the combined app
+__all__ = ["app", "socket_app"]
