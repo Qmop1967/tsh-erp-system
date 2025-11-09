@@ -121,6 +121,51 @@ services:
       start_period: 40s
     logging: *logging-default
 
+  tds_admin_dashboard:
+    build:
+      context: ./apps/tds_admin_dashboard
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://app:8000}
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-ws://app:8000}
+      tags:
+        - "tds-admin-dashboard:${VERSION:-latest}"
+        - "tds-admin-dashboard:latest"
+    image: tds-admin-dashboard:${VERSION:-latest}
+    container_name: tds_admin_dashboard
+    restart: always
+    profiles:
+      - dashboard
+      - core
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://app:8000}
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-ws://app:8000}
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${TDS_DASHBOARD_PORT:-3000}:3000"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging: *logging-default
+
   nginx:
     image: nginx:alpine
     container_name: tsh_nginx
