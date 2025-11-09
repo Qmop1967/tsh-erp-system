@@ -105,7 +105,7 @@ async def main():
                 batch_size=200
             )
 
-            products_result = await zoho.sync.sync_products(config=sync_config)
+            products_result = await zoho.sync.sync_entity(config=sync_config)
 
             print(f"\n✅ Products Sync Results:")
             print(f"   Total Fetched: {products_result.total_fetched}")
