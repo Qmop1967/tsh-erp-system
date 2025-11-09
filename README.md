@@ -176,6 +176,47 @@ cd app && npm test
 cd mobile/[app_name] && flutter test
 ```
 
+## 🚀 Production Deployment
+
+### Direct Deployment (Primary Method)
+
+TSH ERP uses **direct deployment** from development to production, bypassing GitHub for faster and more reliable deployments.
+
+```bash
+# One-command deployment to production
+./scripts/deploy_direct_to_production.sh
+```
+
+**What happens:**
+1. ✅ Validates SSH connection to production server
+2. ✅ Shows what will be deployed and asks for confirmation
+3. ✅ Syncs files directly using rsync over SSH
+4. ✅ Rebuilds Docker containers on production
+5. ✅ Restarts services and verifies health
+
+**Complete documentation:** See `docs/DIRECT_DEPLOYMENT_WORKFLOW.md` for full workflow, troubleshooting, and rollback procedures.
+
+### Why Direct Deployment?
+
+- **⚡ Speed**: Deploy in seconds, not minutes
+- **🎯 Simplicity**: One command, automatic verification
+- **🔒 Control**: Full visibility into deployment process
+- **💪 Reliability**: No dependency on external services
+- **🔄 Flexibility**: Easy rollback and testing
+
+### Prerequisites for Production Deployment
+
+```bash
+# 1. Configure SSH access (one-time setup)
+./scripts/setup_local_ssh_config.sh
+
+# 2. Test SSH connection
+ssh tsh-vps
+
+# 3. Ready to deploy!
+./scripts/deploy_direct_to_production.sh
+```
+
 ## 🐳 Docker Deployment
 
 ```bash
