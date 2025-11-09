@@ -102,8 +102,7 @@ async def main():
             sync_config = SyncConfig(
                 entity_type=EntityType.PRODUCTS,
                 mode=SyncMode.INCREMENTAL,
-                batch_size=200,
-                page_size=200
+                batch_size=200
             )
 
             products_result = await zoho.sync.sync_products(config=sync_config)
