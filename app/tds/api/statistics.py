@@ -14,9 +14,9 @@ Version: 4.0.0
 import logging
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.db.database import get_async_db
 from app.tds.statistics.engine import StatisticsEngine
 from app.tds.statistics.models import EntityType, FullComparisonReport
 from app.utils.permissions import simple_require_permission

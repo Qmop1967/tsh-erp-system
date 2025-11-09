@@ -255,9 +255,11 @@ from app.routers.notifications import router as notifications_router  # Unified 
 #
 # Impact: -63KB code, -93% files, 100% duplication eliminated
 # ============================================================================
-# TEMP DISABLED for deployment: from app.routers.zoho_webhooks import router as zoho_webhooks_router  # TDS webhook receiver
+# TDS API Routers - Consolidated Zoho Integration Layer
+from app.tds.api import webhooks_router as tds_webhooks_router  # TDS webhook receiver (NEW - Consolidated)
 from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync
 from app.routers.data_investigation import router as data_investigation_router  # Daily data investigation reports
+# DEPRECATED: from app.routers.zoho_webhooks import router as zoho_webhooks_router  # Old router - replaced by TDS API
 
 # 📦 Archived Legacy Services (2025-01-07):
 # See: archived/legacy_zoho_services_2025_01/README.md
@@ -418,7 +420,8 @@ app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer 
 # - Monitoring and auto-healing
 # - Complete audit trail
 # ============================================================================
-# TEMP DISABLED for deployment: app.include_router(zoho_webhooks_router, prefix="/api/zoho/webhooks", tags=["TDS Core - Webhooks"])
+# ✅ TDS Webhooks - Consolidated in TDS module per architecture
+app.include_router(tds_webhooks_router, prefix="/api/tds/webhooks", tags=["TDS Core - Webhooks"])
 app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])
 app.include_router(data_investigation_router, tags=["Data Investigation - Daily Monitoring"])
 
