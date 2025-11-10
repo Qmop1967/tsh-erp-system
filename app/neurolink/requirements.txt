@@ -1,0 +1,49 @@
+# TSH NeuroLink - Python Dependencies
+
+# FastAPI and Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+asyncpg==0.29.0
+sqlalchemy[asyncio]==2.0.23
+alembic==1.12.1
+
+# Redis for Event Bus
+redis==5.0.1
+aioredis==2.0.1
+
+# WebSocket Support
+websockets==12.0
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# HTTP Client
+httpx==0.25.1
+
+# Data Validation
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Template Engine (Phase 2)
+jinja2==3.1.2
+
+# Email Delivery (Phase 1)
+resend==0.8.0
+
+# Push Notifications (Phase 1)
+firebase-admin==6.4.0
+
+# SMS Delivery (Phase 4)
+twilio==8.10.0
+
+# Background Task Scheduler
+apscheduler==3.10.4
