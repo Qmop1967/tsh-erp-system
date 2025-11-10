@@ -10,7 +10,8 @@ import {
   Settings,
   Activity,
   Database,
-  Webhook
+  Webhook,
+  Megaphone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: 'Sync Operations', href: '/sync', icon: RefreshCw },
     { name: 'Statistics', href: '/statistics', icon: BarChart3 },
     { name: 'Alerts', href: '/alerts', icon: AlertTriangle, badge: criticalAlertsCount },
+    { name: 'Announcements', href: '/announcements', icon: Megaphone },
     { name: 'System Health', href: '/health', icon: Activity },
     { name: 'Dead Letter Queue', href: '/dlq', icon: Database },
     { name: 'Webhooks', href: '/webhooks', icon: Webhook },
