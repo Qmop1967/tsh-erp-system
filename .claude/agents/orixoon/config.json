@@ -1,0 +1,147 @@
+{
+  "agent_name": "orixoon",
+  "version": "1.0.0",
+  "description": "Pre-deployment testing agent for TSH ERP Ecosystem",
+
+  "server": {
+    "host": "167.71.39.50",
+    "ssh_user": "root",
+    "base_url": "http://localhost:8000",
+    "public_url": "https://erp.tsh.sale",
+    "consumer_url": "https://consumer.tsh.sale",
+    "shop_url": "https://shop.tsh.sale"
+  },
+
+  "timeouts": {
+    "api_timeout": 10,
+    "health_check_timeout": 30,
+    "load_test_duration": 60,
+    "database_query_timeout": 30
+  },
+
+  "thresholds": {
+    "sync_queue_pending_warning": 50,
+    "sync_queue_pending_critical": 200,
+    "dead_letter_queue_critical": 5,
+    "api_response_time_target_ms": 3000,
+    "api_response_time_critical_ms": 10000,
+    "cache_hit_rate_target": 0.4,
+    "cpu_usage_warning": 80,
+    "cpu_usage_critical": 95,
+    "memory_usage_warning": 80,
+    "memory_usage_critical": 95,
+    "disk_space_minimum_gb": 5,
+    "disk_space_warning_gb": 10,
+    "error_log_threshold": 50
+  },
+
+  "load_test": {
+    "enabled": false,
+    "concurrent_users": 50,
+    "requests_per_user": 10,
+    "ramp_up_time": 10
+  },
+
+  "test_phases": {
+    "01_pre_flight_check": {
+      "enabled": true,
+      "critical": true,
+      "timeout": 180
+    },
+    "02_service_health": {
+      "enabled": true,
+      "critical": true,
+      "timeout": 300
+    },
+    "03_database_validator": {
+      "enabled": true,
+      "critical": true,
+      "timeout": 300
+    },
+    "04_bff_validator": {
+      "enabled": true,
+      "critical": false,
+      "timeout": 720
+    },
+    "05_zoho_integration_test": {
+      "enabled": true,
+      "critical": false,
+      "timeout": 300
+    },
+    "06_flutter_api_tester": {
+      "enabled": true,
+      "critical": true,
+      "timeout": 360
+    },
+    "07_visual_price_verify": {
+      "enabled": false,
+      "critical": false,
+      "timeout": 420,
+      "note": "Requires Chrome DevTools MCP integration"
+    },
+    "08_e2e_workflows": {
+      "enabled": true,
+      "critical": false,
+      "timeout": 480
+    },
+    "09_performance_baseline": {
+      "enabled": true,
+      "critical": false,
+      "timeout": 300
+    },
+    "10_post_deploy_verify": {
+      "enabled": true,
+      "critical": false,
+      "timeout": 180
+    }
+  },
+
+  "notifications": {
+    "slack_enabled": false,
+    "slack_webhook": "",
+    "email_enabled": false,
+    "email_recipients": [],
+    "discord_enabled": false,
+    "discord_webhook": ""
+  },
+
+  "reporting": {
+    "generate_html": true,
+    "generate_json": true,
+    "save_screenshots": true,
+    "save_logs": true,
+    "retention_days": 30
+  },
+
+  "deployment_integration": {
+    "block_on_critical_failure": true,
+    "allow_with_warnings": true,
+    "auto_rollback_on_failure": false,
+    "require_manual_approval": false
+  },
+
+  "critical_endpoints": [
+    "/health",
+    "/api/auth/login",
+    "/api/bff/mobile/tds/products",
+    "/api/bff/mobile/tds/pricelists",
+    "/api/bff/mobile/tds/cart",
+    "/api/bff/mobile/tds/orders"
+  ],
+
+  "required_services": [
+    "app",
+    "tsh_postgres",
+    "redis",
+    "neurolink"
+  ],
+
+  "required_environment_variables": [
+    "DATABASE_URL",
+    "REDIS_URL",
+    "SECRET_KEY",
+    "ZOHO_CLIENT_ID",
+    "ZOHO_CLIENT_SECRET",
+    "ZOHO_ORGANIZATION_ID"
+  ]
+}

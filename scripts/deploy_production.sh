@@ -263,6 +263,37 @@ else
 fi
 
 # =====================================================
+# PRE-DEPLOYMENT TESTING (ORIXOON)
+# =====================================================
+
+print_header "PRE-DEPLOYMENT TESTING (ORIXOON)"
+
+# Check if Orixoon agent exists
+ORIXOON_DIR="$PROJECT_DIR/.claude/agents/orixoon"
+if [ -d "$ORIXOON_DIR" ] && [ -f "$ORIXOON_DIR/tools/orixoon_orchestrator.sh" ]; then
+    print_warning "Running Orixoon pre-deployment tests..."
+
+    # Run Orixoon tests
+    cd "$ORIXOON_DIR"
+    bash tools/orixoon_orchestrator.sh
+
+    if [ $? -ne 0 ]; then
+        print_error "Orixoon pre-deployment tests FAILED!"
+        print_error "Deployment BLOCKED for safety"
+        print_warning "Review test report in: $ORIXOON_DIR/reports/"
+        confirm "Do you want to override and continue anyway? (NOT RECOMMENDED)"
+    else
+        print_success "Orixoon tests passed - deployment cleared"
+    fi
+
+    # Return to project directory
+    cd "$PROJECT_DIR"
+else
+    print_warning "Orixoon agent not found - skipping pre-deployment tests"
+    print_warning "Install Orixoon at: $ORIXOON_DIR"
+fi
+
+# =====================================================
 # SERVICE RESTART
 # =====================================================
 
