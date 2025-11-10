@@ -25,7 +25,7 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
+from app.db.database import SessionLocal
 from app.tds.statistics.engine import StatisticsEngine
 from app.tds.statistics.models import EntityType
 

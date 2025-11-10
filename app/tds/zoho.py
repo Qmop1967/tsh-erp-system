@@ -259,13 +259,12 @@ class ZohoService:
 
         config = SyncConfig(
             entity_type=entity_type,
-            mode=mode,
-            since=since
+            mode=mode
         )
 
         logger.info(f"Starting {entity_type.value} sync in {mode.value} mode")
         result = await self.sync.sync_entity(config)
-        logger.info(f"Sync complete: {result.total_processed} processed, {result.total_succeeded} succeeded")
+        logger.info(f"Sync complete: {result.total_processed} processed, {result.total_success} succeeded")
 
         return result
 
@@ -349,8 +348,8 @@ class ZohoService:
             await self.start()
 
         logger.info("Starting stock sync from Zoho")
-        result = await self.stock_sync.sync(config)
-        logger.info(f"Stock sync complete: {result.total_succeeded} items updated")
+        result = await self.stock_sync.sync_all_stock(config)
+        logger.info(f"Stock sync complete: {result.total_success} items updated")
 
         return result
 

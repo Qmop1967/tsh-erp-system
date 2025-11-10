@@ -11,7 +11,7 @@ import logging
 from typing import List
 from sqlalchemy.orm import Session
 
-from app.models.migration_items import MigrationItem
+from app.models.migration import MigrationItem
 from app.tds.integrations.zoho import UnifiedZohoClient, ZohoAPI
 from app.tds.statistics.models import (
     ItemStatistics,

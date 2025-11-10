@@ -28,6 +28,7 @@ from app.tds.statistics.collectors import (
 )
 from app.tds.statistics.comparators.items_comparator import ItemsComparator
 from app.tds.integrations.zoho import UnifiedZohoClient, ZohoCredentials
+from app.tds.integrations.base import SyncMode
 
 logger = logging.getLogger(__name__)
 
@@ -596,28 +597,84 @@ class StatisticsEngine:
         Args:
             report: Comparison report with sync recommendations
             dry_run: If True, only simulate sync without making changes
+
+        Returns:
+            Dictionary with sync results per entity
         """
         from app.tds.zoho import ZohoService
 
-        logger.info(f"Auto-sync starting (dry_run={dry_run})...")
+        logger.info("="*80)
+        logger.info(f"🔄 AUTO-SYNC MODE {'(DRY RUN)' if dry_run else '(LIVE)'}")
+        logger.info("="*80)
 
-        service = ZohoService()
+        service = ZohoService(db=self.db)
         await service.start()
+
+        sync_results = {}
 
         for entity_type, comparison in report.comparisons.items():
             if comparison.requires_sync:
                 logger.info(
-                    f"Syncing {entity_type}: {comparison.sync_recommendation.value}"
+                    f"\n📦 {entity_type.upper()}: {comparison.sync_recommendation.value}"
                 )
+                logger.info(f"   Difference: {comparison.difference:+,} items")
+                logger.info(f"   Priority: {comparison.sync_priority}/10")
 
                 if not dry_run:
-                    # Perform actual sync
-                    await service.sync_entity(
-                        EntityType(entity_type),
-                        mode=SyncMode.INCREMENTAL
-                    )
+                    try:
+                        # Map entity type string to EntityType enum
+                        entity_map = {
+                            'items': 'PRODUCTS',
+                            'products': 'PRODUCTS',
+                            'customers': 'CUSTOMERS',
+                            'vendors': 'VENDORS',
+                            'price_lists': 'PRICE_LISTS',
+                            'stock': 'INVENTORY',
+                            'images': 'IMAGES'
+                        }
+
+                        entity_enum_name = entity_map.get(entity_type.lower(), entity_type.upper())
+
+                        # Perform actual sync based on entity type
+                        if entity_type.lower() in ['items', 'products']:
+                            result = await service.sync_products(mode=SyncMode.INCREMENTAL)
+                        elif entity_type.lower() == 'customers':
+                            result = await service.sync_customers(mode=SyncMode.INCREMENTAL)
+                        elif entity_type.lower() in ['stock', 'inventory']:
+                            result = await service.sync_stock()
+                        else:
+                            # Generic sync for other entities
+                            result = await service.sync_entity(
+                                EntityType[entity_enum_name],
+                                mode=SyncMode.INCREMENTAL
+                            )
+
+                        sync_results[entity_type] = {
+                            'success': True,
+                            'synced_count': result.total_success,
+                            'failed_count': result.total_failed,
+                            'skipped_count': result.total_skipped
+                        }
+
+                        logger.info(f"   ✅ Synced: {result.total_success} | Failed: {result.total_failed} | Skipped: {result.total_skipped}")
+
+                    except Exception as e:
+                        logger.error(f"   ❌ Sync failed: {e}")
+                        sync_results[entity_type] = {
+                            'success': False,
+                            'error': str(e)
+                        }
                 else:
-                    logger.info(f"   [DRY RUN] Would sync {entity_type}")
+                    logger.info(f"   🔍 [DRY RUN] Would sync {entity_type}")
+                    sync_results[entity_type] = {
+                        'dry_run': True,
+                        'would_sync': True
+                    }
 
         await service.stop()
-        logger.info("Auto-sync complete!")
+
+        logger.info("\n" + "="*80)
+        logger.info("✅ Auto-sync complete!")
+        logger.info("="*80 + "\n")
+
+        return sync_results

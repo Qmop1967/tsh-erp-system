@@ -4,9 +4,6 @@
 
 set -e  # Exit on error
 
-# Compose command placeholder (array to support `docker compose`)
-DOCKER_COMPOSE_CMD=()
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -33,28 +30,18 @@ check_docker() {
         exit 1
     fi
 
-    if command -v docker-compose &> /dev/null; then
-        DOCKER_COMPOSE_CMD=(docker-compose)
-    elif docker compose version &> /dev/null; then
-        DOCKER_COMPOSE_CMD=(docker compose)
-    else
-        print_error "Docker Compose plugin is not available. Please install docker compose."
+    if ! command -v docker-compose &> /dev/null; then
+        print_error "Docker Compose is not installed. Please install Docker Compose first."
         exit 1
     fi
 
-    print_success "Docker ($(docker --version | awk '{print $1" "$2" "$3}')) detected"
-    print_success "Using Compose command: ${DOCKER_COMPOSE_CMD[*]}"
-}
-
-# Wrapper for docker compose / docker-compose
-docker_compose() {
-    "${DOCKER_COMPOSE_CMD[@]}" "$@"
+    print_success "Docker and Docker Compose are installed"
 }
 
 # Build Docker images
 build() {
     print_info "Building Docker images..."
-    docker_compose build --no-cache
+    docker-compose build --no-cache
     print_success "Docker images built successfully"
 }
 
@@ -62,23 +49,20 @@ build() {
 start() {
     print_info "Starting TSH ERP System..."
 
-    local env_file="${APP_ENV_FILE:-.env.production}"
-
-    if [ ! -f "$env_file" ]; then
-        print_error "Environment file '$env_file' not found!"
+    # Check if .env.production exists
+    if [ ! -f ".env.production" ]; then
+        print_error ".env.production file not found!"
         exit 1
     fi
 
-    print_info "Using environment file: $env_file"
-
     # Start services
-    docker_compose up -d
+    docker-compose up -d
 
     print_info "Waiting for services to be healthy..."
     sleep 10
 
     # Check health
-    if docker_compose ps | grep -q "healthy"; then
+    if docker-compose ps | grep -q "healthy"; then
         print_success "TSH ERP System started successfully!"
         print_info "Access the application at: http://localhost:8000"
         print_info "View logs with: ./deploy.sh logs"
@@ -91,35 +75,35 @@ start() {
 # Stop services
 stop() {
     print_info "Stopping TSH ERP System..."
-    docker_compose down
+    docker-compose down
     print_success "TSH ERP System stopped"
 }
 
 # Restart services
 restart() {
     print_info "Restarting TSH ERP System..."
-    docker_compose restart
+    docker-compose restart
     print_success "TSH ERP System restarted"
 }
 
 # View logs
 logs() {
-    docker_compose logs -f --tail=100
+    docker-compose logs -f --tail=100
 }
 
 # Check status
 status() {
     print_info "TSH ERP System Status:"
-    docker_compose ps
+    docker-compose ps
     echo ""
     print_info "Container Health:"
-    docker_compose ps | grep -E "(healthy|unhealthy)" || echo "No health status available"
+    docker-compose ps | grep -E "(healthy|unhealthy)" || echo "No health status available"
 }
 
 # Run database migrations
 migrate() {
     print_info "Running database migrations..."
-    docker_compose exec app alembic upgrade head
+    docker-compose exec app alembic upgrade head
     print_success "Database migrations completed"
 }
 
@@ -127,7 +111,7 @@ migrate() {
 backup() {
     print_info "Creating database backup..."
     BACKUP_FILE="backups/tsh_erp_$(date +%Y%m%d_%H%M%S).sql"
-    docker_compose exec -T tsh_postgres pg_dump -U "${POSTGRES_USER:-tsh_admin}" "${POSTGRES_DB:-tsh_erp}" > "$BACKUP_FILE"
+    docker-compose exec -T postgres pg_dump -U tsh_admin tsh_erp > "$BACKUP_FILE"
     print_success "Database backup created: $BACKUP_FILE"
 }
 

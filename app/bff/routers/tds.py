@@ -7,7 +7,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.db.database import get_async_db
 from app.tds.core.service import TDSService
@@ -166,7 +166,9 @@ async def get_dashboard(db: AsyncSession = Depends(get_async_db)):
         duration = None
         if run["started_at"]:
             started = datetime.fromisoformat(run["started_at"])
-            duration_sec = (datetime.utcnow() - started).total_seconds()
+            # Use timezone-aware datetime for subtraction
+            now_utc = datetime.now(timezone.utc)
+            duration_sec = (now_utc - started).total_seconds()
             if duration_sec < 60:
                 duration = f"{int(duration_sec)}s"
             elif duration_sec < 3600:

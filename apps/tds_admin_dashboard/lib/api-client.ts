@@ -13,7 +13,7 @@ import type {
 } from '@/types/tds';
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const API_TIMEOUT = 30000; // 30 seconds
 
 // Auth Token Management
@@ -137,13 +137,13 @@ class APIClient {
 
   // Dashboard
   async getDashboard(): Promise<DashboardOverview> {
-    const response = await this.request<DashboardOverview>('/api/bff/tds/dashboard/complete');
-    return response.data;
+    const response: any = await this.request<any>('/api/bff/tds/dashboard/complete');
+    return response.dashboard;
   }
 
   async getHealth(): Promise<any> {
     const response = await this.request<any>('/api/bff/tds/health/complete');
-    return response.data;
+    return response;
   }
 
   // Sync Runs
@@ -159,29 +159,29 @@ class APIClient {
     if (params?.status) queryParams.append('status', params.status);
     if (params?.entity_type) queryParams.append('entity_type', params.entity_type);
 
-    const response = await this.request<PaginatedResponse<SyncRunSummary>>(
+    const response: any = await this.request<PaginatedResponse<SyncRunSummary>>(
       `/api/bff/tds/runs?${queryParams.toString()}`
     );
-    return response.data;
+    return response;
   }
 
   async getSyncRunDetail(runId: number): Promise<SyncRunDetail> {
-    const response = await this.request<SyncRunDetail>(`/api/bff/tds/runs/${runId}`);
-    return response.data;
+    const response: any = await this.request<SyncRunDetail>(`/api/bff/tds/runs/${runId}`);
+    return response;
   }
 
   async triggerStockSync(itemIds?: string[]): Promise<{ run_id: number }> {
-    const response = await this.request<{ run_id: number }>('/api/bff/tds/sync/stock', {
+    const response: any = await this.request<{ run_id: number }>('/api/bff/tds/sync/stock', {
       method: 'POST',
       body: itemIds ? JSON.stringify({ item_ids: itemIds }) : undefined,
     });
-    return response.data;
+    return response;
   }
 
   // Statistics
   async getCombinedStats(): Promise<CombinedStats> {
-    const response = await this.request<CombinedStats>('/api/bff/tds/stats/combined');
-    return response.data;
+    const response: any = await this.request<CombinedStats>('/api/bff/tds/stats/combined');
+    return response;
   }
 
   // Alerts
@@ -193,10 +193,10 @@ class APIClient {
     if (params?.severity) queryParams.append('severity', params.severity);
     if (params?.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
 
-    const response = await this.request<AlertSummary[]>(
+    const response: any = await this.request<AlertSummary[]>(
       `/api/bff/tds/alerts?${queryParams.toString()}`
     );
-    return response.data;
+    return response;
   }
 
   async acknowledgeAlert(alertId: number): Promise<void> {
@@ -216,16 +216,16 @@ class APIClient {
     if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
     if (params?.priority) queryParams.append('priority', params.priority);
 
-    const response = await this.request<PaginatedResponse<DeadLetterItem>>(
+    const response: any = await this.request<PaginatedResponse<DeadLetterItem>>(
       `/api/bff/tds/dead-letter?${queryParams.toString()}`
     );
-    return response.data;
+    return response;
   }
 
   // Circuit Breakers
   async getCircuitBreakers(): Promise<CircuitBreakerStatus[]> {
-    const response = await this.request<CircuitBreakerStatus[]>('/api/bff/tds/circuit-breakers');
-    return response.data;
+    const response: any = await this.request<CircuitBreakerStatus[]>('/api/bff/tds/circuit-breakers');
+    return response;
   }
 
   async resetCircuitBreaker(name: string): Promise<void> {
@@ -236,8 +236,8 @@ class APIClient {
 
   // Auto-Healing
   async getAutoHealingStats(): Promise<AutoHealingStats> {
-    const response = await this.request<AutoHealingStats>('/api/bff/tds/auto-healing/stats');
-    return response.data;
+    const response: any = await this.request<AutoHealingStats>('/api/bff/tds/auto-healing/stats');
+    return response;
   }
 
   async triggerAutoHealing(): Promise<void> {
@@ -248,10 +248,10 @@ class APIClient {
 
   // Webhooks
   async getRecentWebhooks(limit: number = 50): Promise<WebhookEvent[]> {
-    const response = await this.request<WebhookEvent[]>(
+    const response: any = await this.request<WebhookEvent[]>(
       `/api/bff/tds/zoho/webhooks/recent?limit=${limit}`
     );
-    return response.data;
+    return response;
   }
 }
 

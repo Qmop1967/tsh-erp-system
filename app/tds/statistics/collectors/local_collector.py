@@ -14,11 +14,17 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 
-from app.models.migration_items import MigrationItem, ItemCategory
-from app.models.migration_customers import MigrationCustomer
-from app.models.migration_vendors import MigrationVendor
-from app.models.price_lists import PriceList, PriceListItem
-from app.models.migration_stock import MigrationStock
+from app.models.migration import (
+    MigrationItem,
+    ItemCategory,
+    MigrationCustomer,
+    MigrationVendor,
+    MigrationStock,
+    PriceList,
+    PriceListItem
+)
+from app.models.customer import Customer, Supplier
+from app.models.product import Product, Category
 from app.tds.statistics.models import (
     ItemStatistics,
     CustomerStatistics,
@@ -92,7 +98,7 @@ class LocalDataCollector:
 
     async def collect_items_stats(self) -> ItemStatistics:
         """
-        Collect item/product statistics from migration_items table
+        Collect item/product statistics from products table (synced from Zoho)
 
         Returns:
             ItemStatistics with counts, breakdowns, and aggregates
@@ -101,45 +107,52 @@ class LocalDataCollector:
         """
         logger.info("Collecting local items statistics...")
 
-        # Total counts
-        total_count = self.db.query(func.count(MigrationItem.id)).scalar() or 0
-        active_count = self.db.query(func.count(MigrationItem.id)).filter(
-            MigrationItem.is_active == True
+        # Total counts from synced products table
+        total_count = self.db.query(func.count(Product.id)).scalar() or 0
+        active_count = self.db.query(func.count(Product.id)).filter(
+            Product.is_active == True
         ).scalar() or 0
         inactive_count = total_count - active_count
 
         # Images
-        with_images_count = self.db.query(func.count(MigrationItem.id)).filter(
-            MigrationItem.image_url.isnot(None),
-            MigrationItem.image_url != ''
+        with_images_count = self.db.query(func.count(Product.id)).filter(
+            Product.image_url.isnot(None),
+            Product.image_url != ''
         ).scalar() or 0
         without_images_count = total_count - with_images_count
 
         # By category
         category_counts = self.db.query(
-            ItemCategory.name_en,
-            func.count(MigrationItem.id)
+            Category.name,
+            func.count(Product.id)
         ).join(
-            ItemCategory,
-            MigrationItem.category_id == ItemCategory.id
-        ).group_by(ItemCategory.name_en).all()
+            Category,
+            Product.category_id == Category.id
+        ).group_by(Category.name).all()
 
         by_category = {name: count for name, count in category_counts}
         if not by_category:
             by_category = {"Uncategorized": total_count}
 
-        # By brand (if you have brand field)
-        by_brand: Dict[str, int] = {"No Brand": total_count}  # Placeholder
+        # By brand
+        brand_counts = self.db.query(
+            Product.brand,
+            func.count(Product.id)
+        ).group_by(Product.brand).all()
+
+        by_brand = {brand or "No Brand": count for brand, count in brand_counts}
+        if not by_brand:
+            by_brand = {"No Brand": total_count}
 
         # Price aggregates
         price_stats = self.db.query(
-            func.avg(MigrationItem.selling_price_usd).label('avg_price'),
-            func.sum(MigrationItem.selling_price_usd).label('total_price')
+            func.avg(Product.unit_price).label('avg_price'),
+            func.sum(Product.unit_price).label('total_price')
         ).first()
 
         average_price = float(price_stats.avg_price or 0) if price_stats else 0.0
 
-        # Stock value (calculate from stock table if available)
+        # Stock value (calculate from inventory table if available)
         # For now, using placeholder
         total_stock_value = 0.0
         low_stock_count = 0
@@ -166,7 +179,7 @@ class LocalDataCollector:
 
     async def collect_customer_stats(self) -> CustomerStatistics:
         """
-        Collect customer statistics from migration_customers table
+        Collect customer statistics from customers table (synced from Zoho)
 
         Returns:
             CustomerStatistics with counts and breakdowns
@@ -175,10 +188,10 @@ class LocalDataCollector:
         """
         logger.info("Collecting local customer statistics...")
 
-        # Total counts
-        total_count = self.db.query(func.count(MigrationCustomer.id)).scalar() or 0
-        active_count = self.db.query(func.count(MigrationCustomer.id)).filter(
-            MigrationCustomer.is_active == True
+        # Total counts from synced customers table
+        total_count = self.db.query(func.count(Customer.id)).scalar() or 0
+        active_count = self.db.query(func.count(Customer.id)).filter(
+            Customer.is_active == True
         ).scalar() or 0
         inactive_count = total_count - active_count
 
@@ -187,30 +200,21 @@ class LocalDataCollector:
 
         # By country
         country_counts = self.db.query(
-            MigrationCustomer.country,
-            func.count(MigrationCustomer.id)
-        ).group_by(MigrationCustomer.country).all()
+            Customer.country,
+            func.count(Customer.id)
+        ).group_by(Customer.country).all()
 
         by_country = {country or "Unknown": count for country, count in country_counts}
 
-        # By price list
-        pricelist_counts = self.db.query(
-            PriceList.name_en,
-            func.count(MigrationCustomer.id)
-        ).join(
-            PriceList,
-            MigrationCustomer.price_list_id == PriceList.id,
-            isouter=True
-        ).group_by(PriceList.name_en).all()
-
-        by_price_list = {name or "Default": count for name, count in pricelist_counts}
+        # By price list (customers table doesn't have price_list_id, using placeholder)
+        by_price_list: Dict[str, int] = {"Default": total_count}
 
         # Credit limit aggregates
         credit_stats = self.db.query(
-            func.sum(MigrationCustomer.credit_limit_usd).label('total'),
-            func.avg(MigrationCustomer.credit_limit_usd).label('average'),
-            func.count(MigrationCustomer.id).filter(
-                MigrationCustomer.credit_limit_usd > 0
+            func.sum(Customer.credit_limit).label('total'),
+            func.avg(Customer.credit_limit).label('average'),
+            func.count(Customer.id).filter(
+                Customer.credit_limit > 0
             ).label('count')
         ).first()
 
@@ -238,7 +242,7 @@ class LocalDataCollector:
 
     async def collect_vendor_stats(self) -> VendorStatistics:
         """
-        Collect vendor/supplier statistics from migration_vendors table
+        Collect vendor/supplier statistics from suppliers table (synced from Zoho)
 
         Returns:
             VendorStatistics with counts and breakdowns
@@ -247,18 +251,18 @@ class LocalDataCollector:
         """
         logger.info("Collecting local vendor statistics...")
 
-        # Total counts
-        total_count = self.db.query(func.count(MigrationVendor.id)).scalar() or 0
-        active_count = self.db.query(func.count(MigrationVendor.id)).filter(
-            MigrationVendor.is_active == True
+        # Total counts from synced suppliers table
+        total_count = self.db.query(func.count(Supplier.id)).scalar() or 0
+        active_count = self.db.query(func.count(Supplier.id)).filter(
+            Supplier.is_active == True
         ).scalar() or 0
         inactive_count = total_count - active_count
 
         # By country
         country_counts = self.db.query(
-            MigrationVendor.country,
-            func.count(MigrationVendor.id)
-        ).group_by(MigrationVendor.country).all()
+            Supplier.country,
+            func.count(Supplier.id)
+        ).group_by(Supplier.country).all()
 
         by_country = {country or "Unknown": count for country, count in country_counts}
 

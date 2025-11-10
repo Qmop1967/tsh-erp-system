@@ -1,406 +1,276 @@
 """
-TDS Image Synchronization Handler
-==================================
+Zoho Image Sync Service
+========================
 
-Handles downloading and syncing product images from Zoho through TDS.
-معالج مزامنة الصور للمنتجات من Zoho عبر TDS
-
-This integrates existing standalone image download functionality into TDS
-for centralized monitoring, event tracking, and unified architecture.
+Downloads and stores product images from Zoho Books.
 
 Author: TSH ERP Team
-Date: November 7, 2025
+Date: November 9, 2025
 """
 
 import logging
 import asyncio
-from typing import Dict, List, Optional, Any, Tuple
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+import aiohttp
+import os
+from pathlib import Path
+from typing import Dict, Any, Optional, List
 from datetime import datetime
-
-from ....models.product import Product
-from ....services.image_service import ImageService
-from ...core.service import TDSService
-from ...core.events import TDSEvent
-from ....core.events.event_bus import event_bus
-from .client import UnifiedZohoClient, ZohoAPI
-from .auth import ZohoAuthManager, ZohoCredentials
 
 logger = logging.getLogger(__name__)
 
 
-class ImageSyncStats:
-    """Statistics for image synchronization"""
-
-    def __init__(self):
-        self.total = 0
-        self.downloaded = 0
-        self.skipped = 0
-        self.failed = 0
-        self.start_time = datetime.utcnow()
-
-    def to_dict(self) -> Dict[str, Any]:
-        elapsed = (datetime.utcnow() - self.start_time).total_seconds()
-        return {
-            "total": self.total,
-            "downloaded": self.downloaded,
-            "skipped": self.skipped,
-            "failed": self.failed,
-            "success_rate": f"{(self.downloaded / self.total * 100):.1f}%" if self.total > 0 else "0%",
-            "elapsed_seconds": round(elapsed, 2),
-            "downloads_per_minute": round((self.downloaded / elapsed) * 60, 2) if elapsed > 0 else 0
-        }
-
-
-class TDSImageSyncHandler:
+class ZohoImageSyncService:
     """
-    TDS Handler for Zoho Product Image Synchronization
-    معالج TDS لمزامنة صور المنتجات من Zoho
+    Service for syncing product images from Zoho Books
 
-    Features:
-    - Batch processing with pagination
-    - Rate limiting (respects Zoho API limits)
-    - Event publishing for monitoring
-    - Integration with existing ImageService
-    - TDS event tracking
-    - Comprehensive error handling
+    Downloads images from Zoho and stores them locally with proper naming.
     """
 
-    def __init__(
-        self,
-        db_session: AsyncSession,
-        organization_id: str = "748369814",
-        batch_size: int = 100,
-        delay_between_batches: float = 2.0,
-        delay_between_images: float = 0.1
-    ):
+    def __init__(self, auth_manager, base_image_path: str = "/root/TSH_ERP_Ecosystem/static/images/products"):
         """
-        Initialize image sync handler
+        Initialize image sync service
 
         Args:
-            db_session: Database session
-            organization_id: Zoho organization ID
-            batch_size: Images per batch (default: 100)
-            delay_between_batches: Seconds between batches (default: 2.0)
-            delay_between_images: Seconds between individual downloads (default: 0.1)
+            auth_manager: ZohoAuthManager instance
+            base_image_path: Base directory for storing images
         """
-        self.db = db_session
-        self.organization_id = organization_id
-        self.batch_size = batch_size
-        self.delay_between_batches = delay_between_batches
-        self.delay_between_images = delay_between_images
+        self.auth_manager = auth_manager
+        self.base_image_path = Path(base_image_path)
+        self.base_image_path.mkdir(parents=True, exist_ok=True)
 
-        # Initialize TDS service
-        self.tds_service = TDSService(db_session)
-
-        # Initialize Zoho client (will be set in sync_images)
-        self.zoho_client: Optional[UnifiedZohoClient] = None
+        self.organization_id = "748369814"
+        self.base_url = "https://www.zohoapis.com/books/v3"
 
         # Statistics
-        self.stats = ImageSyncStats()
+        self.stats = {
+            'total': 0,
+            'downloaded': 0,
+            'skipped': 0,
+            'failed': 0,
+            'errors': []
+        }
 
-    async def sync_images(
+    async def download_item_image(
         self,
-        active_only: bool = True,
-        with_stock_only: bool = True,
-        force_redownload: bool = False,
-        limit: Optional[int] = None
-    ) -> Dict[str, Any]:
+        item_id: str,
+        item_name: str,
+        session: aiohttp.ClientSession
+    ) -> Optional[str]:
         """
-        Download and sync product images from Zoho
+        Download image for a single item
 
         Args:
-            active_only: Only process active products
-            with_stock_only: Only process products with stock
-            force_redownload: Re-download even if image_url exists
-            limit: Maximum images to download (for testing)
+            item_id: Zoho item ID
+            item_name: Item name for filename
+            session: aiohttp session
 
         Returns:
-            Statistics dictionary
-        """
-        logger.info("🚀 Starting TDS Image Synchronization...")
-
-        # Initialize Zoho client with auth from environment variables
-        import os
-        credentials = ZohoCredentials(
-            client_id=os.getenv('ZOHO_CLIENT_ID'),
-            client_secret=os.getenv('ZOHO_CLIENT_SECRET'),
-            refresh_token=os.getenv('ZOHO_REFRESH_TOKEN'),
-            organization_id=self.organization_id or os.getenv('ZOHO_ORGANIZATION_ID')
-        )
-        
-        if not all([credentials.client_id, credentials.client_secret, credentials.refresh_token]):
-            raise ValueError("Missing Zoho credentials in environment variables")
-        
-        auth_manager = ZohoAuthManager(credentials)
-        await auth_manager.start()
-        
-        self.zoho_client = UnifiedZohoClient(
-            auth_manager=auth_manager,
-            organization_id=credentials.organization_id,
-            rate_limit=100  # Zoho Books limit
-        )
-        await self.zoho_client.start_session()
-
-        # Create TDS sync run
-        sync_run = await self.tds_service.create_sync_run(
-            run_type="zoho",
-            entity_type="product",
-            configuration={
-                "task": "image_download",
-                "active_only": active_only,
-                "with_stock_only": with_stock_only,
-                "force_redownload": force_redownload,
-                "batch_size": self.batch_size
-            }
-        )
-
-        logger.info(f"📋 TDS Sync Run Created: {sync_run.id}")
-
-        try:
-            # Get products to process
-            products = await self._get_products_to_process(
-                active_only, with_stock_only, force_redownload, limit
-            )
-
-            self.stats.total = len(products)
-            logger.info(f"📊 Found {self.stats.total} products to process")
-
-            # Publish start event
-            await event_bus.publish(TDSEvent(
-                event_type="zoho.image_sync.started",
-                data={
-                    "sync_run_id": str(sync_run.id),
-                    "total_products": self.stats.total,
-                    "batch_size": self.batch_size
-                }
-            ))
-
-            # Process in batches
-            total_batches = (self.stats.total + self.batch_size - 1) // self.batch_size
-
-            for batch_num in range(total_batches):
-                start_idx = batch_num * self.batch_size
-                end_idx = min(start_idx + self.batch_size, self.stats.total)
-                batch_products = products[start_idx:end_idx]
-
-                logger.info(f"\n{'='*60}")
-                logger.info(f"Processing Batch {batch_num + 1}/{total_batches}")
-                logger.info(f"Products: {len(batch_products)}")
-                logger.info(f"{'='*60}\n")
-
-                await self._process_batch(batch_products, batch_num + 1, total_batches)
-
-                # Delay between batches (except last)
-                if batch_num < total_batches - 1:
-                    logger.info(f"⏸️  Waiting {self.delay_between_batches}s before next batch...\n")
-                    await asyncio.sleep(self.delay_between_batches)
-
-            # Complete sync run
-            await self.tds_service.complete_sync_run(
-                sync_run_id=sync_run.id,
-                total_processed=self.stats.total,
-                successful=self.stats.downloaded,
-                failed=self.stats.failed
-            )
-
-            # Publish completion event
-            await event_bus.publish(TDSEvent(
-                event_type="zoho.image_sync.completed",
-                data={
-                    "sync_run_id": str(sync_run.id),
-                    "statistics": self.stats.to_dict()
-                }
-            ))
-
-            logger.info("\n" + "="*60)
-            logger.info("✅ Image Synchronization Complete!")
-            logger.info("="*60)
-            for key, value in self.stats.to_dict().items():
-                logger.info(f"  {key}: {value}")
-            logger.info("="*60 + "\n")
-
-            # Cleanup: Close Zoho client session
-            if self.zoho_client:
-                await self.zoho_client.close_session()
-
-            return self.stats.to_dict()
-
-        except Exception as e:
-            logger.error(f"❌ Image sync failed: {e}", exc_info=True)
-
-            # Cleanup: Close Zoho client session on error
-            if self.zoho_client:
-                await self.zoho_client.close_session()
-
-            # Fail sync run
-            await self.tds_service.fail_sync_run(
-                sync_run_id=sync_run.id,
-                error_message=str(e)
-            )
-
-            # Publish failure event
-            await event_bus.publish(TDSEvent(
-                event_type="zoho.image_sync.failed",
-                data={
-                    "sync_run_id": str(sync_run.id),
-                    "error": str(e),
-                    "statistics": self.stats.to_dict()
-                }
-            ))
-
-            raise
-
-    async def _get_products_to_process(
-        self,
-        active_only: bool,
-        with_stock_only: bool,
-        force_redownload: bool,
-        limit: Optional[int]
-    ) -> List[Product]:
-        """Get products that need image downloads"""
-
-        query = select(Product).where(
-            Product.zoho_item_id.isnot(None)
-        )
-
-        if active_only:
-            query = query.where(Product.is_active == True)
-
-        if with_stock_only:
-            query = query.where(Product.actual_available_stock > 0)
-
-        if not force_redownload:
-            # Only get products without images
-            query = query.where(
-                (Product.image_url.is_(None)) |
-                (Product.image_url == '')
-            )
-
-        query = query.order_by(Product.name)
-
-        if limit:
-            query = query.limit(limit)
-
-        result = await self.db.execute(query)
-        return list(result.scalars().all())
-
-    async def _process_batch(
-        self,
-        products: List[Product],
-        batch_num: int,
-        total_batches: int
-    ):
-        """Process a batch of products"""
-
-        for idx, product in enumerate(products, 1):
-            overall_idx = ((batch_num - 1) * self.batch_size) + idx
-
-            logger.info(f"[{overall_idx}] {product.name}")
-            logger.info(f"  SKU: {product.sku}")
-            logger.info(f"  Zoho Item ID: {product.zoho_item_id}")
-
-            try:
-                # Download and store image
-                success = await self._download_product_image(product)
-
-                if success:
-                    self.stats.downloaded += 1
-                    logger.info(f"  ✅ Downloaded and stored successfully\n")
-                else:
-                    self.stats.skipped += 1
-                    logger.info(f"  ⏭️  Skipped (no image available)\n")
-
-            except Exception as e:
-                self.stats.failed += 1
-                logger.error(f"  ❌ Failed: {e}\n")
-
-            # Small delay between images
-            await asyncio.sleep(self.delay_between_images)
-
-    async def _download_product_image(self, product: Product) -> bool:
-        """
-        Download and store image for a single product
-
-        Returns:
-            True if downloaded successfully, False if skipped
+            str: Local file path if successful, None otherwise
         """
         try:
-            zoho_item_id = product.zoho_item_id
+            # Get fresh token
+            token = await self.auth_manager.get_access_token()
 
-            # Get image from Zoho Books
-            # Zoho Books endpoint: /items/{item_id}/image
-            image_url = f"https://www.zohoapis.com/books/v3/items/{zoho_item_id}/image"
+            # Construct image URL
+            url = f"{self.base_url}/items/{item_id}/image"
             params = {"organization_id": self.organization_id}
+            headers = {"Authorization": f"Zoho-oauthtoken {token}"}
 
-            # Get auth headers from Zoho client
-            headers = await self.zoho_client.auth_manager.get_auth_headers()
+            # Download image
+            async with session.get(url, params=params, headers=headers) as response:
+                if response.status == 200:
+                    # Get content type to determine extension
+                    content_type = response.headers.get('Content-Type', '')
 
-            # Download image using ImageService
-            result = await ImageService.download_and_store_image(
-                item_id=zoho_item_id,
-                image_url=image_url,
-                headers=headers
-            )
+                    # Determine file extension
+                    if 'jpeg' in content_type or 'jpg' in content_type:
+                        ext = 'jpg'
+                    elif 'png' in content_type:
+                        ext = 'png'
+                    elif 'gif' in content_type:
+                        ext = 'gif'
+                    elif 'webp' in content_type:
+                        ext = 'webp'
+                    else:
+                        ext = 'jpg'  # Default
 
-            if not result:
-                # No image available
-                return False
+                    # Create safe filename
+                    safe_name = self._create_safe_filename(item_name)
+                    filename = f"item_{item_id}_{safe_name}.{ext}"
+                    filepath = self.base_image_path / filename
 
-            local_path, public_url = result
+                    # Save image
+                    content = await response.read()
+                    with open(filepath, 'wb') as f:
+                        f.write(content)
 
-            # Update product in database
-            product.image_url = public_url
-            product.updated_at = datetime.utcnow()
-            await self.db.commit()
+                    logger.debug(f"Downloaded image: {filename}")
+                    self.stats['downloaded'] += 1
 
-            # Record entity sync in TDS
-            await self.tds_service.record_entity_sync(
-                entity_type="PRODUCT",
-                entity_id=str(product.id),
-                source_entity_id=zoho_item_id,
-                operation="UPDATE",
-                changes={"image_url": public_url}
-            )
+                    # Return relative path for database
+                    return f"/static/images/products/{filename}"
 
-            logger.info(f"  💾 Stored at: {public_url}")
+                elif response.status == 404:
+                    # No image for this item
+                    logger.debug(f"No image found for item {item_id}")
+                    self.stats['skipped'] += 1
+                    return None
 
-            return True
+                else:
+                    logger.warning(f"Failed to download image for {item_id}: HTTP {response.status}")
+                    self.stats['failed'] += 1
+                    self.stats['errors'].append({
+                        'item_id': item_id,
+                        'error': f"HTTP {response.status}",
+                        'name': item_name
+                    })
+                    return None
 
         except Exception as e:
-            logger.error(f"Failed to download image for product {product.id}: {e}")
-            raise
+            logger.error(f"Error downloading image for {item_id}: {str(e)}")
+            self.stats['failed'] += 1
+            self.stats['errors'].append({
+                'item_id': item_id,
+                'error': str(e),
+                'name': item_name
+            })
+            return None
 
+    def _create_safe_filename(self, name: str, max_length: int = 50) -> str:
+        """
+        Create a safe filename from item name
 
-# Convenience function for CLI scripts
-async def download_images_via_tds(
-    db_session: AsyncSession,
-    active_only: bool = True,
-    with_stock_only: bool = True,
-    batch_size: int = 100,
-    limit: Optional[int] = None
-) -> Dict[str, Any]:
-    """
-    Convenience function to download images through TDS
+        Args:
+            name: Item name
+            max_length: Maximum filename length
 
-    Args:
-        db_session: Database session
-        active_only: Only active products
-        with_stock_only: Only products with stock
-        batch_size: Images per batch
-        limit: Maximum images (for testing)
+        Returns:
+            str: Safe filename
+        """
+        import re
 
-    Returns:
-        Statistics dictionary
-    """
-    handler = TDSImageSyncHandler(
-        db_session=db_session,
-        batch_size=batch_size
-    )
+        # Remove special characters
+        safe = re.sub(r'[^\w\s-]', '', name.lower())
+        # Replace spaces with underscores
+        safe = re.sub(r'[\s]+', '_', safe)
+        # Truncate to max length
+        safe = safe[:max_length]
+        # Remove trailing underscores
+        safe = safe.strip('_')
 
-    return await handler.sync_images(
-        active_only=active_only,
-        with_stock_only=with_stock_only,
-        limit=limit
-    )
+        return safe or 'unknown'
+
+    async def sync_all_images(self, items: List[Dict[str, Any]], batch_size: int = 10) -> Dict[str, Any]:
+        """
+        Sync images for all items
+
+        Args:
+            items: List of item dictionaries with item_id and name
+            batch_size: Number of concurrent downloads
+
+        Returns:
+            dict: Statistics about the sync
+        """
+        logger.info(f"Starting image sync for {len(items)} items...")
+
+        self.stats['total'] = len(items)
+        start_time = datetime.utcnow()
+
+        # Filter items that have images
+        items_with_images = [
+            item for item in items
+            if item.get('image_name') or item.get('image_document_id')
+        ]
+
+        logger.info(f"Found {len(items_with_images)} items with images in Zoho")
+
+        # Create aiohttp session with timeout
+        timeout = aiohttp.ClientTimeout(total=30)
+        connector = aiohttp.TCPConnector(limit=batch_size)
+
+        async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+            # Process in batches
+            for i in range(0, len(items_with_images), batch_size):
+                batch = items_with_images[i:i + batch_size]
+
+                # Download images concurrently
+                tasks = [
+                    self.download_item_image(
+                        item.get('item_id'),
+                        item.get('name', 'unknown'),
+                        session
+                    )
+                    for item in batch
+                ]
+
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                # Update items with image paths
+                for item, image_path in zip(batch, results):
+                    if isinstance(image_path, str):
+                        item['local_image_path'] = image_path
+
+                # Progress logging
+                processed = min(i + batch_size, len(items_with_images))
+                logger.info(
+                    f"Progress: {processed}/{len(items_with_images)} "
+                    f"({processed/len(items_with_images)*100:.1f}%) - "
+                    f"Downloaded: {self.stats['downloaded']}, "
+                    f"Failed: {self.stats['failed']}"
+                )
+
+                # Small delay to avoid rate limiting
+                await asyncio.sleep(0.5)
+
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+
+        self.stats['duration'] = duration
+        self.stats['items_with_images'] = len(items_with_images)
+
+        logger.info(
+            f"✅ Image sync complete: {self.stats['downloaded']} downloaded, "
+            f"{self.stats['failed']} failed, {self.stats['skipped']} skipped "
+            f"in {duration:.1f}s"
+        )
+
+        return self.stats
+
+    async def update_database_image_paths(self, items: List[Dict[str, Any]], db) -> int:
+        """
+        Update database with local image paths
+
+        Args:
+            items: List of items with local_image_path set
+            db: Database session
+
+        Returns:
+            int: Number of records updated
+        """
+        from sqlalchemy import text
+
+        updated = 0
+
+        for item in items:
+            if 'local_image_path' in item:
+                try:
+                    query = text("""
+                        UPDATE products
+                        SET image_url = :image_url, updated_at = NOW()
+                        WHERE zoho_item_id = :zoho_item_id
+                    """)
+
+                    await db.execute(query, {
+                        'image_url': item['local_image_path'],
+                        'zoho_item_id': item['item_id']
+                    })
+                    updated += 1
+
+                except Exception as e:
+                    logger.error(f"Failed to update image path for {item.get('item_id')}: {str(e)}")
+
+        await db.commit()
+
+        logger.info(f"✅ Updated {updated} product records with image paths")
+
+        return updated
