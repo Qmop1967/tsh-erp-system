@@ -129,7 +129,7 @@ class NeurolinkNotification(Base):
     # Actions
     action_url = Column(String(500), nullable=True)
     action_label = Column(String(100), nullable=True)
-    metadata = Column(JSONB, nullable=True)
+    event_metadata = Column('metadata', JSONB, nullable=True)
 
     # Delivery
     status = Column(String(50), default="pending")
@@ -240,7 +240,7 @@ class NeurolinkDeliveryLog(Base):
     provider_message_id = Column(String(255), nullable=True)
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)
+    event_metadata = Column('metadata', JSONB, nullable=True)
 
     # Timestamps
     queued_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
