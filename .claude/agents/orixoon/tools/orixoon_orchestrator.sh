@@ -2,6 +2,7 @@
 # Orixoon Pre-Deployment Testing Orchestrator
 # Runs all test phases in sequence
 # Blocks deployment on critical failures, allows warnings
+# Supports auto-healing mode
 
 set -e  # Exit on error (but we handle this ourselves)
 
@@ -10,7 +11,42 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+# Parse command line arguments
+AUTO_HEAL=false
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --auto-heal)
+            AUTO_HEAL=true
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --help)
+            echo "Orixoon Pre-Deployment Testing Orchestrator"
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --auto-heal    Enable automatic healing of detected issues"
+            echo "  --dry-run      Dry run mode (show what would be healed without doing it)"
+            echo "  --help         Show this help message"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,6 +60,12 @@ mkdir -p "$REPORT_DIR"
 
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}   🚀 Orixoon Pre-Deployment Testing${NC}"
+if [ "$AUTO_HEAL" = true ]; then
+    echo -e "${CYAN}   🔧 Auto-Healing: ENABLED${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${YELLOW}   ⚠️  Dry Run Mode: ON (no changes will be made)${NC}"
+    fi
+fi
 echo -e "${BLUE}   Report: $REPORT_DIR${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo ""
@@ -87,9 +129,29 @@ if [ $? -eq 1 ]; then
     exit 1
 fi
 
-# Phase 2: Service Health (CRITICAL)
-run_phase 2 "Service Health" "02_service_health.py" "critical"
-if [ $? -eq 1 ]; then
+# Phase 2: Service Health (CRITICAL) - with auto-healing support
+echo -e "\n${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}Phase 2: Service Health${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+
+# Build command with auto-heal flags if enabled
+HEALTH_CMD="python3 $SCRIPT_DIR/02_service_health.py"
+if [ "$AUTO_HEAL" = true ]; then
+    HEALTH_CMD="$HEALTH_CMD --auto-heal"
+    if [ "$DRY_RUN" = true ]; then
+        HEALTH_CMD="$HEALTH_CMD --dry-run"
+    fi
+fi
+
+# Run service health check
+if $HEALTH_CMD > "$REPORT_DIR/02_service_health.json" 2>&1; then
+    echo -e "${GREEN}✅ Service Health: PASSED${NC}"
+else
+    EXIT_CODE=$?
+    echo -e "${RED}❌ Service Health: FAILED${NC}"
+    CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1))
+    OVERALL_STATUS=1
+
     echo -e "\n${RED}═══════════════════════════════════════════════════════════${NC}"
     echo -e "${RED}   ❌ SERVICE HEALTH CHECKS FAILED${NC}"
     echo -e "${RED}   Deployment BLOCKED${NC}"

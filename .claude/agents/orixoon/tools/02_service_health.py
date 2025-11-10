@@ -20,11 +20,13 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 
 class ServiceHealthChecker:
-    def __init__(self):
+    def __init__(self, auto_heal: bool = False):
         self.results: List[Dict[str, Any]] = []
         self.start_time = time.time()
         self.critical_failures = 0
         self.timeout = 10
+        self.auto_heal = auto_heal
+        self.healing_issues: List[Dict[str, Any]] = []
 
     def log_check(self, name: str, status: str, message: str, critical: bool = True, response_time: Optional[float] = None):
         """Log a check result"""
@@ -87,8 +89,20 @@ class ServiceHealthChecker:
             for container in required_containers:
                 if container not in containers:
                     missing_containers.append(container)
+                    # Register healing issue
+                    if self.auto_heal:
+                        self.healing_issues.append({
+                            "type": "container_not_running",
+                            "data": {"container_name": container}
+                        })
                 elif "Up" not in containers[container]:
                     unhealthy_containers.append(f"{container} ({containers[container]})")
+                    # Register healing issue
+                    if self.auto_heal:
+                        self.healing_issues.append({
+                            "type": "container_unhealthy",
+                            "data": {"container_name": container}
+                        })
 
             if missing_containers:
                 self.log_check(
@@ -471,12 +485,45 @@ class ServiceHealthChecker:
 
 def main():
     """Main entry point"""
+    import argparse
+
     # Disable SSL warnings for self-signed certs
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    checker = ServiceHealthChecker()
+    parser = argparse.ArgumentParser(description="Service Health Checker with Auto-Healing")
+    parser.add_argument("--auto-heal", action="store_true", help="Enable auto-healing")
+    parser.add_argument("--dry-run", action="store_true", help="Dry run mode for healing")
+    args = parser.parse_args()
+
+    checker = ServiceHealthChecker(auto_heal=args.auto_heal)
     report = checker.run_all_checks()
+
+    # If auto-healing is enabled and there are failures, attempt healing
+    if args.auto_heal and checker.healing_issues:
+        print(f"\n🔧 Auto-Healing Enabled - Found {len(checker.healing_issues)} issues to heal")
+
+        # Import and run healing engine
+        try:
+            from auto_healing_engine import AutoHealingEngine
+
+            engine = AutoHealingEngine(dry_run=args.dry_run)
+            healed, failed = engine.heal_all_issues(checker.healing_issues)
+
+            # Add healing results to report
+            report["auto_healing"] = engine.get_healing_report()
+
+            # Re-run checks after healing
+            if healed > 0:
+                print("\n🔄 Re-running health checks after healing...\n")
+                time.sleep(5)
+                checker = ServiceHealthChecker(auto_heal=False)
+                report = checker.run_all_checks()
+                report["healed_and_retested"] = True
+
+        except Exception as e:
+            print(f"⚠️  Auto-healing failed: {str(e)}", file=sys.stderr)
+            report["auto_healing_error"] = str(e)
 
     # Output JSON report
     print(json.dumps(report, indent=2))
