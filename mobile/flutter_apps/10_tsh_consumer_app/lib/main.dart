@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'utils/tsh_theme.dart';
 import 'screens/products_screen_enhanced.dart';
 import 'screens/cart_screen.dart';
@@ -8,8 +9,18 @@ import 'screens/orders_screen_complete.dart';
 import 'screens/account_screen.dart';
 import 'screens/robot_splash_screen.dart';
 import 'providers/cart_provider.dart';
+import 'services/firebase_notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase and notifications
+  final notificationService = FirebaseNotificationService();
+  await notificationService.initialize();
+
+  // Set background message handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   runApp(
     const ProviderScope(
       child: TSHConsumerApp(),
