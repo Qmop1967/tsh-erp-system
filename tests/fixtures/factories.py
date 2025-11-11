@@ -109,10 +109,8 @@ class WarehouseFactory(BaseFactory):
 
     id = factory.Sequence(lambda n: n + 1)
     name = factory.Faker('company')
-    code = factory.Sequence(lambda n: f"WH{n:03d}")
-    location = factory.Faker('address')
+    # code, location, is_active removed - not in Warehouse model
     branch_id = factory.SubFactory(BranchFactory)
-    is_active = True
 
 
 class CategoryFactory(BaseFactory):
