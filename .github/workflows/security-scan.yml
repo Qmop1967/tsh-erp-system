@@ -1,0 +1,468 @@
+name: Security Scanning
+
+on:
+  workflow_call:
+    inputs:
+      scan_type:
+        description: 'Type of scan (docker, filesystem, all)'
+        required: false
+        type: string
+        default: 'all'
+      severity:
+        description: 'Minimum severity to report (LOW, MEDIUM, HIGH, CRITICAL)'
+        required: false
+        type: string
+        default: 'MEDIUM'
+      fail_on_severity:
+        description: 'Fail on this severity or higher (MEDIUM, HIGH, CRITICAL)'
+        required: false
+        type: string
+        default: 'HIGH'
+    outputs:
+      vulnerabilities_found:
+        description: 'Whether vulnerabilities were found'
+        value: ${{ jobs.trivy-scan.outputs.vulnerabilities_found }}
+      critical_count:
+        description: 'Number of critical vulnerabilities'
+        value: ${{ jobs.trivy-scan.outputs.critical_count }}
+
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of scan'
+        required: false
+        type: choice
+        options:
+          - all
+          - docker
+          - filesystem
+        default: 'all'
+      severity:
+        description: 'Minimum severity to report'
+        required: false
+        type: choice
+        options:
+          - LOW
+          - MEDIUM
+          - HIGH
+          - CRITICAL
+        default: 'MEDIUM'
+      fail_on_severity:
+        description: 'Fail on this severity or higher'
+        required: false
+        type: choice
+        options:
+          - MEDIUM
+          - HIGH
+          - CRITICAL
+        default: 'HIGH'
+
+  schedule:
+    # Run every day at 3 AM UTC
+    - cron: '0 3 * * *'
+
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'Dockerfile'
+      - 'requirements.txt'
+      - '.github/workflows/security-scan.yml'
+
+env:
+  TRIVY_VERSION: '0.50.1'
+
+jobs:
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      security-events: write  # For uploading SARIF results
+
+    outputs:
+      vulnerabilities_found: ${{ steps.scan-results.outputs.vulnerabilities_found }}
+      critical_count: ${{ steps.scan-results.outputs.critical_count }}
+      high_count: ${{ steps.scan-results.outputs.high_count }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Trivy
+        run: |
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy=${{ env.TRIVY_VERSION }}
+
+      - name: Set scan parameters
+        id: scan-params
+        run: |
+          SCAN_TYPE="${{ inputs.scan_type || 'all' }}"
+          SEVERITY="${{ inputs.severity || 'MEDIUM' }}"
+          FAIL_SEVERITY="${{ inputs.fail_on_severity || 'HIGH' }}"
+
+          echo "scan_type=$SCAN_TYPE" >> $GITHUB_OUTPUT
+          echo "severity=$SEVERITY" >> $GITHUB_OUTPUT
+          echo "fail_severity=$FAIL_SEVERITY" >> $GITHUB_OUTPUT
+
+          echo "📋 Scan Configuration:"
+          echo "  Type: $SCAN_TYPE"
+          echo "  Severity: $SEVERITY+"
+          echo "  Fail on: $FAIL_SEVERITY+"
+
+      - name: Scan filesystem for vulnerabilities
+        if: inputs.scan_type == 'filesystem' || inputs.scan_type == 'all' || inputs.scan_type == null
+        continue-on-error: true
+        run: |
+          echo "🔍 Scanning filesystem for vulnerabilities..."
+
+          trivy fs . \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format table \
+            --output filesystem-scan.txt \
+            --skip-dirs ".git,.venv,node_modules,htmlcov,.pytest_cache" \
+            --scanners vuln,secret,misconfig
+
+          trivy fs . \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format json \
+            --output filesystem-scan.json \
+            --skip-dirs ".git,.venv,node_modules,htmlcov,.pytest_cache" \
+            --scanners vuln,secret,misconfig
+
+          trivy fs . \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format sarif \
+            --output filesystem-scan.sarif \
+            --skip-dirs ".git,.venv,node_modules,htmlcov,.pytest_cache" \
+            --scanners vuln,secret,misconfig
+
+          echo "✅ Filesystem scan complete"
+
+      - name: Scan Python dependencies
+        if: inputs.scan_type == 'filesystem' || inputs.scan_type == 'all' || inputs.scan_type == null
+        continue-on-error: true
+        run: |
+          echo "🐍 Scanning Python dependencies..."
+
+          trivy fs requirements.txt \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format table \
+            --output python-deps-scan.txt \
+            --scanners vuln
+
+          trivy fs requirements.txt \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format json \
+            --output python-deps-scan.json \
+            --scanners vuln
+
+          echo "✅ Python dependencies scan complete"
+
+      - name: Set up Docker Buildx
+        if: inputs.scan_type == 'docker' || inputs.scan_type == 'all' || inputs.scan_type == null
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for scanning
+        if: inputs.scan_type == 'docker' || inputs.scan_type == 'all' || inputs.scan_type == null
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: tsh-erp-app:scan
+          load: true
+          cache-from: type=gha,scope=security-scan
+          cache-to: type=gha,mode=max,scope=security-scan
+
+      - name: Scan Docker image for vulnerabilities
+        if: inputs.scan_type == 'docker' || inputs.scan_type == 'all' || inputs.scan_type == null
+        continue-on-error: true
+        run: |
+          echo "🐳 Scanning Docker image for vulnerabilities..."
+
+          trivy image tsh-erp-app:scan \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format table \
+            --output docker-scan.txt
+
+          trivy image tsh-erp-app:scan \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format json \
+            --output docker-scan.json
+
+          trivy image tsh-erp-app:scan \
+            --severity ${{ steps.scan-params.outputs.severity }},HIGH,CRITICAL \
+            --format sarif \
+            --output docker-scan.sarif
+
+          echo "✅ Docker image scan complete"
+
+      - name: Analyze scan results
+        id: scan-results
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          import sys
+
+          ENV = os.getenv('GITHUB_OUTPUT')
+
+          def count_vulnerabilities(scan_file):
+              """Count vulnerabilities by severity"""
+              if not os.path.exists(scan_file):
+                  return {'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0}
+
+              with open(scan_file, 'r') as f:
+                  data = json.load(f)
+
+              counts = {'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0}
+
+              # Trivy JSON format
+              if 'Results' in data:
+                  for result in data.get('Results', []):
+                      for vuln in result.get('Vulnerabilities', []):
+                          severity = vuln.get('Severity', 'UNKNOWN')
+                          if severity in counts:
+                              counts[severity] += 1
+
+              return counts
+
+          # Aggregate all scan results
+          total_counts = {'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0}
+
+          scan_files = [
+              'filesystem-scan.json',
+              'python-deps-scan.json',
+              'docker-scan.json'
+          ]
+
+          for scan_file in scan_files:
+              if os.path.exists(scan_file):
+                  counts = count_vulnerabilities(scan_file)
+                  for severity, count in counts.items():
+                      total_counts[severity] += count
+
+          # Print summary
+          print("\n" + "=" * 70)
+          print("🛡️  SECURITY SCAN SUMMARY")
+          print("=" * 70)
+          print(f"\nTotal Vulnerabilities Found:")
+          print(f"  🔴 CRITICAL: {total_counts['CRITICAL']}")
+          print(f"  🟠 HIGH:     {total_counts['HIGH']}")
+          print(f"  🟡 MEDIUM:   {total_counts['MEDIUM']}")
+          print(f"  ⚪ LOW:      {total_counts['LOW']}")
+          print(f"\n  📊 TOTAL:    {sum(total_counts.values())}")
+          print("=" * 70 + "\n")
+
+          # Set outputs
+          vulnerabilities_found = sum(total_counts.values()) > 0
+
+          with open(ENV, 'a') as f:
+              f.write(f"vulnerabilities_found={'true' if vulnerabilities_found else 'false'}\n")
+              f.write(f"critical_count={total_counts['CRITICAL']}\n")
+              f.write(f"high_count={total_counts['HIGH']}\n")
+              f.write(f"medium_count={total_counts['MEDIUM']}\n")
+              f.write(f"low_count={total_counts['LOW']}\n")
+              f.write(f"total_count={sum(total_counts.values())}\n")
+
+          # Write detailed report
+          report = {
+              "total": sum(total_counts.values()),
+              "by_severity": total_counts,
+              "vulnerabilities_found": vulnerabilities_found,
+          }
+
+          with open('security-scan-summary.json', 'w') as f:
+              json.dump(report, f, indent=2)
+
+          if total_counts['CRITICAL'] > 0 or total_counts['HIGH'] > 0:
+              print("⚠️  HIGH or CRITICAL vulnerabilities found - Review required!")
+          elif vulnerabilities_found:
+              print("ℹ️  Vulnerabilities found but below threshold")
+          else:
+              print("✅ No vulnerabilities found")
+          EOF
+
+      - name: Upload Trivy scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-scan-results
+          path: |
+            filesystem-scan.txt
+            filesystem-scan.json
+            filesystem-scan.sarif
+            python-deps-scan.txt
+            python-deps-scan.json
+            docker-scan.txt
+            docker-scan.json
+            docker-scan.sarif
+            security-scan-summary.json
+          retention-days: 90
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: filesystem-scan.sarif
+          category: trivy-filesystem
+
+      - name: Upload Docker SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && (inputs.scan_type == 'docker' || inputs.scan_type == 'all' || inputs.scan_type == null)
+        with:
+          sarif_file: docker-scan.sarif
+          category: trivy-docker
+
+      - name: Generate security report
+        if: always()
+        run: |
+          cat > security-report.md << 'EOFMD'
+          # 🛡️ Security Scan Report
+
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Scan Type:** ${{ steps.scan-params.outputs.scan_type }}
+
+          ## Summary
+
+          | Severity | Count |
+          |----------|-------|
+          | 🔴 CRITICAL | ${{ steps.scan-results.outputs.critical_count }} |
+          | 🟠 HIGH     | ${{ steps.scan-results.outputs.high_count }} |
+          | 🟡 MEDIUM   | ${{ steps.scan-results.outputs.medium_count }} |
+          | ⚪ LOW      | ${{ steps.scan-results.outputs.low_count }} |
+          | **📊 TOTAL** | **${{ steps.scan-results.outputs.total_count }}** |
+
+          ## Scans Performed
+
+          EOFMD
+
+          if [ -f "filesystem-scan.txt" ]; then
+            echo "✅ Filesystem scan" >> security-report.md
+          fi
+
+          if [ -f "python-deps-scan.txt" ]; then
+            echo "✅ Python dependencies scan" >> security-report.md
+          fi
+
+          if [ -f "docker-scan.txt" ]; then
+            echo "✅ Docker image scan" >> security-report.md
+          fi
+
+          cat >> security-report.md << 'EOFMD'
+
+          ## Recommendations
+
+          EOFMD
+
+          if [ "${{ steps.scan-results.outputs.critical_count }}" -gt 0 ]; then
+            cat >> security-report.md << 'EOFMD'
+          🔴 **CRITICAL vulnerabilities found!**
+          - Review all CRITICAL vulnerabilities immediately
+          - Update affected dependencies to patched versions
+          - Consider rolling back if vulnerabilities are exploitable
+          - Schedule emergency patch deployment
+          EOFMD
+          elif [ "${{ steps.scan-results.outputs.high_count }}" -gt 0 ]; then
+            cat >> security-report.md << 'EOFMD'
+          🟠 **HIGH vulnerabilities found**
+          - Review HIGH vulnerabilities
+          - Update dependencies in next release
+          - Prioritize fixes based on exploitability
+          EOFMD
+          elif [ "${{ steps.scan-results.outputs.medium_count }}" -gt 0 ]; then
+            cat >> security-report.md << 'EOFMD'
+          🟡 **MEDIUM vulnerabilities found**
+          - Track and fix in regular maintenance
+          - Update dependencies when convenient
+          EOFMD
+          else
+            cat >> security-report.md << 'EOFMD'
+          ✅ **No significant vulnerabilities found**
+          - Continue regular security scanning
+          - Keep dependencies up to date
+          EOFMD
+          fi
+
+          cat >> security-report.md << 'EOFMD'
+
+          ## Detailed Reports
+
+          Download scan artifacts for detailed vulnerability information.
+
+          ---
+          *Generated by Trivy Security Scanner*
+          EOFMD
+
+          cat security-report.md
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          cat security-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Telegram notification
+        if: |
+          always() &&
+          (steps.scan-results.outputs.critical_count > 0 || steps.scan-results.outputs.high_count > 0) &&
+          (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        run: |
+          CRITICAL="${{ steps.scan-results.outputs.critical_count }}"
+          HIGH="${{ steps.scan-results.outputs.high_count }}"
+          MEDIUM="${{ steps.scan-results.outputs.medium_count }}"
+          LOW="${{ steps.scan-results.outputs.low_count }}"
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            EMOJI="🔴"
+            STATUS="CRITICAL"
+          elif [ "$HIGH" -gt 0 ]; then
+            EMOJI="🟠"
+            STATUS="HIGH"
+          else
+            EMOJI="🟡"
+            STATUS="MEDIUM"
+          fi
+
+          MESSAGE="${EMOJI} *Security Alert - ${STATUS}*
+
+          🛡️  *Vulnerabilities Detected*
+
+          *Severity Breakdown:*
+          • 🔴 Critical: ${CRITICAL}
+          • 🟠 High: ${HIGH}
+          • 🟡 Medium: ${MEDIUM}
+          • ⚪ Low: ${LOW}
+
+          🌿 *Branch:* \`${{ github.ref_name }}\`
+          📝 *Commit:* \`${{ github.sha }}\`
+
+          ⚠️ *Action Required:*
+          Review and patch vulnerabilities
+
+          🔗 [View Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview=true
+
+      - name: Fail on critical/high vulnerabilities
+        if: |
+          steps.scan-results.outputs.critical_count > 0 ||
+          (steps.scan-params.outputs.fail_severity == 'HIGH' && steps.scan-results.outputs.high_count > 0) ||
+          (steps.scan-params.outputs.fail_severity == 'MEDIUM' && steps.scan-results.outputs.medium_count > 0)
+        run: |
+          echo "❌ Security scan failed due to vulnerabilities"
+          echo "Critical: ${{ steps.scan-results.outputs.critical_count }}"
+          echo "High: ${{ steps.scan-results.outputs.high_count }}"
+          echo "Medium: ${{ steps.scan-results.outputs.medium_count }}"
+          exit 1
