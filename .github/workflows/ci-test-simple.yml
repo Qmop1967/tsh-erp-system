@@ -58,22 +58,10 @@ jobs:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          MESSAGE="✅ *CI Test Successful!*
-
-*Workflow:* CI Test - Simple
-*Branch:* develop
-*Commit:* ${{ github.sha }}
-
-*Checks Passed:*
-• Secret configuration ✅
-• Python environment ✅
-• Basic workflow execution ✅
-
-🤖 _GitHub Actions CI/CD_"
+          TEXT="CI Test Successful - Workflow: CI Test Simple - Branch: develop - Commit: ${{ github.sha }} - All checks passed"
 
           curl -s "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
             -d "chat_id=${CHAT_ID}" \
-            -d "parse_mode=Markdown" \
-            -d "text=${MESSAGE}" > /dev/null
+            -d "text=${TEXT}" > /dev/null
 
           echo "✅ Telegram notification sent!"
