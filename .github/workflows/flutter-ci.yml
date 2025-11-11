@@ -87,7 +87,8 @@ jobs:
           mobile_apps_dir = Path('mobile_apps')
 
           if not mobile_apps_dir.exists():
-              print("No mobile_apps directory found")
+              print("⚠️  No mobile_apps directory found - skipping Flutter CI")
+              print("   To enable Flutter CI, create the mobile_apps/ directory with Flutter apps")
               apps = []
           else:
               # Find all directories with pubspec.yaml
@@ -96,14 +97,18 @@ jobs:
                   if app_dir.is_dir() and (app_dir / 'pubspec.yaml').exists():
                       apps.append(app_dir.name)
 
-          print(f"Found Flutter apps: {apps}")
+          if apps:
+              print(f"✅ Found {len(apps)} Flutter app(s): {apps}")
+          else:
+              print("⚠️  No Flutter apps found")
 
           # Filter based on input
           requested_app = "${{ inputs.app_name || 'all' }}"
           if requested_app != "all" and requested_app in apps:
               apps = [requested_app]
-          elif requested_app != "all":
-              print(f"Requested app '{requested_app}' not found")
+              print(f"   Filtering to requested app: {requested_app}")
+          elif requested_app != "all" and apps:
+              print(f"⚠️  Requested app '{requested_app}' not found")
               apps = []
 
           # Create matrix
@@ -113,7 +118,7 @@ jobs:
               f.write(f"apps={json.dumps(apps)}\n")
               f.write(f"matrix={json.dumps(matrix)}\n")
 
-          print(f"Matrix: {matrix}")
+          print(f"\n📋 Build Matrix: {matrix}")
           EOF
 
   # Analyze and lint Flutter code

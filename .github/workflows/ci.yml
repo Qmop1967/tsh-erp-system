@@ -244,18 +244,47 @@ jobs:
       - name: Create database tables
         run: |
           python -c "
+          import os
+          os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/tsh_erp_test'
+
+          # Import all models first so SQLAlchemy knows about them
           from app.db.database import Base, engine
+          from app.models import user, role, employee, customer, product, inventory
+          from app.models import sales_order, invoice, purchase_order, supplier
+
+          # Create all tables
           Base.metadata.create_all(bind=engine)
-          print('✅ Database tables created')
+
+          # Verify tables were created
+          from sqlalchemy import inspect
+          inspector = inspect(engine)
+          tables = inspector.get_table_names()
+          print(f'✅ Database tables created: {len(tables)} tables')
+          print(f'   Tables: {tables[:10]}...' if len(tables) > 10 else f'   Tables: {tables}')
+
+          if 'roles' not in tables:
+              raise Exception('roles table not created!')
           "
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_test
 
       - name: Seed test database
         run: |
           python -c "
+          import os
+          os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/tsh_erp_test'
+
+          # Seed database with test data
           from tests.fixtures import seed_minimal
-          summary = seed_minimal()
-          print('✅ Database seeded:', summary)
+          try:
+              summary = seed_minimal()
+              print('✅ Database seeded successfully:', summary)
+          except Exception as e:
+              print(f'❌ Error seeding database: {e}')
+              raise
           "
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_test
 
       - name: Run integration tests
         run: |

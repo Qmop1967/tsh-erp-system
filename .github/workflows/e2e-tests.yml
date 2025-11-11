@@ -170,10 +170,27 @@ jobs:
           python -c "
           import os
           os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e'
+
+          # Import all models first so SQLAlchemy knows about them
           from app.db.database import Base, engine
+          from app.models import user, role, employee, customer, product, inventory
+          from app.models import sales_order, invoice, purchase_order, supplier
+
+          # Create all tables
           Base.metadata.create_all(bind=engine)
-          print('✅ Database schema created')
+
+          # Verify tables were created
+          from sqlalchemy import inspect
+          inspector = inspect(engine)
+          tables = inspector.get_table_names()
+          print(f'✅ Database schema created: {len(tables)} tables')
+          print(f'   Tables: {tables}')
+
+          if 'roles' not in tables:
+              raise Exception('roles table not created!')
           "
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e
 
       - name: Seed test database
         run: |
@@ -181,11 +198,21 @@ jobs:
           python -c "
           import os
           os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e'
+
+          # Seed database with test data
           from tests.fixtures import seed_full
-          summary = seed_full()
-          print('✅ Database seeded successfully')
-          print('Summary:', summary)
+          try:
+              summary = seed_full()
+              print('✅ Database seeded successfully')
+              print('Summary:', summary)
+          except Exception as e:
+              print(f'❌ Error seeding database: {e}')
+              import traceback
+              traceback.print_exc()
+              raise
           "
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e
 
       - name: Start application server
         run: |

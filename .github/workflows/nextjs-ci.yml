@@ -49,17 +49,32 @@ jobs:
 
     outputs:
       cache-hit: ${{ steps.cache-node-modules.outputs.cache-hit }}
+      directory-exists: ${{ steps.check-directory.outputs.exists }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if directory exists
+        id: check-directory
+        run: |
+          if [ -d "${{ inputs.working_directory || './tds-admin-dashboard' }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Found tds-admin-dashboard directory"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  No tds-admin-dashboard directory found - skipping Next.js CI"
+            echo "   To enable Next.js CI, create the tds-admin-dashboard/ directory"
+          fi
+
       - name: Setup pnpm
+        if: steps.check-directory.outputs.exists == 'true'
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
+        if: steps.check-directory.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -67,12 +82,14 @@ jobs:
           cache-dependency-path: '${{ inputs.working_directory }}/pnpm-lock.yaml'
 
       - name: Get pnpm store directory
+        if: steps.check-directory.outputs.exists == 'true'
         id: pnpm-cache
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Cache pnpm store
+        if: steps.check-directory.outputs.exists == 'true'
         uses: actions/cache@v4
         id: cache-node-modules
         with:
@@ -82,12 +99,14 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        if: steps.check-directory.outputs.exists == 'true'
         working-directory: ${{ inputs.working_directory }}
         run: pnpm install --frozen-lockfile
 
   lint:
     name: Lint and Format Check
     needs: setup
+    if: needs.setup.outputs.directory-exists == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -142,6 +161,7 @@ jobs:
   typecheck:
     name: TypeScript Type Check
     needs: setup
+    if: needs.setup.outputs.directory-exists == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -186,6 +206,7 @@ jobs:
   test:
     name: Unit and Integration Tests
     needs: setup
+    if: needs.setup.outputs.directory-exists == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -243,7 +264,8 @@ jobs:
 
   build:
     name: Build Production
-    needs: [lint, typecheck]
+    needs: [setup, lint, typecheck]
+    if: needs.setup.outputs.directory-exists == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -326,7 +348,8 @@ jobs:
 
   bundle-analysis:
     name: Bundle Size Analysis
-    needs: build
+    needs: [setup, build]
+    if: needs.setup.outputs.directory-exists == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
