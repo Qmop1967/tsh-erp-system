@@ -166,21 +166,11 @@ jobs:
       - name: Send Telegram notification
         if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
         run: |
-          MESSAGE="🧹 *GHCR Cleanup Complete*
-
-📦 *Services Cleaned:* ${{ steps.calc.outputs.services_cleaned }}
-💾 *Estimated Storage Saved:* ~${{ steps.calc.outputs.storage_saved_mb }}MB
-📅 *Retention Policy:* ${{ env.RETENTION_DAYS }} days
-🔢 *Versions Kept:* Last ${{ env.KEEP_LAST_N }} per service
-🏷️ *Protected Tags:* latest, production, staging, v*.*.*
-
-✅ *Status:* Cleanup completed successfully
-🔗 *Details:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEXT="GHCR Cleanup Complete - Services: ${{ steps.calc.outputs.services_cleaned }} - Storage Saved: ~${{ steps.calc.outputs.storage_saved_mb }}MB - Retention: ${{ env.RETENTION_DAYS }} days - Status: Success"
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" \
+            -d text="$TEXT" \
             -d disable_web_page_preview=true
 
       - name: Send email notification (optional)

@@ -107,60 +107,27 @@ jobs:
       - name: Build Telegram message
         id: message
         run: |
-          # Start building the message
-          MESSAGE="${{ steps.meta.outputs.emoji }} *TSH ERP - ${{ steps.meta.outputs.title }}*
-
-${{ steps.meta.outputs.status_emoji }} *Status:* ${{ inputs.status }}"
+          # Build simple single-line message
+          MESSAGE="TSH ERP - ${{ inputs.status }} - Branch: ${{ github.ref_name }} - Commit: ${GITHUB_SHA:0:7} - By: ${{ github.actor }}"
 
           # Add environment if provided
           if [ -n "${{ inputs.environment }}" ]; then
-            MESSAGE="$MESSAGE
-🌍 *Environment:* ${{ inputs.environment }}"
+            MESSAGE="$MESSAGE - Env: ${{ inputs.environment }}"
           fi
 
           # Add service if provided
           if [ -n "${{ inputs.service }}" ]; then
-            MESSAGE="$MESSAGE
-📦 *Service:* ${{ inputs.service }}"
+            MESSAGE="$MESSAGE - Service: ${{ inputs.service }}"
           fi
 
           # Add version if provided
           if [ -n "${{ inputs.version }}" ]; then
-            MESSAGE="$MESSAGE
-🏷️ *Version:* \`${{ inputs.version }}\`"
-          fi
-
-          # Add duration if provided
-          if [ -n "${{ inputs.duration }}" ]; then
-            DURATION_MIN=$((  ${{ inputs.duration }} / 60 ))
-            DURATION_SEC=$(( ${{ inputs.duration }} % 60 ))
-            MESSAGE="$MESSAGE
-⏱️ *Duration:* ${DURATION_MIN}m ${DURATION_SEC}s"
-          fi
-
-          # Add branch and commit
-          MESSAGE="$MESSAGE
-🌿 *Branch:* \`${{ github.ref_name }}\`
-📝 *Commit:* \`${GITHUB_SHA:0:7}\`
-👤 *Triggered by:* @${{ github.actor }}"
-
-          # Add test results if provided
-          if [ -n "${{ inputs.test_results }}" ]; then
-            MESSAGE="$MESSAGE
-📊 *Tests:* ${{ inputs.test_results }}"
+            MESSAGE="$MESSAGE - Version: ${{ inputs.version }}"
           fi
 
           # Add security findings if provided
           if [ -n "${{ inputs.security_findings }}" ]; then
-            MESSAGE="$MESSAGE
-🔒 *Security:* ${{ inputs.security_findings }}"
-          fi
-
-          # Add details if provided
-          if [ -n "${{ inputs.details }}" ]; then
-            MESSAGE="$MESSAGE
-
-${{ inputs.details }}"
+            MESSAGE="$MESSAGE - Security: ${{ inputs.security_findings }}"
           fi
 
           # Add run URL
@@ -168,11 +135,9 @@ ${{ inputs.details }}"
           if [ -z "$RUN_URL" ]; then
             RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
-          MESSAGE="$MESSAGE
+          MESSAGE="$MESSAGE - View: $RUN_URL"
 
-🔗 [View Details]($RUN_URL)"
-
-          # Save message to file to handle multiline properly
+          # Save message
           echo "$MESSAGE" > /tmp/telegram_message.txt
           echo "message_file=/tmp/telegram_message.txt" >> $GITHUB_OUTPUT
 
