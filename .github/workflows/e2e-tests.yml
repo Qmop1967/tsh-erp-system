@@ -171,10 +171,9 @@ jobs:
           import os
           os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e'
 
-          # Import all models first so SQLAlchemy knows about them
+          # Import models package to trigger all model registrations
+          import app.models  # This imports all models via __init__.py
           from app.db.database import Base, engine
-          from app.models import user, role, employee, customer, product, inventory
-          from app.models import sales_order, invoice, purchase_order, supplier
 
           # Create all tables
           Base.metadata.create_all(bind=engine)
