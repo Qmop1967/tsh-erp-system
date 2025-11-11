@@ -459,9 +459,16 @@ jobs:
       - name: Send Telegram notification
         if: |
           always() &&
-          (steps.test-results.outputs.tests_failed > 0 || github.event_name == 'schedule') &&
-          (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+          (steps.test-results.outputs.tests_failed > 0 || github.event_name == 'schedule')
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
+
           TESTS_TOTAL="${{ steps.test-results.outputs.tests_total }}"
           TESTS_FAILED="${{ steps.test-results.outputs.tests_failed }}"
           TESTS_PASSED=$((TESTS_TOTAL - TESTS_FAILED))
@@ -474,25 +481,11 @@ jobs:
             STATUS="PASSED"
           fi
 
-          MESSAGE="${EMOJI} *E2E Tests ${STATUS}*
+          TEXT="E2E Tests ${EMOJI} ${STATUS} - Total:${TESTS_TOTAL} Passed:${TESTS_PASSED} Failed:${TESTS_FAILED} Time:${{ steps.test-results.outputs.test_time }}s - Branch:${{ github.ref_name }} Commit:${{ github.sha }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          🧪 *Test Results*
-
-          *Statistics:*
-          • Total: ${TESTS_TOTAL}
-          • ✅ Passed: ${TESTS_PASSED}
-          • ❌ Failed: ${TESTS_FAILED}
-          • ⏱️ Time: ${{ steps.test-results.outputs.test_time }}s
-
-          🌿 *Branch:* \`${{ github.ref_name }}\`
-          📝 *Commit:* \`${{ github.sha }}\`
-
-          🔗 [View Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" \
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT" \
             -d disable_web_page_preview=true
 
       - name: Fail on test failures
