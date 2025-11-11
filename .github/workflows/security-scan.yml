@@ -431,28 +431,11 @@ jobs:
             STATUS="MEDIUM"
           fi
 
-          MESSAGE="${EMOJI} *Security Alert - ${STATUS}*
-
-          🛡️  *Vulnerabilities Detected*
-
-          *Severity Breakdown:*
-          • 🔴 Critical: ${CRITICAL}
-          • 🟠 High: ${HIGH}
-          • 🟡 Medium: ${MEDIUM}
-          • ⚪ Low: ${LOW}
-
-          🌿 *Branch:* \`${{ github.ref_name }}\`
-          📝 *Commit:* \`${{ github.sha }}\`
-
-          ⚠️ *Action Required:*
-          Review and patch vulnerabilities
-
-          🔗 [View Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          TEXT="Security Alert ${STATUS} - Vulnerabilities: Critical:${CRITICAL} High:${HIGH} Medium:${MEDIUM} Low:${LOW} - Branch: ${{ github.ref_name }} - Commit: ${{ github.sha }} - Action Required: Review and patch - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" \
+            -d text="$TEXT" \
             -d disable_web_page_preview=true
 
       - name: Fail on critical/high vulnerabilities
