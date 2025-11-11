@@ -339,8 +339,16 @@ jobs:
           cat drift-summary.md >> $GITHUB_STEP_SUMMARY
 
       - name: Send Telegram notification
-        if: steps.compare.outputs.drift == 'true' && (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        if: steps.compare.outputs.drift == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
+
           SEVERITY="${{ steps.analyze.outputs.drift_severity }}"
           ENVIRONMENT="${{ inputs.environment || 'production' }}"
 
@@ -355,28 +363,11 @@ jobs:
             STATUS="MINOR"
           fi
 
-          MESSAGE="${EMOJI} *Schema Drift Alert - ${STATUS}*
+          TEXT="Schema Drift Alert ${EMOJI} ${STATUS} - Environment: ${ENVIRONMENT} - Critical: ${{ steps.analyze.outputs.critical_count || 0 }} - Major: ${{ steps.analyze.outputs.major_count || 0 }} - Minor: ${{ steps.analyze.outputs.minor_count || 0 }} - Branch: ${{ github.ref_name }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          🗃️ *Environment:* \`${ENVIRONMENT}\`
-          📊 *Severity:* ${SEVERITY}
-
-          *Changes Detected:*
-          • 🔴 Critical: ${{ steps.analyze.outputs.critical_count || 0 }}
-          • 🟠 Major: ${{ steps.analyze.outputs.major_count || 0 }}
-          • 🟡 Minor: ${{ steps.analyze.outputs.minor_count || 0 }}
-
-          🌿 *Branch:* \`${{ github.ref_name }}\`
-          📝 *Commit:* \`${{ github.sha }}\`
-
-          ⚠️ *Action Required:*
-          Review schema differences and generate migration
-
-          🔗 [View Full Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" \
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT" \
             -d disable_web_page_preview=true
 
       - name: Fail on critical drift

@@ -437,8 +437,16 @@ jobs:
           fi
 
       - name: Send Telegram notification
-        if: always() && (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
+
           SUCCESS_RATE="${{ steps.analyze.outputs.success_rate || 'N/A' }}"
           TOTAL_REQUESTS="${{ steps.analyze.outputs.total_requests || 0 }}"
           TOTAL_FAILURES="${{ steps.analyze.outputs.total_failures || 0 }}"
@@ -462,27 +470,9 @@ jobs:
             STATUS="COMPLETED"
           fi
 
-          MESSAGE="${EMOJI} *Performance Test - ${STATUS}*
+          TEXT="Performance Test ${EMOJI} ${STATUS} - Target: ${{ inputs.target_url || 'staging' }} - Requests: ${TOTAL_REQUESTS} - Failures: ${TOTAL_FAILURES} - Success Rate: ${SUCCESS_RATE}% - Branch: ${{ github.ref_name }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          ⚡ *Load Test Results*
-
-          *Configuration:*
-          • Target: \`${{ inputs.target_url || 'staging' }}\`
-          • Users: ${{ inputs.users || 100 }}
-          • Duration: ${{ inputs.run_time || '5m' }}
-
-          *Metrics:*
-          • Total Requests: ${TOTAL_REQUESTS}
-          • Failed Requests: ${TOTAL_FAILURES}
-          • Success Rate: ${SUCCESS_RATE}%
-
-          🌿 *Branch:* \`${{ github.ref_name }}\`
-          📝 *Commit:* \`${{ github.sha }}\`
-
-          🔗 [View Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" \
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT" \
             -d disable_web_page_preview=true

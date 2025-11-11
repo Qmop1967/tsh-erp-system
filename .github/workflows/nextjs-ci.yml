@@ -453,25 +453,19 @@ jobs:
           fi
 
       - name: Send Telegram notification
-        if: failure() && (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          MESSAGE="❌ *Next.js CI Failed*
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
 
-          🎨 *TDS Admin Dashboard*
+          TEXT="Next.js CI Failed - TDS Admin Dashboard - Branch: ${{ github.ref_name }} - Commit: ${{ github.sha }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          *Job Results:*
-          • Lint: ${{ needs.lint.result == 'success' && '✅' || '❌' }}
-          • Type Check: ${{ needs.typecheck.result == 'success' && '✅' || '❌' }}
-          • Tests: ${{ needs.test.result == 'success' && '✅' || '⚠️' }}
-          • Build: ${{ needs.build.result == 'success' && '✅' || '❌' }}
-
-          🌿 *Branch:* \`${{ github.ref_name }}\`
-          📝 *Commit:* \`${{ github.sha }}\`
-
-          🔗 [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" \
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT" \
             -d disable_web_page_preview=true
