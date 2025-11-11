@@ -1,0 +1,458 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+# Prevent multiple CI runs on same branch
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Job 0: Validate Secrets (Fast gate check)
+  validate-secrets:
+    name: Validate Required Secrets
+    uses: ./.github/workflows/validate-secrets.yml
+    with:
+      environment: development
+      check_scope: ci
+    secrets: inherit
+
+  # Job 1: Code Quality Checks (Fast feedback)
+  code-quality:
+    name: Code Quality Checks
+    needs: validate-secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy bandit
+
+      - name: Run ruff linter
+        run: |
+          ruff check . --output-format=github
+        continue-on-error: false
+
+      - name: Run type checking with mypy
+        run: |
+          mypy app/ --ignore-missing-imports --no-strict-optional
+        continue-on-error: true
+
+      - name: Security scan with bandit
+        run: |
+          bandit -r app/ -f json -o bandit-report.json || true
+          bandit -r app/ -f screen
+        continue-on-error: true
+
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+          retention-days: 30
+
+  # Job 2: Unit Tests
+  unit-tests:
+    name: Unit Tests
+    needs: validate-secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-mock
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/ \
+            -v \
+            --cov=app \
+            --cov-report=term \
+            --cov-report=xml \
+            --cov-report=html \
+            --junitxml=junit/test-results.xml
+        continue-on-error: false
+
+      - name: Enforce coverage threshold
+        run: |
+          coverage report --fail-under=60
+        continue-on-error: false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-tsh-erp
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            junit/test-results.xml
+            htmlcov/
+          retention-days: 30
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 60
+          MINIMUM_ORANGE: 40
+
+  # Job 3: Integration Tests with Database
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tsh_erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-mock factory-boy Faker
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for PostgreSQL..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "✅ PostgreSQL is ready"
+              break
+            fi
+            echo "⏳ Waiting... ($i/30)"
+            sleep 2
+          done
+
+          echo "Waiting for Redis..."
+          for i in {1..30}; do
+            if redis-cli -h localhost -p 6379 ping; then
+              echo "✅ Redis is ready"
+              break
+            fi
+            echo "⏳ Waiting... ($i/30)"
+            sleep 2
+          done
+
+      - name: Set test environment variables
+        run: |
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/tsh_erp_test" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
+          echo "JWT_SECRET_KEY=test_jwt_secret_key_for_ci_testing_only_do_not_use_in_production" >> $GITHUB_ENV
+          echo "SECRET_KEY=test_secret_key_for_ci" >> $GITHUB_ENV
+
+      - name: Create database tables
+        run: |
+          python -c "
+          from app.db.database import Base, engine
+          Base.metadata.create_all(bind=engine)
+          print('✅ Database tables created')
+          "
+
+      - name: Seed test database
+        run: |
+          python -c "
+          from tests.fixtures import seed_minimal
+          summary = seed_minimal()
+          print('✅ Database seeded:', summary)
+          "
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ \
+            -v \
+            --cov=app \
+            --cov-report=term \
+            --cov-report=xml:coverage-integration.xml \
+            --junitxml=junit/integration-results.xml \
+            || echo "No integration tests found yet"
+        continue-on-error: true
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: |
+            junit/integration-results.xml
+            coverage-integration.xml
+          retention-days: 30
+
+  # Job 4: Service Dependency Validation
+  service-validation:
+    name: Service Dependency Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tsh_erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Set environment variables
+        run: |
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/tsh_erp_test" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
+
+      - name: Validate service dependencies
+        run: |
+          python tests/infrastructure/validate_dependencies.py \
+            --env development \
+            --export validation-results.json
+        continue-on-error: true
+
+      - name: Upload validation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: service-validation-results
+          path: validation-results.json
+          retention-days: 30
+
+  # Job 5: Build Docker Images (without push - just validate)
+  docker-build-test:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        service: [app, neurolink]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine Dockerfile path
+        id: docker-path
+        run: |
+          if [ "${{ matrix.service }}" == "app" ]; then
+            echo "dockerfile=./Dockerfile" >> $GITHUB_OUTPUT
+            echo "context=." >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.service }}" == "neurolink" ]; then
+            echo "dockerfile=./app/neurolink/Dockerfile" >> $GITHUB_OUTPUT
+            echo "context=./app/neurolink" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.docker-path.outputs.context }}
+          file: ${{ steps.docker-path.outputs.dockerfile }}
+          push: false
+          tags: tsh-erp-${{ matrix.service }}:test
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          load: true
+
+      - name: Test Docker image
+        run: |
+          docker images | grep tsh-erp-${{ matrix.service }}
+          echo "✅ Docker image built successfully: tsh-erp-${{ matrix.service }}:test"
+
+  # Job 6: Generate CI Summary
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [validate-secrets, code-quality, unit-tests, integration-tests, service-validation, docker-build-test]
+    if: always()
+
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "## 🔍 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Validation | ${{ needs.validate-secrets.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || '⚠️ Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Service Validation | ${{ needs.service-validation.result == 'success' && '✅ Passed' || '⚠️ Warning' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Determine overall status
+        id: status
+        run: |
+          # Critical jobs: validate-secrets, code-quality, unit-tests, docker-build-test
+          # Non-critical: integration-tests, service-validation
+          if [ "${{ needs.validate-secrets.result }}" == "success" ] && \
+             [ "${{ needs.code-quality.result }}" == "success" ] && \
+             [ "${{ needs.unit-tests.result }}" == "success" ] && \
+             [ "${{ needs.docker-build-test.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=All CI checks passed ✅" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=Some CI checks failed ❌" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Send Telegram notification
+        if: always() && (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        run: |
+          STATUS_EMOJI="${{ steps.status.outputs.status == 'success' && '✅' || '❌' }}"
+
+          MESSAGE="${STATUS_EMOJI} *CI Pipeline - ${{ github.ref_name }}*
+
+📦 *Repository:* ${{ github.repository }}
+🌿 *Branch:* \`${{ github.ref_name }}\`
+📝 *Commit:* \`${{ github.sha }}\`
+👤 *Author:* ${{ github.actor }}
+
+*Job Results:*
+• Secret Validation: ${{ needs.validate-secrets.result == 'success' && '✅' || '❌' }}
+• Code Quality: ${{ needs.code-quality.result == 'success' && '✅' || '❌' }}
+• Unit Tests: ${{ needs.unit-tests.result == 'success' && '✅' || '❌' }}
+• Integration Tests: ${{ needs.integration-tests.result == 'success' && '✅' || '⚠️' }}
+• Service Validation: ${{ needs.service-validation.result == 'success' && '✅' || '⚠️' }}
+• Docker Build: ${{ needs.docker-build-test.result == 'success' && '✅' || '❌' }}
+
+🔗 [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview=true

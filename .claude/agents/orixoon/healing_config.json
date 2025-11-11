@@ -1,0 +1,122 @@
+{
+  "auto_healing": {
+    "enabled": true,
+    "dry_run": false,
+    "max_healing_attempts": 3,
+    "retry_delay_seconds": 10,
+    "aggressive_mode": false
+  },
+
+  "healing_actions": {
+    "container_not_running": {
+      "enabled": true,
+      "action": "restart_container",
+      "max_retries": 2,
+      "timeout_seconds": 30,
+      "requires_confirmation": false
+    },
+
+    "container_unhealthy": {
+      "enabled": true,
+      "action": "restart_container",
+      "max_retries": 2,
+      "timeout_seconds": 60,
+      "requires_confirmation": false
+    },
+
+    "database_pool_exhausted": {
+      "enabled": true,
+      "action": "kill_idle_connections",
+      "max_retries": 1,
+      "idle_threshold_minutes": 5,
+      "requires_confirmation": false
+    },
+
+    "database_locks": {
+      "enabled": true,
+      "action": "clear_blocking_locks",
+      "max_retries": 1,
+      "requires_confirmation": false
+    },
+
+    "redis_memory_full": {
+      "enabled": true,
+      "action": "flush_expiring_keys",
+      "max_retries": 1,
+      "ttl_threshold_seconds": 3600,
+      "requires_confirmation": false
+    },
+
+    "redis_not_responding": {
+      "enabled": true,
+      "action": "restart_container",
+      "max_retries": 2,
+      "timeout_seconds": 30,
+      "requires_confirmation": false
+    },
+
+    "background_worker_not_running": {
+      "enabled": true,
+      "action": "restart_service",
+      "max_retries": 2,
+      "timeout_seconds": 30,
+      "requires_confirmation": false
+    },
+
+    "high_error_rate": {
+      "enabled": true,
+      "action": "restart_application",
+      "max_retries": 1,
+      "error_threshold": 50,
+      "timeout_seconds": 60,
+      "requires_confirmation": true
+    },
+
+    "zoho_sync_stuck": {
+      "enabled": true,
+      "action": "requeue_failed_items",
+      "max_retries": 1,
+      "stuck_threshold_minutes": 60,
+      "max_retry_count": 5,
+      "requires_confirmation": false
+    }
+  },
+
+  "safety_limits": {
+    "max_container_restarts_per_session": 5,
+    "max_database_operations_per_session": 3,
+    "max_redis_operations_per_session": 3,
+    "cooldown_period_seconds": 60,
+    "prevent_cascade_restarts": true
+  },
+
+  "notifications": {
+    "notify_on_healing_attempt": true,
+    "notify_on_healing_success": true,
+    "notify_on_healing_failure": true,
+    "notification_channels": ["logs", "slack", "email"]
+  },
+
+  "logging": {
+    "log_all_healing_actions": true,
+    "log_level": "INFO",
+    "log_file": "reports/healing_actions.log",
+    "retention_days": 30
+  },
+
+  "aggressive_mode_actions": {
+    "description": "Only enabled when aggressive_mode is true",
+    "actions": [
+      "force_kill_blocking_processes",
+      "clear_all_redis_cache",
+      "restart_all_services",
+      "trigger_emergency_cleanup"
+    ]
+  },
+
+  "blacklist": {
+    "never_restart_containers": [],
+    "never_kill_processes": ["postgres", "init"],
+    "protected_tables": ["users", "roles", "permissions"]
+  }
+}

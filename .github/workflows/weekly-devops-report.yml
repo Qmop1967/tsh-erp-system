@@ -1,0 +1,385 @@
+name: Weekly DevOps Report
+
+on:
+  schedule:
+    # Every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'Number of days to include in report'
+        required: false
+        type: number
+        default: 7
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  generate-report:
+    name: Generate Weekly DevOps Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests PyGithub
+
+      - name: Collect metrics
+        id: metrics
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS_BACK: ${{ inputs.days_back || 7 }}
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          import subprocess
+          from datetime import datetime, timedelta
+          from github import Github
+
+          # Initialize
+          gh_token = os.getenv('GH_TOKEN')
+          days_back = int(os.getenv('DAYS_BACK', 7))
+          g = Github(gh_token)
+          repo = g.get_repo(os.getenv('GITHUB_REPOSITORY'))
+
+          since_date = datetime.now() - timedelta(days=days_back)
+
+          print(f"Collecting metrics for the last {days_back} days...")
+          print(f"Since: {since_date.strftime('%Y-%m-%d')}")
+
+          # 1. Commit Activity
+          commits = repo.get_commits(since=since_date)
+          commit_count = commits.totalCount
+
+          # Get unique contributors
+          contributors = set()
+          for commit in list(commits)[:100]:  # Limit to prevent rate limiting
+              if commit.author:
+                  contributors.add(commit.author.login)
+
+          # 2. Pull Requests
+          prs = repo.get_pulls(state='all', sort='created', direction='desc')
+          pr_opened = 0
+          pr_merged = 0
+          pr_closed = 0
+
+          for pr in prs:
+              if pr.created_at > since_date:
+                  pr_opened += 1
+                  if pr.merged:
+                      pr_merged += 1
+                  elif pr.closed_at:
+                      pr_closed += 1
+
+          # 3. Issues
+          issues = repo.get_issues(state='all', since=since_date)
+          issue_opened = 0
+          issue_closed = 0
+
+          for issue in issues:
+              if not issue.pull_request:  # Exclude PRs
+                  if issue.created_at > since_date:
+                      issue_opened += 1
+                  if issue.closed_at and issue.closed_at > since_date:
+                      issue_closed += 1
+
+          # 4. Workflow Runs
+          workflows = repo.get_workflow_runs()
+          workflow_success = 0
+          workflow_failure = 0
+          workflow_total = 0
+
+          for run in workflows:
+              if run.created_at > since_date:
+                  workflow_total += 1
+                  if run.conclusion == 'success':
+                      workflow_success += 1
+                  elif run.conclusion == 'failure':
+                      workflow_failure += 1
+
+          success_rate = (workflow_success / workflow_total * 100) if workflow_total > 0 else 0
+
+          # 5. Code Changes
+          result = subprocess.run(
+              ['git', 'log', '--since', f'{days_back} days ago', '--shortstat', '--pretty=format:'],
+              capture_output=True,
+              text=True
+          )
+
+          lines_added = 0
+          lines_deleted = 0
+          files_changed = 0
+
+          for line in result.stdout.split('\n'):
+              if 'changed' in line:
+                  parts = line.split(',')
+                  for part in parts:
+                      if 'insertion' in part:
+                          lines_added += int(part.strip().split()[0])
+                      elif 'deletion' in part:
+                          lines_deleted += int(part.strip().split()[0])
+                      elif 'changed' in part:
+                          files_changed += int(part.strip().split()[0])
+
+          # 6. Dependabot Activity
+          dependabot_prs = 0
+          dependabot_merged = 0
+
+          for pr in repo.get_pulls(state='all'):
+              if pr.created_at > since_date and pr.user.login == 'dependabot[bot]':
+                  dependabot_prs += 1
+                  if pr.merged:
+                      dependabot_merged += 1
+
+          # Compile metrics
+          metrics = {
+              'period_days': days_back,
+              'since_date': since_date.strftime('%Y-%m-%d'),
+              'commits': {
+                  'total': commit_count,
+                  'contributors': len(contributors)
+              },
+              'pull_requests': {
+                  'opened': pr_opened,
+                  'merged': pr_merged,
+                  'closed': pr_closed
+              },
+              'issues': {
+                  'opened': issue_opened,
+                  'closed': issue_closed
+              },
+              'workflows': {
+                  'total': workflow_total,
+                  'success': workflow_success,
+                  'failure': workflow_failure,
+                  'success_rate': round(success_rate, 2)
+              },
+              'code_changes': {
+                  'files_changed': files_changed,
+                  'lines_added': lines_added,
+                  'lines_deleted': lines_deleted
+              },
+              'dependabot': {
+                  'prs_opened': dependabot_prs,
+                  'prs_merged': dependabot_merged
+              }
+          }
+
+          # Save metrics
+          with open('devops-metrics.json', 'w') as f:
+              json.dump(metrics, f, indent=2)
+
+          print("\n" + "=" * 70)
+          print("📊 DEVOPS METRICS COLLECTED")
+          print("=" * 70)
+          print(json.dumps(metrics, indent=2))
+          print("=" * 70 + "\n")
+
+          # Set outputs
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"commit_count={commit_count}\n")
+              f.write(f"pr_merged={pr_merged}\n")
+              f.write(f"workflow_success_rate={success_rate:.2f}\n")
+          EOF
+
+      - name: Generate report
+        run: |
+          python3 << 'EOF'
+          import json
+          from datetime import datetime
+
+          # Load metrics
+          with open('devops-metrics.json', 'r') as f:
+              metrics = json.load(f)
+
+          # Generate Markdown report
+          report = f"""# 📊 Weekly DevOps Report
+
+**Period:** {metrics['since_date']} to {datetime.now().strftime('%Y-%m-%d')}
+**Days:** {metrics['period_days']}
+
+## 🎯 Key Metrics
+
+| Metric | Value |
+|--------|-------|
+| Commits | {metrics['commits']['total']} |
+| Active Contributors | {metrics['commits']['contributors']} |
+| PRs Merged | {metrics['pull_requests']['merged']} |
+| Issues Closed | {metrics['issues']['closed']} |
+| Workflow Success Rate | {metrics['workflows']['success_rate']}% |
+
+## 📈 Activity Summary
+
+### Git Activity
+- **Commits:** {metrics['commits']['total']}
+- **Contributors:** {metrics['commits']['contributors']}
+- **Files Changed:** {metrics['code_changes']['files_changed']}
+- **Lines Added:** {metrics['code_changes']['lines_added']:,}
+- **Lines Deleted:** {metrics['code_changes']['lines_deleted']:,}
+- **Net Change:** {metrics['code_changes']['lines_added'] - metrics['code_changes']['lines_deleted']:+,} lines
+
+### Pull Requests
+- **Opened:** {metrics['pull_requests']['opened']}
+- **Merged:** {metrics['pull_requests']['merged']}
+- **Closed:** {metrics['pull_requests']['closed']}
+
+### Issues
+- **Opened:** {metrics['issues']['opened']}
+- **Closed:** {metrics['issues']['closed']}
+
+### CI/CD Workflows
+- **Total Runs:** {metrics['workflows']['total']}
+- **Successful:** {metrics['workflows']['success']} ✅
+- **Failed:** {metrics['workflows']['failure']} ❌
+- **Success Rate:** {metrics['workflows']['success_rate']}%
+
+### Dependency Management
+- **Dependabot PRs:** {metrics['dependabot']['prs_opened']}
+- **Merged:** {metrics['dependabot']['prs_merged']}
+
+## 🎭 Health Assessment
+
+"""
+
+          # Health assessment
+          success_rate = metrics['workflows']['success_rate']
+          if success_rate >= 95:
+              report += "### ✅ **EXCELLENT**\n"
+              report += "CI/CD pipeline is highly stable with >95% success rate.\n"
+          elif success_rate >= 85:
+              report += "### ✅ **GOOD**\n"
+              report += "CI/CD pipeline is performing well with >85% success rate.\n"
+          elif success_rate >= 70:
+              report += "### ⚠️ **ACCEPTABLE**\n"
+              report += "CI/CD pipeline needs attention. Success rate between 70-85%.\n"
+          else:
+              report += "### ❌ **NEEDS IMPROVEMENT**\n"
+              report += "CI/CD pipeline requires immediate attention. Success rate <70%.\n"
+
+          report += "\n## 🔍 Observations\n\n"
+
+          # Observations
+          if metrics['commits']['total'] > 50:
+              report += "- 🔥 High development activity this week\n"
+          elif metrics['commits']['total'] < 10:
+              report += "- 😴 Low development activity this week\n"
+
+          if metrics['pull_requests']['merged'] > 10:
+              report += "- 🚀 Excellent PR merge rate\n"
+
+          if metrics['dependabot']['prs_merged'] > 0:
+              report += f"- 🤖 Dependabot merged {metrics['dependabot']['prs_merged']} dependency updates\n"
+
+          if metrics['workflows']['failure'] > metrics['workflows']['success']:
+              report += "- ⚠️ More workflow failures than successes - investigate issues\n"
+
+          if metrics['issues']['closed'] > metrics['issues']['opened']:
+              report += "- ✅ More issues closed than opened - great progress!\n"
+
+          report += "\n## 📅 Next Week Goals\n\n"
+          report += "- Maintain or improve CI/CD success rate\n"
+          report += "- Review and merge pending PRs\n"
+          report += "- Address open issues\n"
+          report += "- Keep dependencies up to date\n"
+
+          report += "\n---\n"
+          report += f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}*\n"
+          report += "*Automated by GitHub Actions*\n"
+
+          # Save report
+          with open('devops-report.md', 'w') as f:
+              f.write(report)
+
+          print(report)
+          EOF
+
+      - name: Create GitHub issue with report
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('devops-report.md', 'utf8');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📊 Weekly DevOps Report - ${new Date().toISOString().split('T')[0]}`,
+              body: report,
+              labels: ['devops', 'report', 'automated']
+            });
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-devops-report
+          path: |
+            devops-report.md
+            devops-metrics.json
+          retention-days: 90
+
+      - name: Send Telegram notification
+        if: secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          import requests
+
+          # Load metrics
+          with open('devops-metrics.json', 'r') as f:
+              metrics = json.load(f)
+
+          # Format message
+          message = f"""📊 *Weekly DevOps Report*
+
+*Period:* {metrics['period_days']} days
+
+*Key Metrics:*
+• Commits: {metrics['commits']['total']}
+• PRs Merged: {metrics['pull_requests']['merged']}
+• Issues Closed: {metrics['issues']['closed']}
+• Workflow Success: {metrics['workflows']['success_rate']}%
+
+*Activity:*
+• Files Changed: {metrics['code_changes']['files_changed']}
+• Lines +/-: {metrics['code_changes']['lines_added']:,} / {metrics['code_changes']['lines_deleted']:,}
+
+*CI/CD Health:*
+• Total Runs: {metrics['workflows']['total']}
+• Success: {metrics['workflows']['success']} ✅
+• Failures: {metrics['workflows']['failure']} ❌
+
+📄 Full report created as GitHub issue
+
+🔗 [View Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"""
+
+          # Send notification
+          bot_token = os.getenv('TELEGRAM_BOT_TOKEN', '${{ secrets.TELEGRAM_BOT_TOKEN }}')
+          chat_id = os.getenv('TELEGRAM_CHAT_ID', '${{ secrets.TELEGRAM_CHAT_ID }}')
+
+          if bot_token and chat_id:
+              url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+              data = {
+                  "chat_id": chat_id,
+                  "text": message,
+                  "parse_mode": "Markdown",
+                  "disable_web_page_preview": True
+              }
+              requests.post(url, json=data)
+          EOF

@@ -1,0 +1,503 @@
+name: End-to-End Tests
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to test against (local, staging)'
+        required: false
+        type: string
+        default: 'local'
+      test_suite:
+        description: 'Test suite to run (all, auth, api, business)'
+        required: false
+        type: string
+        default: 'all'
+    outputs:
+      tests_passed:
+        description: 'Whether all E2E tests passed'
+        value: ${{ jobs.e2e-tests.outputs.tests_passed }}
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: false
+        type: choice
+        options:
+          - local
+          - staging
+        default: 'local'
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - auth
+          - api
+          - business
+          - integration
+        default: 'all'
+
+  schedule:
+    # Run E2E tests every night at 1 AM UTC
+    - cron: '0 1 * * *'
+
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/**'
+      - 'tests/e2e/**'
+      - 'requirements.txt'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  e2e-tests:
+    name: E2E Tests - ${{ inputs.environment || 'local' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    outputs:
+      tests_passed: ${{ steps.test-results.outputs.tests_passed }}
+      tests_total: ${{ steps.test-results.outputs.tests_total }}
+      tests_failed: ${{ steps.test-results.outputs.tests_failed }}
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tsh_erp_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-e2e-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-e2e-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-xdist httpx
+
+      - name: Set environment variables
+        run: |
+          cat > .env.e2e << EOF
+          # Database
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e
+          REDIS_URL=redis://localhost:6379/0
+
+          # Security
+          JWT_SECRET_KEY=e2e_test_jwt_secret_key_for_testing_only_do_not_use_in_production_please
+          SECRET_KEY=e2e_test_secret_key_for_testing
+
+          # Environment
+          ENVIRONMENT=testing
+          DEBUG=False
+          LOG_LEVEL=INFO
+
+          # API Configuration
+          API_HOST=0.0.0.0
+          API_PORT=8000
+          API_WORKERS=1
+
+          # Test Configuration
+          TESTING=true
+          EOF
+
+          # Export for use in steps
+          export $(cat .env.e2e | xargs)
+
+      - name: Wait for services
+        run: |
+          echo "⏳ Waiting for PostgreSQL..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "✅ PostgreSQL is ready"
+              break
+            fi
+            sleep 2
+          done
+
+          echo "⏳ Waiting for Redis..."
+          for i in {1..30}; do
+            if redis-cli -h localhost -p 6379 ping; then
+              echo "✅ Redis is ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Create database schema
+        run: |
+          echo "📦 Creating database schema..."
+          python -c "
+          import os
+          os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e'
+          from app.db.database import Base, engine
+          Base.metadata.create_all(bind=engine)
+          print('✅ Database schema created')
+          "
+
+      - name: Seed test database
+        run: |
+          echo "🌱 Seeding test database with full dataset..."
+          python -c "
+          import os
+          os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e'
+          from tests.fixtures import seed_full
+          summary = seed_full()
+          print('✅ Database seeded successfully')
+          print('Summary:', summary)
+          "
+
+      - name: Start application server
+        run: |
+          echo "🚀 Starting FastAPI application..."
+          source .env.e2e
+          nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 > app.log 2>&1 &
+          APP_PID=$!
+          echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+
+          # Wait for app to be ready
+          echo "⏳ Waiting for application to be ready..."
+          for i in {1..60}; do
+            if curl -s http://localhost:8000/health > /dev/null; then
+              echo "✅ Application is ready"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "❌ Application failed to start"
+              cat app.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Verify application health
+        run: |
+          echo "🏥 Checking application health..."
+          HEALTH_RESPONSE=$(curl -s http://localhost:8000/health)
+          echo "Health check response: $HEALTH_RESPONSE"
+
+          STATUS=$(echo $HEALTH_RESPONSE | jq -r '.status // "unknown"')
+          if [ "$STATUS" != "healthy" ]; then
+            echo "❌ Application is not healthy"
+            cat app.log
+            exit 1
+          fi
+          echo "✅ Application is healthy"
+
+      - name: Run E2E tests
+        id: run-tests
+        env:
+          TEST_BASE_URL: http://localhost:8000
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tsh_erp_e2e
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          echo "🧪 Running E2E tests..."
+
+          TEST_SUITE="${{ inputs.test_suite || 'all' }}"
+
+          if [ "$TEST_SUITE" == "all" ]; then
+            TEST_PATH="tests/e2e/"
+          else
+            TEST_PATH="tests/e2e/test_${TEST_SUITE}.py"
+          fi
+
+          # Run tests with pytest-xdist for parallel execution
+          pytest $TEST_PATH \
+            -v \
+            --tb=short \
+            --maxfail=5 \
+            -n auto \
+            --dist loadgroup \
+            --cov=app \
+            --cov-report=term \
+            --cov-report=xml:coverage-e2e.xml \
+            --cov-report=html:htmlcov-e2e \
+            --junitxml=junit/e2e-results.xml \
+            || echo "TEST_FAILED=true" >> $GITHUB_ENV
+
+      - name: Capture application logs
+        if: always()
+        run: |
+          echo "📋 Application logs:"
+          cat app.log || echo "No application logs found"
+
+      - name: Stop application server
+        if: always()
+        run: |
+          if [ -n "$APP_PID" ]; then
+            echo "🛑 Stopping application server (PID: $APP_PID)..."
+            kill $APP_PID || true
+          fi
+
+      - name: Analyze test results
+        id: test-results
+        if: always()
+        run: |
+          python3 << 'EOF'
+          import xml.etree.ElementTree as ET
+          import os
+          import json
+
+          ENV = os.getenv('GITHUB_OUTPUT')
+
+          try:
+              tree = ET.parse('junit/e2e-results.xml')
+              root = tree.getroot()
+
+              # Get test statistics
+              testsuite = root.find('.//testsuite')
+              if testsuite is not None:
+                  tests_total = int(testsuite.get('tests', 0))
+                  tests_failed = int(testsuite.get('failures', 0)) + int(testsuite.get('errors', 0))
+                  tests_passed = tests_total - tests_failed
+                  tests_skipped = int(testsuite.get('skipped', 0))
+                  test_time = float(testsuite.get('time', 0))
+              else:
+                  tests_total = 0
+                  tests_failed = 0
+                  tests_passed = 0
+                  tests_skipped = 0
+                  test_time = 0
+
+              print(f"\n{'=' * 70}")
+              print(f"🧪 E2E TEST RESULTS")
+              print(f"{'=' * 70}")
+              print(f"\nTotal Tests: {tests_total}")
+              print(f"  ✅ Passed:  {tests_passed}")
+              print(f"  ❌ Failed:  {tests_failed}")
+              print(f"  ⏭️  Skipped: {tests_skipped}")
+              print(f"  ⏱️  Time:    {test_time:.2f}s")
+              print(f"{'=' * 70}\n")
+
+              # Set outputs
+              all_passed = tests_failed == 0 and tests_total > 0
+
+              with open(ENV, 'a') as f:
+                  f.write(f"tests_passed={'true' if all_passed else 'false'}\n")
+                  f.write(f"tests_total={tests_total}\n")
+                  f.write(f"tests_failed={tests_failed}\n")
+                  f.write(f"tests_skipped={tests_skipped}\n")
+                  f.write(f"test_time={test_time:.2f}\n")
+
+              # Write summary
+              report = {
+                  "total": tests_total,
+                  "passed": tests_passed,
+                  "failed": tests_failed,
+                  "skipped": tests_skipped,
+                  "time": test_time,
+                  "success": all_passed
+              }
+
+              with open('e2e-test-summary.json', 'w') as f:
+                  json.dump(report, f, indent=2)
+
+              if all_passed:
+                  print("✅ All E2E tests passed!")
+              else:
+                  print(f"❌ {tests_failed} E2E test(s) failed")
+
+          except FileNotFoundError:
+              print("❌ Test results file not found")
+              with open(ENV, 'a') as f:
+                  f.write("tests_passed=false\n")
+                  f.write("tests_total=0\n")
+                  f.write("tests_failed=1\n")
+          except Exception as e:
+              print(f"❌ Error parsing test results: {e}")
+              with open(ENV, 'a') as f:
+                  f.write("tests_passed=false\n")
+                  f.write("tests_total=0\n")
+                  f.write("tests_failed=1\n")
+          EOF
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            junit/e2e-results.xml
+            htmlcov-e2e/
+            coverage-e2e.xml
+            e2e-test-summary.json
+            app.log
+          retention-days: 30
+
+      - name: Generate test report
+        if: always()
+        run: |
+          cat > e2e-test-report.md << 'EOFMD'
+          # 🧪 End-to-End Test Report
+
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Environment:** ${{ inputs.environment || 'local' }}
+          **Test Suite:** ${{ inputs.test_suite || 'all' }}
+
+          ## Summary
+
+          | Metric | Count |
+          |--------|-------|
+          | Total Tests | ${{ steps.test-results.outputs.tests_total }} |
+          | ✅ Passed | ${{ steps.test-results.outputs.tests_total - steps.test-results.outputs.tests_failed }} |
+          | ❌ Failed | ${{ steps.test-results.outputs.tests_failed }} |
+          | ⏭️ Skipped | ${{ steps.test-results.outputs.tests_skipped }} |
+          | ⏱️ Duration | ${{ steps.test-results.outputs.test_time }}s |
+
+          EOFMD
+
+          if [ "${{ steps.test-results.outputs.tests_passed }}" == "true" ]; then
+            cat >> e2e-test-report.md << 'EOFMD'
+
+          ## Status
+
+          ✅ **All E2E tests passed!**
+
+          The application is working correctly end-to-end with:
+          - Authentication flows
+          - API endpoints
+          - Business logic
+          - Database operations
+          - Redis caching
+
+          Safe to deploy to next environment.
+          EOFMD
+          else
+            cat >> e2e-test-report.md << 'EOFMD'
+
+          ## Status
+
+          ❌ **Some E2E tests failed**
+
+          Please review the failed tests and fix before deployment.
+
+          ### Recommendations
+
+          1. Review test logs in artifacts
+          2. Check application logs for errors
+          3. Verify database schema and data
+          4. Test locally to reproduce issues
+          5. Fix failing tests before merging
+          EOFMD
+          fi
+
+          cat >> e2e-test-report.md << 'EOFMD'
+
+          ## Test Coverage
+
+          Download the HTML coverage report from artifacts for detailed analysis.
+
+          ---
+          *Generated by E2E Test Workflow*
+          EOFMD
+
+          cat e2e-test-report.md
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          cat e2e-test-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('e2e-test-report.md', 'utf8');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: report
+            });
+
+      - name: Send Telegram notification
+        if: |
+          always() &&
+          (steps.test-results.outputs.tests_failed > 0 || github.event_name == 'schedule') &&
+          (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        run: |
+          TESTS_TOTAL="${{ steps.test-results.outputs.tests_total }}"
+          TESTS_FAILED="${{ steps.test-results.outputs.tests_failed }}"
+          TESTS_PASSED=$((TESTS_TOTAL - TESTS_FAILED))
+
+          if [ "$TESTS_FAILED" -gt 0 ]; then
+            EMOJI="❌"
+            STATUS="FAILED"
+          else
+            EMOJI="✅"
+            STATUS="PASSED"
+          fi
+
+          MESSAGE="${EMOJI} *E2E Tests ${STATUS}*
+
+          🧪 *Test Results*
+
+          *Statistics:*
+          • Total: ${TESTS_TOTAL}
+          • ✅ Passed: ${TESTS_PASSED}
+          • ❌ Failed: ${TESTS_FAILED}
+          • ⏱️ Time: ${{ steps.test-results.outputs.test_time }}s
+
+          🌿 *Branch:* \`${{ github.ref_name }}\`
+          📝 *Commit:* \`${{ github.sha }}\`
+
+          🔗 [View Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview=true
+
+      - name: Fail on test failures
+        if: steps.test-results.outputs.tests_passed == 'false'
+        run: |
+          echo "❌ E2E tests failed"
+          echo "Failed tests: ${{ steps.test-results.outputs.tests_failed }}"
+          exit 1

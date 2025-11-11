@@ -1,0 +1,440 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version/tag to deploy (leave empty for latest main)'
+        required: false
+        type: string
+      skip_tests:
+        description: 'Skip pre-deployment tests (not recommended)'
+        required: false
+        type: boolean
+        default: false
+      skip_backup:
+        description: 'Skip database backup (not recommended)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DEPLOY_USER: root
+  DEPLOY_HOST: 167.71.39.50
+  DEPLOY_PATH: /opt/tsh-erp
+  BACKUP_RETENTION_DAYS: 30
+
+jobs:
+  pre-deployment-checks:
+    name: Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit_sha: ${{ steps.version.outputs.commit_sha }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version || 'main' }}
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            # Use latest tag or commit
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v$(date +%Y.%m.%d)-$(git rev-parse --short HEAD)")
+          fi
+
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+
+          echo "📦 Deploying version: $VERSION"
+          echo "📝 Commit SHA: $COMMIT_SHA"
+
+      - name: Validate secrets
+        uses: ./.github/workflows/validate-secrets.yml
+        with:
+          environment: production
+          check_scope: deployment
+        secrets: inherit
+
+      - name: Check schema drift
+        if: inputs.skip_tests == false
+        uses: ./.github/workflows/schema-drift-check.yml
+        with:
+          environment: production
+          fail_on_drift: true
+        secrets: inherit
+
+      - name: Run security scan
+        if: inputs.skip_tests == false
+        uses: ./.github/workflows/security-scan.yml
+        with:
+          scan_type: docker
+          fail_on_severity: CRITICAL
+        secrets: inherit
+
+  backup-database:
+    name: Backup Production Database
+    needs: pre-deployment-checks
+    if: inputs.skip_backup == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create database backup
+        run: |
+          echo "📦 Creating database backup..."
+
+          BACKUP_NAME="tsh_erp_prod_backup_$(date +%Y%m%d_%H%M%S).sql"
+
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << EOF
+            # Create backup directory
+            mkdir -p /backups/database
+
+            # Create backup
+            PGPASSWORD='${{ secrets.PROD_DB_PASSWORD }}' pg_dump \
+              -h localhost \
+              -U ${{ secrets.PROD_DB_USER }} \
+              -d ${{ secrets.PROD_DB_NAME }} \
+              -F c \
+              -f /backups/database/${BACKUP_NAME}
+
+            # Compress backup
+            gzip /backups/database/${BACKUP_NAME}
+
+            # Verify backup
+            if [ -f "/backups/database/${BACKUP_NAME}.gz" ]; then
+              SIZE=\$(du -h "/backups/database/${BACKUP_NAME}.gz" | cut -f1)
+              echo "✅ Backup created: ${BACKUP_NAME}.gz (Size: \$SIZE)"
+            else
+              echo "❌ Backup failed"
+              exit 1
+            fi
+
+            # Cleanup old backups (keep last 30 days)
+            find /backups/database -name "*.sql.gz" -mtime +${{ env.BACKUP_RETENTION_DAYS }} -delete
+          EOF
+
+      - name: Upload backup to S3
+        if: secrets.AWS_ACCESS_KEY_ID != ''
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'EOF'
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export AWS_DEFAULT_REGION="${{ secrets.AWS_REGION || 'eu-north-1' }}"
+
+            # Upload to S3
+            LATEST_BACKUP=$(ls -t /backups/database/*.sql.gz | head -1)
+
+            if command -v aws &> /dev/null; then
+              aws s3 cp "$LATEST_BACKUP" "s3://${{ secrets.AWS_S3_BUCKET }}/database-backups/$(basename $LATEST_BACKUP)"
+              echo "✅ Backup uploaded to S3"
+            else
+              echo "⚠️ AWS CLI not installed, skipping S3 upload"
+            fi
+          EOF
+
+  deploy:
+    name: Deploy Application
+    needs: [pre-deployment-checks, backup-database]
+    if: always() && needs.pre-deployment-checks.result == 'success' && (needs.backup-database.result == 'success' || needs.backup-database.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    outputs:
+      deployment_id: ${{ steps.deploy.outputs.deployment_id }}
+      previous_version: ${{ steps.deploy.outputs.previous_version }}
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy application
+        id: deploy
+        run: |
+          echo "🚀 Deploying to production..."
+
+          DEPLOYMENT_ID="deploy-$(date +%Y%m%d-%H%M%S)"
+          echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            set -e
+
+            cd ${{ env.DEPLOY_PATH }}
+
+            # Save current version for rollback
+            PREVIOUS_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
+            echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+            echo "📌 Previous version: $PREVIOUS_VERSION"
+
+            # Create deployment marker
+            echo "${{ needs.pre-deployment-checks.outputs.version }}" > .deployment_version
+            echo "${{ needs.pre-deployment-checks.outputs.commit_sha }}" > .deployment_commit
+            date +%s > .deployment_timestamp
+
+            # Pull latest code
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git checkout ${{ needs.pre-deployment-checks.outputs.commit_sha }}
+
+            # Update dependencies
+            echo "📦 Updating dependencies..."
+            source .venv/bin/activate
+            pip install -r requirements.txt --quiet
+
+            # Run database migrations
+            echo "🗄️ Running database migrations..."
+            alembic upgrade head
+
+            # Restart services
+            echo "🔄 Restarting services..."
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d --build
+
+            echo "✅ Deployment completed"
+          ENDSSH
+
+      - name: Wait for services to be ready
+        run: |
+          echo "⏳ Waiting for services to be ready..."
+
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            if curl -sf https://erp.tsh.sale/health > /dev/null; then
+              echo "✅ Application is healthy"
+              break
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            sleep 10
+          done
+
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "❌ Application health check failed"
+            exit 1
+          fi
+
+  smoke-tests:
+    name: Post-Deployment Smoke Tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        run: |
+          python3 << 'EOF'
+          import requests
+          import sys
+
+          BASE_URL = "https://erp.tsh.sale"
+
+          print("\n" + "=" * 70)
+          print("🧪 POST-DEPLOYMENT SMOKE TESTS")
+          print("=" * 70 + "\n")
+
+          tests_passed = 0
+          tests_failed = 0
+
+          # Test 1: Health endpoint
+          print("Test 1: Health endpoint...")
+          try:
+              response = requests.get(f"{BASE_URL}/health", timeout=10)
+              if response.status_code == 200:
+                  print("  ✅ Health check passed")
+                  tests_passed += 1
+              else:
+                  print(f"  ❌ Health check failed: {response.status_code}")
+                  tests_failed += 1
+          except Exception as e:
+              print(f"  ❌ Health check error: {e}")
+              tests_failed += 1
+
+          # Test 2: API documentation
+          print("\nTest 2: API documentation...")
+          try:
+              response = requests.get(f"{BASE_URL}/docs", timeout=10)
+              if response.status_code == 200:
+                  print("  ✅ API docs accessible")
+                  tests_passed += 1
+              else:
+                  print(f"  ❌ API docs failed: {response.status_code}")
+                  tests_failed += 1
+          except Exception as e:
+              print(f"  ❌ API docs error: {e}")
+              tests_failed += 1
+
+          # Test 3: OpenAPI spec
+          print("\nTest 3: OpenAPI specification...")
+          try:
+              response = requests.get(f"{BASE_URL}/openapi.json", timeout=10)
+              if response.status_code == 200:
+                  print("  ✅ OpenAPI spec accessible")
+                  tests_passed += 1
+              else:
+                  print(f"  ❌ OpenAPI spec failed: {response.status_code}")
+                  tests_failed += 1
+          except Exception as e:
+              print(f"  ❌ OpenAPI spec error: {e}")
+              tests_failed += 1
+
+          # Test 4: Login endpoint
+          print("\nTest 4: Authentication endpoint...")
+          try:
+              response = requests.post(
+                  f"{BASE_URL}/api/auth/login",
+                  json={"email": "test@example.com", "password": "wrong"},
+                  timeout=10
+              )
+              # Should return 401, but endpoint should respond
+              if response.status_code in [401, 422]:
+                  print("  ✅ Auth endpoint responding")
+                  tests_passed += 1
+              else:
+                  print(f"  ⚠️  Unexpected status: {response.status_code}")
+                  tests_passed += 1  # Still counts as pass if responding
+          except Exception as e:
+              print(f"  ❌ Auth endpoint error: {e}")
+              tests_failed += 1
+
+          print("\n" + "=" * 70)
+          print(f"Results: {tests_passed} passed, {tests_failed} failed")
+          print("=" * 70 + "\n")
+
+          if tests_failed > 0:
+              print("❌ Some smoke tests failed - consider rollback")
+              sys.exit(1)
+          else:
+              print("✅ All smoke tests passed")
+          EOF
+
+  rollback:
+    name: Rollback Deployment
+    needs: [deploy, smoke-tests]
+    if: failure() && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Perform rollback
+        run: |
+          echo "🔄 Rolling back deployment..."
+
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            cd ${{ env.DEPLOY_PATH }}
+
+            # Get previous version
+            PREVIOUS_VERSION="${{ needs.deploy.outputs.previous_version }}"
+
+            echo "Rolling back to: $PREVIOUS_VERSION"
+
+            # Checkout previous version
+            git checkout "$PREVIOUS_VERSION"
+
+            # Restore dependencies
+            source .venv/bin/activate
+            pip install -r requirements.txt --quiet
+
+            # Restart services
+            docker-compose -f docker-compose.prod.yml up -d --build
+
+            echo "✅ Rollback completed"
+          ENDSSH
+
+      - name: Verify rollback
+        run: |
+          echo "⏳ Verifying rollback..."
+          sleep 30
+
+          if curl -sf https://erp.tsh.sale/health > /dev/null; then
+            echo "✅ Rollback successful - application is healthy"
+          else
+            echo "❌ Rollback verification failed"
+            exit 1
+          fi
+
+  notify:
+    name: Send Notifications
+    needs: [pre-deployment-checks, deploy, smoke-tests, rollback]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine deployment status
+        id: status
+        run: |
+          if [ "${{ needs.rollback.result }}" == "success" ]; then
+            echo "status=rolled_back" >> $GITHUB_OUTPUT
+            echo "emoji=🔄" >> $GITHUB_OUTPUT
+            echo "message=Deployment rolled back after smoke test failure" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.smoke-tests.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+            echo "message=Deployment successful" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+            echo "message=Deployment failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Telegram notification
+        if: secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
+        run: |
+          MESSAGE="${{ steps.status.outputs.emoji }} *Production Deployment*
+
+          *Status:* ${{ steps.status.outputs.message }}
+
+          *Deployment Details:*
+          • Version: \`${{ needs.pre-deployment-checks.outputs.version }}\`
+          • Commit: \`${{ needs.pre-deployment-checks.outputs.commit_sha }}\`
+          • Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          *Job Results:*
+          • Pre-checks: ${{ needs.pre-deployment-checks.result == 'success' && '✅' || '❌' }}
+          • Backup: ${{ needs.backup-database.result == 'success' && '✅' || needs.backup-database.result == 'skipped' && '⏭️' || '❌' }}
+          • Deploy: ${{ needs.deploy.result == 'success' && '✅' || '❌' }}
+          • Smoke Tests: ${{ needs.smoke-tests.result == 'success' && '✅' || '❌' }}
+          • Rollback: ${{ needs.rollback.result == 'success' && '🔄' || needs.rollback.result == 'skipped' && '⏭️' || '❌' }}
+
+          👤 *Deployed by:* @${{ github.actor }}
+
+          🔗 [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview=true

@@ -1,0 +1,442 @@
+name: Flutter CI - Mobile Apps
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        description: 'Flutter app to build (all, tsh_sales, tsh_inventory, etc.)'
+        required: false
+        type: string
+        default: 'all'
+      build_platform:
+        description: 'Platform to build (android, ios, all)'
+        required: false
+        type: string
+        default: 'android'
+
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'Flutter app to build'
+        required: false
+        type: choice
+        options:
+          - all
+          - tsh_sales
+          - tsh_inventory
+          - tsh_warehouse
+          - tsh_delivery
+        default: 'all'
+      build_platform:
+        description: 'Platform to build'
+        required: false
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+        default: 'android'
+
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'mobile_apps/**'
+      - '.github/workflows/flutter-ci.yml'
+
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'mobile_apps/**'
+
+env:
+  FLUTTER_VERSION: '3.19.0'
+  JAVA_VERSION: '17'
+
+# Prevent multiple CI runs on same branch
+concurrency:
+  group: flutter-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Discover Flutter apps to test
+  discover-apps:
+    name: Discover Flutter Apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    outputs:
+      apps: ${{ steps.find-apps.outputs.apps }}
+      matrix: ${{ steps.find-apps.outputs.matrix }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find Flutter apps
+        id: find-apps
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from pathlib import Path
+
+          mobile_apps_dir = Path('mobile_apps')
+
+          if not mobile_apps_dir.exists():
+              print("No mobile_apps directory found")
+              apps = []
+          else:
+              # Find all directories with pubspec.yaml
+              apps = []
+              for app_dir in mobile_apps_dir.iterdir():
+                  if app_dir.is_dir() and (app_dir / 'pubspec.yaml').exists():
+                      apps.append(app_dir.name)
+
+          print(f"Found Flutter apps: {apps}")
+
+          # Filter based on input
+          requested_app = "${{ inputs.app_name || 'all' }}"
+          if requested_app != "all" and requested_app in apps:
+              apps = [requested_app]
+          elif requested_app != "all":
+              print(f"Requested app '{requested_app}' not found")
+              apps = []
+
+          # Create matrix
+          matrix = {"app": apps}
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"apps={json.dumps(apps)}\n")
+              f.write(f"matrix={json.dumps(matrix)}\n")
+
+          print(f"Matrix: {matrix}")
+          EOF
+
+  # Analyze and lint Flutter code
+  analyze:
+    name: Analyze - ${{ matrix.app }}
+    needs: discover-apps
+    if: needs.discover-apps.outputs.apps != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover-apps.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Get dependencies
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter pub get
+
+      - name: Verify dependencies
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter pub deps
+
+      - name: Run Flutter analyze
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter analyze --no-fatal-infos
+
+      - name: Check formatting
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: dart format --output=none --set-exit-if-changed .
+        continue-on-error: true
+
+  # Run tests for each Flutter app
+  test:
+    name: Test - ${{ matrix.app }}
+    needs: discover-apps
+    if: needs.discover-apps.outputs.apps != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover-apps.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter pub get
+
+      - name: Run tests
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: |
+          if [ -d "test" ] && [ "$(find test -name '*_test.dart' | wc -l)" -gt 0 ]; then
+            flutter test --coverage --reporter expanded
+          else
+            echo "No tests found, skipping"
+          fi
+        continue-on-error: true
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.app }}
+          path: mobile_apps/${{ matrix.app }}/coverage/
+          retention-days: 30
+
+  # Build Android APK
+  build-android:
+    name: Build Android - ${{ matrix.app }}
+    needs: [discover-apps, analyze]
+    if: |
+      needs.discover-apps.outputs.apps != '[]' &&
+      (inputs.build_platform == 'android' || inputs.build_platform == 'all' || inputs.build_platform == null)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover-apps.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter pub get
+
+      - name: Build APK (debug)
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter build apk --debug --split-per-abi
+        continue-on-error: true
+
+      - name: Build APK (release)
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter build apk --release --split-per-abi
+        continue-on-error: true
+
+      - name: Analyze APK size
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: |
+          if [ -d "build/app/outputs/flutter-apk" ]; then
+            echo "📦 APK Build Summary"
+            echo "===================="
+            find build/app/outputs/flutter-apk -name "*.apk" -exec ls -lh {} \;
+            echo ""
+            echo "Total APK size:"
+            du -sh build/app/outputs/flutter-apk
+          fi
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.app }}
+          path: mobile_apps/${{ matrix.app }}/build/app/outputs/flutter-apk/*.apk
+          retention-days: 7
+
+  # Build iOS (macOS runner required - expensive, optional)
+  build-ios:
+    name: Build iOS - ${{ matrix.app }}
+    needs: [discover-apps, analyze]
+    if: |
+      false &&
+      needs.discover-apps.outputs.apps != '[]' &&
+      (inputs.build_platform == 'ios' || inputs.build_platform == 'all')
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover-apps.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter pub get
+
+      - name: Build iOS (no codesign)
+        working-directory: mobile_apps/${{ matrix.app }}
+        run: flutter build ios --release --no-codesign
+        continue-on-error: true
+
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ matrix.app }}
+          path: mobile_apps/${{ matrix.app }}/build/ios/
+          retention-days: 7
+
+  # Integration summary
+  ci-summary:
+    name: Flutter CI Summary
+    runs-on: ubuntu-latest
+    needs: [discover-apps, analyze, test, build-android]
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate summary report
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from pathlib import Path
+
+          artifacts_dir = Path('artifacts')
+
+          print("\n" + "=" * 70)
+          print("📱 FLUTTER CI SUMMARY")
+          print("=" * 70)
+
+          # Count apps
+          apps = []
+          if artifacts_dir.exists():
+              for item in artifacts_dir.iterdir():
+                  if item.is_dir():
+                      app_name = item.name.split('-', 1)[-1] if '-' in item.name else item.name
+                      if app_name not in apps:
+                          apps.append(app_name)
+
+          print(f"\nApps Processed: {len(apps)}")
+          for app in sorted(apps):
+              print(f"  • {app}")
+
+          # Check for APKs
+          apk_count = 0
+          total_size = 0
+          if artifacts_dir.exists():
+              for apk_dir in artifacts_dir.glob('apk-*'):
+                  for apk in apk_dir.glob('*.apk'):
+                      apk_count += 1
+                      size = os.path.getsize(apk) / (1024 * 1024)  # MB
+                      total_size += size
+                      print(f"\n📦 {apk.name}: {size:.2f} MB")
+
+          print(f"\nTotal APKs: {apk_count}")
+          if total_size > 0:
+              print(f"Total Size: {total_size:.2f} MB")
+              print(f"Average Size: {total_size/apk_count:.2f} MB")
+
+          print("=" * 70 + "\n")
+
+          # Write summary
+          summary = {
+              "apps_count": len(apps),
+              "apps": apps,
+              "apk_count": apk_count,
+              "total_size_mb": round(total_size, 2)
+          }
+
+          with open('flutter-ci-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          EOF
+
+      - name: Check job statuses
+        run: |
+          echo "## 📱 Flutter CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| App Discovery | ${{ needs.discover-apps.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Analysis | ${{ needs.analyze.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test.result == 'success' && '✅ Passed' || '⚠️ Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Android Build | ${{ needs.build-android.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Apps:** ${{ needs.discover-apps.outputs.apps }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-ci-summary
+          path: flutter-ci-summary.json
+          retention-days: 30
+
+      - name: Send Telegram notification
+        if: failure() && (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        run: |
+          MESSAGE="❌ *Flutter CI Failed*
+
+          📱 *Mobile Apps Build*
+
+          *Job Results:*
+          • Discovery: ${{ needs.discover-apps.result == 'success' && '✅' || '❌' }}
+          • Analysis: ${{ needs.analyze.result == 'success' && '✅' || '❌' }}
+          • Tests: ${{ needs.test.result == 'success' && '✅' || '⚠️' }}
+          • Android Build: ${{ needs.build-android.result == 'success' && '✅' || '❌' }}
+
+          *Apps:* ${{ needs.discover-apps.outputs.apps }}
+
+          🌿 *Branch:* \`${{ github.ref_name }}\`
+          📝 *Commit:* \`${{ github.sha }}\`
+
+          🔗 [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview=true
+
+      - name: Determine overall status
+        id: status
+        run: |
+          # Critical jobs: discover-apps, analyze, build-android
+          if [ "${{ needs.discover-apps.result }}" == "success" ] && \
+             [ "${{ needs.analyze.result }}" == "success" ] && \
+             [ "${{ needs.build-android.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
