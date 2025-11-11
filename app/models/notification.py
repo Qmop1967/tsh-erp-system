@@ -83,7 +83,7 @@ class Notification(Base):
 
     # User and tenant
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    tenant_id = Column(Integer, nullable=True, index=True)  # Foreign key removed (tenants table disabled)
 
     # Notification details
     type = Column(Enum(NotificationType), nullable=False, index=True)
