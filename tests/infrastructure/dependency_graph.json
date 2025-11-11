@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "version": "1.0.0",
+  "last_updated": "2025-01-11",
+  "services": [
+    {
+      "name": "app",
+      "description": "Main TSH ERP FastAPI backend",
+      "type": "web",
+      "health_endpoint": "/health",
+      "api_docs": "/docs",
+      "required_env_vars": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "JWT_SECRET_KEY",
+        "SECRET_KEY"
+      ],
+      "optional_env_vars": [
+        "ZOHO_CLIENT_ID",
+        "ZOHO_CLIENT_SECRET",
+        "ZOHO_REFRESH_TOKEN",
+        "ZOHO_ORGANIZATION_ID",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_S3_BUCKET"
+      ],
+      "depends_on": [
+        "postgres",
+        "redis"
+      ],
+      "port": 8000,
+      "protocol": "http",
+      "startup_timeout": 30,
+      "health_check_interval": 10,
+      "critical": true
+    },
+    {
+      "name": "neurolink",
+      "description": "TSH NeuroLink notification microservice",
+      "type": "microservice",
+      "health_endpoint": "/health",
+      "api_docs": "/docs",
+      "required_env_vars": [
+        "DATABASE_URL",
+        "REDIS_URL"
+      ],
+      "optional_env_vars": [
+        "RESEND_API_KEY",
+        "FIREBASE_CREDENTIALS_PATH",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_PHONE_NUMBER"
+      ],
+      "depends_on": [
+        "postgres",
+        "redis"
+      ],
+      "port": 8002,
+      "protocol": "http",
+      "startup_timeout": 20,
+      "health_check_interval": 15,
+      "critical": false
+    },
+    {
+      "name": "tds_admin_dashboard",
+      "description": "TDS Admin Dashboard (Next.js)",
+      "type": "frontend",
+      "health_endpoint": "/",
+      "required_env_vars": [
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_SOCKET_URL"
+      ],
+      "optional_env_vars": [],
+      "depends_on": [
+        "app"
+      ],
+      "port": 3000,
+      "protocol": "http",
+      "startup_timeout": 30,
+      "health_check_interval": 30,
+      "critical": false
+    },
+    {
+      "name": "postgres",
+      "description": "PostgreSQL 15 database",
+      "type": "database",
+      "health_check_command": "pg_isready -U postgres",
+      "required_env_vars": [
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_DB"
+      ],
+      "optional_env_vars": [],
+      "depends_on": [],
+      "port": 5432,
+      "protocol": "tcp",
+      "startup_timeout": 60,
+      "health_check_interval": 10,
+      "critical": true
+    },
+    {
+      "name": "redis",
+      "description": "Redis 7 cache and queue",
+      "type": "cache",
+      "health_check_command": "redis-cli ping",
+      "required_env_vars": [],
+      "optional_env_vars": [
+        "REDIS_PASSWORD"
+      ],
+      "depends_on": [],
+      "port": 6379,
+      "protocol": "tcp",
+      "startup_timeout": 10,
+      "health_check_interval": 5,
+      "critical": true
+    },
+    {
+      "name": "nginx",
+      "description": "Nginx reverse proxy",
+      "type": "proxy",
+      "health_check_command": "nginx -t",
+      "required_env_vars": [],
+      "optional_env_vars": [],
+      "depends_on": [
+        "app",
+        "neurolink",
+        "tds_admin_dashboard"
+      ],
+      "ports": [80, 443],
+      "protocol": "http",
+      "startup_timeout": 5,
+      "health_check_interval": 30,
+      "critical": true
+    }
+  ],
+  "network_requirements": {
+    "internal_network": "tsh_erp_network",
+    "subnet": "172.20.0.0/16",
+    "dns_enabled": true
+  },
+  "volume_requirements": [
+    {
+      "service": "postgres",
+      "volumes": [
+        "postgres_data:/var/lib/postgresql/data"
+      ]
+    },
+    {
+      "service": "redis",
+      "volumes": [
+        "redis_data:/data"
+      ]
+    },
+    {
+      "service": "app",
+      "volumes": [
+        "./logs:/app/logs",
+        "./uploads:/app/uploads"
+      ]
+    }
+  ],
+  "api_endpoints": [
+    {
+      "service": "app",
+      "endpoints": [
+        {
+          "path": "/health",
+          "method": "GET",
+          "expected_status": 200,
+          "timeout": 5
+        },
+        {
+          "path": "/api/auth/login",
+          "method": "POST",
+          "expected_status": [200, 401],
+          "timeout": 10
+        },
+        {
+          "path": "/docs",
+          "method": "GET",
+          "expected_status": 200,
+          "timeout": 5
+        }
+      ]
+    },
+    {
+      "service": "neurolink",
+      "endpoints": [
+        {
+          "path": "/health",
+          "method": "GET",
+          "expected_status": 200,
+          "timeout": 5
+        },
+        {
+          "path": "/docs",
+          "method": "GET",
+          "expected_status": 200,
+          "timeout": 5
+        }
+      ]
+    },
+    {
+      "service": "tds_admin_dashboard",
+      "endpoints": [
+        {
+          "path": "/",
+          "method": "GET",
+          "expected_status": 200,
+          "timeout": 10
+        }
+      ]
+    }
+  ],
+  "integration_points": [
+    {
+      "from": "app",
+      "to": "postgres",
+      "type": "database_connection",
+      "description": "Main database for all ERP data"
+    },
+    {
+      "from": "app",
+      "to": "redis",
+      "type": "cache_and_queue",
+      "description": "Caching, rate limiting, TDS queue"
+    },
+    {
+      "from": "neurolink",
+      "to": "postgres",
+      "type": "database_connection",
+      "description": "Notification state and history"
+    },
+    {
+      "from": "neurolink",
+      "to": "redis",
+      "type": "event_bus",
+      "description": "Event-driven notifications"
+    },
+    {
+      "from": "tds_admin_dashboard",
+      "to": "app",
+      "type": "http_api",
+      "description": "REST API and WebSocket connection"
+    },
+    {
+      "from": "nginx",
+      "to": "app",
+      "type": "reverse_proxy",
+      "description": "HTTPS termination and load balancing"
+    },
+    {
+      "from": "nginx",
+      "to": "neurolink",
+      "type": "reverse_proxy",
+      "description": "Route notification API requests"
+    },
+    {
+      "from": "nginx",
+      "to": "tds_admin_dashboard",
+      "type": "reverse_proxy",
+      "description": "Serve Next.js frontend"
+    }
+  ],
+  "external_dependencies": [
+    {
+      "name": "zoho_books",
+      "type": "saas",
+      "url": "https://www.zohoapis.com/books/v3",
+      "critical": true,
+      "health_check": "GET /settings/preferences",
+      "required_credentials": [
+        "ZOHO_CLIENT_ID",
+        "ZOHO_CLIENT_SECRET",
+        "ZOHO_REFRESH_TOKEN"
+      ]
+    },
+    {
+      "name": "aws_s3",
+      "type": "cloud_storage",
+      "url": "https://s3.eu-north-1.amazonaws.com",
+      "critical": false,
+      "health_check": "LIST bucket",
+      "required_credentials": [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY"
+      ]
+    },
+    {
+      "name": "resend",
+      "type": "email_service",
+      "url": "https://api.resend.com",
+      "critical": false,
+      "health_check": "GET /emails",
+      "required_credentials": [
+        "RESEND_API_KEY"
+      ]
+    },
+    {
+      "name": "firebase_fcm",
+      "type": "push_notification",
+      "url": "https://fcm.googleapis.com",
+      "critical": false,
+      "health_check": "Validate credentials",
+      "required_credentials": [
+        "FIREBASE_CREDENTIALS_PATH"
+      ]
+    }
+  ]
+}
