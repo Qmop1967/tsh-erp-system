@@ -27,7 +27,9 @@ deployment/
 │   ├── deploy.sh                 # Main deployment script
 │   ├── rollback.sh               # Rollback to previous version
 │   ├── healthcheck.sh            # Health check utility
-│   └── switch_upstream.sh        # Manual traffic switcher
+│   ├── switch_upstream.sh        # Manual traffic switcher
+│   ├── check-server-ready.sh     # Server readiness verification (NEW)
+│   └── trigger-deploy.sh         # Manual deployment trigger (NEW)
 ├── env/
 │   ├── prod.env.example          # Production environment template
 │   └── staging.env.example       # Staging environment template
@@ -48,13 +50,27 @@ tds_core/
 
 ## 🚀 Quick Start
 
+### 0. Verify Server Readiness (NEW)
+
+```bash
+# Check if your server is ready for deployment
+./deployment/scripts/check-server-ready.sh 167.71.39.50 root
+
+# This will verify:
+#   - SSH connectivity
+#   - Directory structure
+#   - Deployment scripts
+#   - Python, PostgreSQL, Nginx installation
+#   - Configuration files
+```
+
 ### 1. Server Setup (One-Time)
 
 ```bash
 # SSH to your server
 ssh root@your-server-ip
 
-# Run setup commands from CI_CD_SETUP_GUIDE.md
+# Run setup commands from CI_CD_SETUP_GUIDE.md or DEPLOY_NOW.md
 # This includes:
 #   - Installing dependencies
 #   - Creating directory structure
@@ -77,6 +93,7 @@ PROD_SSH_PORT=22
 
 ### 3. Deploy
 
+**Option A: Automated (via GitHub Actions)**
 ```bash
 # Push to main branch
 git add .
@@ -89,10 +106,20 @@ git push origin main
 #   3. Switch traffic with zero downtime
 ```
 
+**Option B: Manual (NEW)**
+```bash
+# Use the trigger script from your local machine
+./deployment/scripts/trigger-deploy.sh
+
+# Or SSH to server and run directly
+ssh root@your-server-ip 'bash /opt/tsh_erp/bin/deploy.sh main'
+```
+
 ---
 
 ## 📚 Documentation
 
+- **[DEPLOY_NOW.md](../DEPLOY_NOW.md)** - Quick deployment guide (NEW)
 - **[CI_CD_SETUP_GUIDE.md](docs/CI_CD_SETUP_GUIDE.md)** - Complete setup instructions
 - **[QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)** - Quick command reference
 
