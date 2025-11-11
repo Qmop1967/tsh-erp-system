@@ -1,0 +1,172 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge Dependabot PRs
+    runs-on: ubuntu-latest
+
+    # Only run for Dependabot PRs
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine auto-merge eligibility
+        id: eligibility
+        run: |
+          UPDATE_TYPE="${{ steps.dependabot-metadata.outputs.update-type }}"
+          DEPENDENCY_TYPE="${{ steps.dependabot-metadata.outputs.dependency-type }}"
+          PACKAGE_ECOSYSTEM="${{ steps.dependabot-metadata.outputs.package-ecosystem }}"
+
+          echo "Update Type: $UPDATE_TYPE"
+          echo "Dependency Type: $DEPENDENCY_TYPE"
+          echo "Package Ecosystem: $PACKAGE_ECOSYSTEM"
+
+          # Auto-merge rules:
+          # 1. Patch updates (x.x.PATCH) for all ecosystems
+          # 2. Minor updates (x.MINOR.x) for development dependencies only
+          # 3. GitHub Actions updates (all types)
+
+          AUTO_MERGE=false
+
+          # Rule 1: Patch updates
+          if [ "$UPDATE_TYPE" == "version-update:semver-patch" ]; then
+            AUTO_MERGE=true
+            echo "✅ Eligible: Patch update"
+          fi
+
+          # Rule 2: Minor dev dependency updates
+          if [ "$UPDATE_TYPE" == "version-update:semver-minor" ] && [ "$DEPENDENCY_TYPE" == "development" ]; then
+            AUTO_MERGE=true
+            echo "✅ Eligible: Minor development dependency update"
+          fi
+
+          # Rule 3: GitHub Actions (all updates are safe)
+          if [ "$PACKAGE_ECOSYSTEM" == "github-actions" ]; then
+            AUTO_MERGE=true
+            echo "✅ Eligible: GitHub Actions update"
+          fi
+
+          # Rule 4: Docker base image patch updates
+          if [ "$PACKAGE_ECOSYSTEM" == "docker" ] && [ "$UPDATE_TYPE" == "version-update:semver-patch" ]; then
+            AUTO_MERGE=true
+            echo "✅ Eligible: Docker patch update"
+          fi
+
+          if [ "$AUTO_MERGE" == "true" ]; then
+            echo "auto_merge=true" >> $GITHUB_OUTPUT
+            echo "✅ This PR is eligible for auto-merge"
+          else
+            echo "auto_merge=false" >> $GITHUB_OUTPUT
+            echo "⏸️  This PR requires manual review"
+            echo "Reason: $UPDATE_TYPE update for $DEPENDENCY_TYPE dependency"
+          fi
+
+      - name: Wait for CI checks
+        if: steps.eligibility.outputs.auto_merge == 'true'
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          running-workflow-name: 'Auto-merge Dependabot PRs'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          check-regexp: '^((?!Auto-merge).)*$'  # Wait for all checks except this one
+
+      - name: Enable auto-merge
+        if: steps.eligibility.outputs.auto_merge == 'true'
+        run: |
+          gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve PR
+        if: steps.eligibility.outputs.auto_merge == 'true'
+        run: |
+          gh pr review --approve "${{ github.event.pull_request.html_url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add auto-merge label
+        if: steps.eligibility.outputs.auto_merge == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['auto-merge', 'approved']
+            });
+
+      - name: Add comment for manual review
+        if: steps.eligibility.outputs.auto_merge == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const updateType = '${{ steps.dependabot-metadata.outputs.update-type }}';
+            const dependencyType = '${{ steps.dependabot-metadata.outputs.dependency-type }}';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `⏸️ **Manual Review Required**
+
+            This Dependabot PR requires manual review because:
+            - Update Type: \`${updateType}\`
+            - Dependency Type: \`${dependencyType}\`
+
+            **Auto-merge criteria:**
+            - ✅ Patch updates (x.x.PATCH) for all dependencies
+            - ✅ Minor updates (x.MINOR.x) for development dependencies only
+            - ✅ All GitHub Actions updates
+            - ✅ Docker patch updates
+
+            **Manual review needed for:**
+            - ⚠️  Major updates (MAJOR.x.x)
+            - ⚠️  Minor updates (x.MINOR.x) for production dependencies
+            - ⚠️  Docker minor/major updates
+
+            Please review the changes and merge manually if safe.`
+            });
+
+      - name: Send Telegram notification
+        if: steps.eligibility.outputs.auto_merge == 'true' && (secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '')
+        run: |
+          DEPENDENCY_NAME="${{ steps.dependabot-metadata.outputs.dependency-names }}"
+          OLD_VERSION="${{ steps.dependabot-metadata.outputs.previous-version }}"
+          NEW_VERSION="${{ steps.dependabot-metadata.outputs.new-version }}"
+          UPDATE_TYPE="${{ steps.dependabot-metadata.outputs.update-type }}"
+
+          MESSAGE="🤖 *Dependabot Auto-Merge*
+
+          📦 *Dependency:* \`${DEPENDENCY_NAME}\`
+          🔄 *Update:* \`${OLD_VERSION}\` → \`${NEW_VERSION}\`
+          📊 *Type:* ${UPDATE_TYPE}
+
+          ✅ Auto-approved and merged after CI passed
+
+          🔗 [View PR](${{ github.event.pull_request.html_url }})"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview=true
