@@ -123,3 +123,7 @@ python-socketio==5.11.1
 # Testing factories and data generation
 factory-boy==3.3.0  # Test data factories
 Faker==30.8.2  # Fake data generation
+pytest-mock==3.12.0  # Mock testing
+
+# Schema comparison and migration
+migra==3.0.1663481299  # Database schema comparison tool

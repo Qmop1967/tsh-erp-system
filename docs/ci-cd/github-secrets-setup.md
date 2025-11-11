@@ -115,6 +115,7 @@ ZOHO_ACCESS_TOKEN=<generated-by-tds-core>  # Optional
 
 ### Database Secrets
 
+#### Application Database Connection
 ```
 DATABASE_URL=postgresql://user:password@host:5432/database
 REDIS_URL=redis://:password@host:6379/0
@@ -128,6 +129,40 @@ REDIS_URL=redis://:password@host:6379/0
 ```
 DATABASE_URL=postgresql://tsh_app_user:TSH@2025Secure!Production@localhost:5432/tsh_erp_production
 REDIS_URL=redis://:your-redis-password@localhost:6379/0
+```
+
+#### Schema Drift Detection Database Secrets
+
+**Production Database (Read-Only Access Recommended):**
+```
+PROD_DB_HOST=167.71.39.50
+PROD_DB_PORT=5432
+PROD_DB_NAME=tsh_erp_production
+PROD_DB_USER=tsh_app_user
+PROD_DB_PASSWORD=<production-database-password>
+```
+
+**Staging Database:**
+```
+STAGING_DB_HOST=167.71.58.65
+STAGING_DB_PORT=5432
+STAGING_DB_NAME=tsh_erp_staging
+STAGING_DB_USER=tsh_app_user
+STAGING_DB_PASSWORD=<staging-database-password>
+```
+
+**Security Note:** For schema drift detection, it's recommended to create a read-only database user:
+
+```sql
+-- Create read-only user for schema drift checks
+CREATE USER schema_checker WITH PASSWORD '<secure-password>';
+GRANT CONNECT ON DATABASE tsh_erp_production TO schema_checker;
+GRANT USAGE ON SCHEMA public TO schema_checker;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO schema_checker;
+
+-- Allow access to schema metadata
+GRANT SELECT ON information_schema.tables TO schema_checker;
+GRANT SELECT ON information_schema.columns TO schema_checker;
 ```
 
 ---
