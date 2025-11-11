@@ -56,7 +56,6 @@ jobs:
   send-telegram:
     name: Send Telegram Notification
     runs-on: ubuntu-latest
-    if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
 
     steps:
       - name: Determine emoji and title
@@ -142,11 +141,19 @@ jobs:
           echo "message_file=/tmp/telegram_message.txt" >> $GITHUB_OUTPUT
 
       - name: Send to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
+
           MESSAGE=$(cat ${{ steps.message.outputs.message_file }})
 
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
             -d text="$MESSAGE" \
             -d parse_mode="Markdown" \
             -d disable_web_page_preview=true
@@ -160,9 +167,7 @@ jobs:
   send-email:
     name: Send Email Notification
     runs-on: ubuntu-latest
-    if: |
-      ${{ secrets.EMAIL_SMTP_HOST != '' &&
-          (inputs.status == 'failure' || inputs.notification_type == 'weekly-report') }}
+    if: inputs.status == 'failure' || inputs.notification_type == 'weekly-report'
 
     steps:
       - name: Determine email subject
@@ -246,7 +251,20 @@ jobs:
 
           echo "body_file=/tmp/email_body.html" >> $GITHUB_OUTPUT
 
+      - name: Check email configuration
+        id: check-email
+        env:
+          EMAIL_SMTP_HOST: ${{ secrets.EMAIL_SMTP_HOST }}
+        run: |
+          if [ -n "$EMAIL_SMTP_HOST" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "Email SMTP not configured, skipping email notification"
+          fi
+
       - name: Send email
+        if: steps.check-email.outputs.configured == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.EMAIL_SMTP_HOST }}
