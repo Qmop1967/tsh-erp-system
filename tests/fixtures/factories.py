@@ -165,10 +165,11 @@ class InventoryItemFactory(BaseFactory):
     id = factory.Sequence(lambda n: n + 1)
     product_id = factory.SubFactory(ProductFactory)
     warehouse_id = factory.SubFactory(WarehouseFactory)
-    quantity = fuzzy.FuzzyInteger(100, 1000)
-    reserved_quantity = fuzzy.FuzzyInteger(0, 50)
-    available_quantity = factory.LazyAttribute(lambda obj: obj.quantity - obj.reserved_quantity)
-    last_updated = factory.LazyFunction(datetime.utcnow)
+    quantity_on_hand = fuzzy.FuzzyDecimal(100.0, 1000.0, 3)  # Fixed: was 'quantity'
+    quantity_reserved = fuzzy.FuzzyDecimal(0.0, 50.0, 3)  # Fixed: was 'reserved_quantity'
+    quantity_ordered = fuzzy.FuzzyDecimal(0.0, 100.0, 3)
+    # available_quantity removed - not in model (calculate from on_hand - reserved)
+    # last_updated removed - model has created_at, updated_at
 
 
 # ============================================================================
