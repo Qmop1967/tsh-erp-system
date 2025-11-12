@@ -265,7 +265,7 @@ jobs:
 
       - name: Send email
         if: steps.check-email.outputs.configured == 'true'
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v6
         with:
           server_address: ${{ secrets.EMAIL_SMTP_HOST }}
           server_port: ${{ secrets.EMAIL_SMTP_PORT || 465 }}
