@@ -1,0 +1,93 @@
+# Ruff Configuration for TSH ERP System
+# See: https://docs.astral.sh/ruff/
+
+# Exclude directories from linting
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "*.egg-info",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "archived/",
+    ".claude/",
+    "mcp/",
+    "node_modules/",
+    "build/",
+    "dist/",
+]
+
+# Line length
+line-length = 120
+
+# Target Python version
+target-version = "py311"
+
+[lint]
+# Enable specific rule sets
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+
+# Ignore specific rules
+ignore = [
+    "E402",  # Module level import not at top of file (common in scripts)
+    "E501",  # Line too long (handled by line-length)
+    "E722",  # Do not use bare `except` (sometimes needed for broad error handling)
+    "F401",  # Imported but unused (auto-fixed, but allow for __init__.py exports)
+    "F841",  # Local variable assigned but never used (common in debugging)
+    "N802",  # Function name should be lowercase (allows for factory patterns)
+    "N806",  # Variable in function should be lowercase (allows for SQL, API vars)
+    "B008",  # Do not perform function call in argument defaults (FastAPI dependencies)
+]
+
+# Automatically fix issues where possible
+fix = true
+show-fixes = true
+
+# Respect existing formatting
+respect-gitignore = true
+
+[lint.per-file-ignores]
+# Test files can have additional exceptions
+"tests/**/*.py" = [
+    "F401",  # Unused imports in test fixtures
+    "F811",  # Redefinition of unused name (pytest fixtures)
+    "S101",  # Use of assert (required in tests)
+]
+
+# __init__.py files often import for re-export
+"**/__init__.py" = [
+    "F401",  # Imported but unused
+    "F403",  # Unable to detect undefined names
+]
+
+# Scripts and utilities can be more lenient
+"scripts/**/*.py" = [
+    "E402",  # Module level import not at top
+    "T201",  # Print statements allowed
+]
+"*.py" = []
+
+[format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+
+# Respect magic trailing comma
+skip-magic-trailing-comma = false
+
+# Line ending style
+line-ending = "auto"
