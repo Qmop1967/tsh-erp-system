@@ -58,6 +58,10 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Log all incoming API requests and responses"""
+    # Skip logging for health check and metrics endpoints (performance optimization)
+    if request.url.path in ["/health", "/metrics", "/favicon.ico"]:
+        return await call_next(request)
+
     start_time = time.time()
 
     # Log incoming request
@@ -475,8 +479,30 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """فحص حالة التطبيق"""
-    return {"status": "healthy", "message": "النظام يعمل بشكل طبيعي"}
+    """
+    Lightweight health check endpoint (optimized for monitoring)
+    - Bypasses logging middleware for performance
+    - Returns cached response with 5-second TTL
+    - No database queries for maximum speed
+    """
+    from fastapi.responses import JSONResponse
+    from datetime import datetime
+
+    response_data = {
+        "status": "healthy",
+        "message": "النظام يعمل بشكل طبيعي",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "1.0.0"
+    }
+
+    # Add cache headers for 5-second TTL (reduce load from monitoring systems)
+    return JSONResponse(
+        content=response_data,
+        headers={
+            "Cache-Control": "public, max-age=5",  # Cache for 5 seconds
+            "X-Response-Time": "optimized"  # Marker for optimized endpoint
+        }
+    )
 
 # ============================================================================
 # Socket.IO Integration for Real-Time Updates
