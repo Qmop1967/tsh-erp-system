@@ -54,6 +54,7 @@ ignore = [
     "E712",   # Avoid equality comparisons to True/False (style preference)
     "E722",   # Do not use bare `except` (sometimes needed for broad error handling)
     "F401",   # Imported but unused (auto-fixed, but allow for __init__.py exports)
+    "F402",   # Import shadowed by loop variable
     "F403",   # `from module import *` used; unable to detect undefined names
     "F405",   # Variable may be undefined, or defined from star imports
     "F811",   # Redefinition of unused variable
@@ -62,9 +63,12 @@ ignore = [
     "N802",   # Function name should be lowercase (allows for factory patterns)
     "N805",   # First argument should be self (wrong for classmethods/validators)
     "N806",   # Variable in function should be lowercase (allows for SQL, API vars)
+    "B004",   # Using `hasattr(x, "__call__")` to test if x is callable is unreliable
     "B007",   # Loop control variable not used within loop body
     "B008",   # Do not perform function call in argument defaults (FastAPI dependencies)
+    "B012",   # `break` inside `finally` blocks cause exceptions to be silenced
     "B025",   # Try-except block with duplicate exception (style preference)
+    "B039",   # Do not use mutable data structures for `ContextVar` defaults
     "B904",   # Within an except clause, raise exceptions with `raise ... from err`
     "B905",   # `zip()` without an explicit `strict=` parameter
     "C401",   # Unnecessary generator (rewrite as set/dict comprehension)
@@ -76,6 +80,9 @@ ignore = [
     "SIM103", # Return the negated condition directly
     "SIM105", # Use contextlib.suppress (style preference)
     "SIM108", # Use ternary operator (style preference)
+    "SIM110", # Use `return any(...)` instead of `for` loop
+    "SIM113", # Use `enumerate()` for index variable in `for` loop
+    "SIM116", # Use a dictionary instead of consecutive `if` statements
     "SIM118", # Use `key in dict` instead of `key in dict.keys()`
     "SIM222", # Use `True` instead of `... or True`
 ]
