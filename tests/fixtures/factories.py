@@ -83,7 +83,7 @@ class UserFactory(BaseFactory):
     id = factory.Sequence(lambda n: n + 1)
     email = factory.Faker('email')
     name = factory.Faker('name')
-    hashed_password = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyKjH0UBj3gO"  # "password123"
+    password = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyKjH0UBj3gO"  # "password123" (hashed)
     is_active = True
     role_id = factory.SubFactory(RoleFactory)
     branch_id = factory.SubFactory(BranchFactory)
