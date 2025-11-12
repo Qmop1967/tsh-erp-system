@@ -179,14 +179,14 @@ jobs:
           DEPLOYMENT_ID="deploy-$(date +%Y%m%d-%H%M%S)"
           echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
 
-          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          # Execute deployment on remote server and capture previous version
+          PREVIOUS_VERSION=$(ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
             set -e
 
             cd ${{ env.DEPLOY_PATH }}
 
             # Save current version for rollback
             PREVIOUS_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
-            echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
             echo "📌 Previous version: $PREVIOUS_VERSION"
 
             # Create deployment marker
@@ -214,7 +214,14 @@ jobs:
             docker-compose -f docker-compose.prod.yml up -d --build
 
             echo "✅ Deployment completed"
+
+            # Output previous version for capture
+            echo "$PREVIOUS_VERSION"
           ENDSSH
+          )
+
+          # Save previous version to output
+          echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
 
       - name: Wait for services to be ready
         run: |
