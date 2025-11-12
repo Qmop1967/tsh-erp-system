@@ -144,8 +144,9 @@ class ProductFactory(BaseFactory):
     cost_price = factory.LazyAttribute(lambda obj: obj.unit_price * Decimal('0.7'))
     category_id = factory.SubFactory(CategoryFactory)
     unit_of_measure = factory.Iterator(["pcs", "box", "kg", "meter", "liter"])
-    reorder_level = fuzzy.FuzzyInteger(10, 50)
-    is_active = True
+    reorder_point = fuzzy.FuzzyInteger(10, 50)  # Fixed: was reorder_level
+    min_stock_level = fuzzy.FuzzyInteger(5, 20)
+    # is_active removed - not in Product model
     created_at = factory.LazyFunction(datetime.utcnow)
 
     @factory.post_generation
