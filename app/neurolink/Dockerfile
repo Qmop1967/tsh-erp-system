@@ -3,7 +3,7 @@
 # Production-ready FastAPI notification service
 # ============================================================================
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 LABEL maintainer="TSH ERP Team"
 LABEL description="TSH NeuroLink - Central Communication & Notification System"
