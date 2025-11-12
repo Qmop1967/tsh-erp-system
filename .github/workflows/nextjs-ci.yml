@@ -7,7 +7,7 @@ on:
         description: 'Working directory for Next.js app'
         required: false
         type: string
-        default: './tds-admin-dashboard'
+        default: './apps/tds_admin_dashboard'
 
   workflow_dispatch:
     inputs:
@@ -15,14 +15,14 @@ on:
         description: 'Working directory'
         required: false
         type: string
-        default: './tds-admin-dashboard'
+        default: './apps/tds_admin_dashboard'
 
   push:
     branches:
       - main
       - develop
     paths:
-      - 'tds-admin-dashboard/**'
+      - 'apps/tds_admin_dashboard/**'
       - '.github/workflows/nextjs-ci.yml'
 
   pull_request:
@@ -30,7 +30,7 @@ on:
       - main
       - develop
     paths:
-      - 'tds-admin-dashboard/**'
+      - 'apps/tds_admin_dashboard/**'
 
 env:
   NODE_VERSION: '20'
@@ -58,13 +58,13 @@ jobs:
       - name: Check if directory exists
         id: check-directory
         run: |
-          if [ -d "${{ inputs.working_directory || './tds-admin-dashboard' }}" ]; then
+          if [ -d "${{ inputs.working_directory || './apps/tds_admin_dashboard' }}" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ Found tds-admin-dashboard directory"
+            echo "✅ Found apps/tds_admin_dashboard directory"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  No tds-admin-dashboard directory found - skipping Next.js CI"
-            echo "   To enable Next.js CI, create the tds-admin-dashboard/ directory"
+            echo "⚠️  No apps/tds_admin_dashboard directory found - skipping Next.js CI"
+            echo "   To enable Next.js CI, create the apps/tds_admin_dashboard/ directory"
           fi
 
       - name: Setup pnpm

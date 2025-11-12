@@ -42,7 +42,7 @@ on:
       - main
       - develop
     paths:
-      - 'mobile_apps/**'
+      - 'mobile/flutter_apps/**'
       - '.github/workflows/flutter-ci.yml'
 
   pull_request:
@@ -50,7 +50,7 @@ on:
       - main
       - develop
     paths:
-      - 'mobile_apps/**'
+      - 'mobile/flutter_apps/**'
 
 env:
   FLUTTER_VERSION: '3.19.0'
@@ -84,11 +84,11 @@ jobs:
           import json
           from pathlib import Path
 
-          mobile_apps_dir = Path('mobile_apps')
+          mobile_apps_dir = Path('mobile/flutter_apps')
 
           if not mobile_apps_dir.exists():
-              print("⚠️  No mobile_apps directory found - skipping Flutter CI")
-              print("   To enable Flutter CI, create the mobile_apps/ directory with Flutter apps")
+              print("⚠️  No mobile/flutter_apps directory found - skipping Flutter CI")
+              print("   To enable Flutter CI, create the mobile/flutter_apps/ directory with Flutter apps")
               apps = []
           else:
               # Find all directories with pubspec.yaml
