@@ -64,8 +64,11 @@ ignore = [
     "N806",   # Variable in function should be lowercase (allows for SQL, API vars)
     "B007",   # Loop control variable not used within loop body
     "B008",   # Do not perform function call in argument defaults (FastAPI dependencies)
+    "B025",   # Try-except block with duplicate exception (style preference)
     "B904",   # Within an except clause, raise exceptions with `raise ... from err`
     "B905",   # `zip()` without an explicit `strict=` parameter
+    "C401",   # Unnecessary generator (rewrite as set/dict comprehension)
+    "C416",   # Unnecessary dict comprehension (rewrite using dict())
     "W291",   # Trailing whitespace (auto-formatted)
     "W293",   # Blank line contains whitespace (auto-formatted)
     "UP035",  # typing.List/Dict deprecated (minor - can fix later)
