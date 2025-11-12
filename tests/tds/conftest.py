@@ -24,7 +24,7 @@ from app.tds.integrations.zoho import (
     UnifiedStockSyncService,
     StockSyncConfig
 )
-from app.core.event_bus import EventBus
+from app.core.events.event_bus import EventBus
 
 
 # ============================================================================

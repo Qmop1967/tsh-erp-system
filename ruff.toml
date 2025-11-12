@@ -48,14 +48,17 @@ select = [
 
 # Ignore specific rules
 ignore = [
-    "E402",  # Module level import not at top of file (common in scripts)
-    "E501",  # Line too long (handled by line-length)
-    "E722",  # Do not use bare `except` (sometimes needed for broad error handling)
-    "F401",  # Imported but unused (auto-fixed, but allow for __init__.py exports)
-    "F841",  # Local variable assigned but never used (common in debugging)
-    "N802",  # Function name should be lowercase (allows for factory patterns)
-    "N806",  # Variable in function should be lowercase (allows for SQL, API vars)
-    "B008",  # Do not perform function call in argument defaults (FastAPI dependencies)
+    "E402",   # Module level import not at top of file (common in scripts)
+    "E501",   # Line too long (handled by line-length)
+    "E722",   # Do not use bare `except` (sometimes needed for broad error handling)
+    "F401",   # Imported but unused (auto-fixed, but allow for __init__.py exports)
+    "F841",   # Local variable assigned but never used (common in debugging)
+    "N802",   # Function name should be lowercase (allows for factory patterns)
+    "N805",   # First argument should be self (wrong for classmethods/validators)
+    "N806",   # Variable in function should be lowercase (allows for SQL, API vars)
+    "B008",   # Do not perform function call in argument defaults (FastAPI dependencies)
+    "UP035",  # typing.List/Dict deprecated (minor - can fix later)
+    "SIM105", # Use contextlib.suppress (style preference)
 ]
 
 [lint.per-file-ignores]
