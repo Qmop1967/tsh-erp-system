@@ -116,6 +116,24 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-xdist httpx
 
+      - name: Add project to Python path
+        run: |
+          echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+
+      - name: Verify Python environment
+        run: |
+          echo "🐍 Python Environment Verification"
+          echo "=================================="
+          echo "Python version: $(python --version)"
+          echo "PYTHONPATH: $PYTHONPATH"
+          echo "Working directory: $(pwd)"
+          echo ""
+          echo "Testing imports..."
+          python -c "import app; print('✅ app package importable')" || echo "❌ app package NOT importable"
+          python -c "from app.db.database import Base; print('✅ app.db.database importable')" || echo "❌ app.db.database NOT importable"
+          python -c "from tests.fixtures import seed_full; print('✅ tests.fixtures importable')" || echo "❌ tests.fixtures NOT importable"
+          echo ""
+
       - name: Set environment variables
         run: |
           cat > .env.e2e << EOF
