@@ -219,8 +219,8 @@ jobs:
 
             # Restart services
             echo "🔄 Restarting services..."
-            docker compose pull
-            docker compose up -d --build
+            docker compose --profile core pull
+            docker compose --profile core up -d --build
 
             echo "✅ Deployment completed"
 
@@ -387,7 +387,7 @@ jobs:
             pip install -r requirements.txt --quiet
 
             # Restart services
-            docker-compose -f docker-compose.prod.yml up -d --build
+            docker compose --profile core up -d --build
 
             echo "✅ Rollback completed"
           ENDSSH
