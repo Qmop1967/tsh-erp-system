@@ -219,7 +219,7 @@ jobs:
 
             # Restart services
             echo "🔄 Restarting services..."
-            docker compose --profile core pull
+            # Build and start services (skip pull as images are built locally)
             docker compose --profile core up -d --build
 
             echo "✅ Deployment completed"
