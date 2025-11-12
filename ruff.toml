@@ -25,6 +25,13 @@ line-length = 120
 # Target Python version
 target-version = "py311"
 
+# Automatically fix issues where possible
+fix = true
+show-fixes = true
+
+# Respect existing formatting
+respect-gitignore = true
+
 [lint]
 # Enable specific rule sets
 select = [
@@ -50,13 +57,6 @@ ignore = [
     "N806",  # Variable in function should be lowercase (allows for SQL, API vars)
     "B008",  # Do not perform function call in argument defaults (FastAPI dependencies)
 ]
-
-# Automatically fix issues where possible
-fix = true
-show-fixes = true
-
-# Respect existing formatting
-respect-gitignore = true
 
 [lint.per-file-ignores]
 # Test files can have additional exceptions
