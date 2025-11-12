@@ -25,10 +25,11 @@ env:
   BACKUP_RETENTION_DAYS: 30
 
 jobs:
-  pre-deployment-checks:
-    name: Pre-Deployment Validation
+  # Step 1: Determine version to deploy
+  determine-version:
+    name: Determine Deployment Version
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
 
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -59,32 +60,66 @@ jobs:
           echo "📦 Deploying version: $VERSION"
           echo "📝 Commit SHA: $COMMIT_SHA"
 
-      - name: Validate secrets
-        uses: ./.github/workflows/validate-secrets.yml
-        with:
-          environment: production
-          check_scope: deployment
-        secrets: inherit
+  # Step 2: Validate required secrets (reusable workflow call)
+  validate-secrets:
+    name: Validate Secrets
+    needs: determine-version
+    uses: ./.github/workflows/validate-secrets.yml
+    with:
+      environment: production
+      check_scope: deployment
+    secrets: inherit
 
-      - name: Check schema drift
-        if: inputs.skip_tests == false
-        uses: ./.github/workflows/schema-drift-check.yml
-        with:
-          environment: production
-          fail_on_drift: true
-        secrets: inherit
+  # Step 3: Check schema drift (conditional, reusable workflow call)
+  check-schema-drift:
+    name: Check Schema Drift
+    needs: determine-version
+    if: inputs.skip_tests == false
+    uses: ./.github/workflows/schema-drift-check.yml
+    with:
+      environment: production
+      fail_on_drift: true
+    secrets: inherit
 
-      - name: Run security scan
-        if: inputs.skip_tests == false
-        uses: ./.github/workflows/security-scan.yml
-        with:
-          scan_type: docker
-          fail_on_severity: CRITICAL
-        secrets: inherit
+  # Step 4: Run security scan (conditional, reusable workflow call)
+  security-scan:
+    name: Security Scan
+    needs: determine-version
+    if: inputs.skip_tests == false
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      scan_type: docker
+      fail_on_severity: CRITICAL
+    secrets: inherit
+
+  # Step 5: Pre-deployment validation summary
+  pre-deployment-summary:
+    name: Pre-Deployment Summary
+    needs: [determine-version, validate-secrets, check-schema-drift, security-scan]
+    # Run if: version determined AND secrets validated AND (tests skipped OR tests passed)
+    if: |
+      always() &&
+      needs.determine-version.result == 'success' &&
+      needs.validate-secrets.result == 'success' &&
+      (needs.check-schema-drift.result == 'success' || needs.check-schema-drift.result == 'skipped') &&
+      (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Display pre-deployment summary
+        run: |
+          echo "✅ Pre-deployment checks passed"
+          echo ""
+          echo "📦 Version: ${{ needs.determine-version.outputs.version }}"
+          echo "📝 Commit: ${{ needs.determine-version.outputs.commit_sha }}"
+          echo "🔐 Secrets: Validated"
+          echo "🗄️  Schema: ${{ needs.check-schema-drift.result }}"
+          echo "🔒 Security: ${{ needs.security-scan.result }}"
 
   backup-database:
     name: Backup Production Database
-    needs: pre-deployment-checks
+    needs: [determine-version, pre-deployment-summary]
     if: inputs.skip_backup == false
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -158,8 +193,8 @@ jobs:
 
   deploy:
     name: Deploy Application
-    needs: [pre-deployment-checks, backup-database]
-    if: always() && needs.pre-deployment-checks.result == 'success' && (needs.backup-database.result == 'success' || needs.backup-database.result == 'skipped')
+    needs: [determine-version, pre-deployment-summary, backup-database]
+    if: always() && needs.pre-deployment-summary.result == 'success' && (needs.backup-database.result == 'success' || needs.backup-database.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -194,14 +229,14 @@ jobs:
             echo "📌 Previous version: $PREVIOUS_VERSION"
 
             # Create deployment marker
-            echo "${{ needs.pre-deployment-checks.outputs.version }}" > .deployment_version
-            echo "${{ needs.pre-deployment-checks.outputs.commit_sha }}" > .deployment_commit
+            echo "${{ needs.determine-version.outputs.version }}" > .deployment_version
+            echo "${{ needs.determine-version.outputs.commit_sha }}" > .deployment_commit
             date +%s > .deployment_timestamp
 
             # Pull latest code
             echo "📥 Pulling latest code..."
             git fetch origin
-            git checkout ${{ needs.pre-deployment-checks.outputs.commit_sha }}
+            git checkout ${{ needs.determine-version.outputs.commit_sha }}
 
             # Update dependencies
             echo "📦 Updating dependencies..."
@@ -394,7 +429,7 @@ jobs:
 
   notify:
     name: Send Notifications
-    needs: [pre-deployment-checks, deploy, smoke-tests, rollback]
+    needs: [determine-version, deploy, smoke-tests, rollback]
     if: always()
     runs-on: ubuntu-latest
 
@@ -427,7 +462,7 @@ jobs:
             exit 0
           fi
 
-          TEXT="Production Deployment ${{ steps.status.outputs.emoji }} - Status: ${{ steps.status.outputs.message }} - Version: ${{ needs.pre-deployment-checks.outputs.version }} - Commit: ${{ needs.pre-deployment-checks.outputs.commit_sha }} - By: ${{ github.actor }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEXT="Production Deployment ${{ steps.status.outputs.emoji }} - Status: ${{ steps.status.outputs.message }} - Version: ${{ needs.determine-version.outputs.version }} - Commit: ${{ needs.determine-version.outputs.commit_sha }} - By: ${{ github.actor }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d chat_id="${TELEGRAM_CHAT_ID}" \
