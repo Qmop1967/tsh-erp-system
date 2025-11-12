@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/product.dart';
-import '../services/api_service.dart';
+import '../services/bff_api_service.dart';
 import '../providers/cart_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/tsh_theme.dart';
@@ -100,7 +100,7 @@ class _ProductDetailScreenEnhancedState
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = ApiService.getProductImageUrl(widget.product);
+    final imageUrl = BFFApiService.getProductImageUrl(widget.product);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),

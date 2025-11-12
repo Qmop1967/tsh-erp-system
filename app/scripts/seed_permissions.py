@@ -37,7 +37,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.APPLICATION_ACCESS,
             'action': ActionType.VIEW,
             'category': 'web_applications',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'app.mobile_salesperson.access',
@@ -46,7 +46,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.APPLICATION_ACCESS,
             'action': ActionType.VIEW,
             'category': 'mobile_applications',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'app.admin_security.access',
@@ -55,7 +55,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.APPLICATION_ACCESS,
             'action': ActionType.VIEW,
             'category': 'admin_applications',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'app.pos.access',
@@ -64,7 +64,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.APPLICATION_ACCESS,
             'action': ActionType.VIEW,
             'category': 'pos_applications',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'app.warehouse.access',
@@ -73,7 +73,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.APPLICATION_ACCESS,
             'action': ActionType.VIEW,
             'category': 'warehouse_applications',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(app_access_perms)
@@ -97,7 +97,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.USER_MANAGEMENT,
             'action': action_def['action'],
             'category': 'users',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # Additional user-specific permissions
@@ -109,7 +109,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.USER_MANAGEMENT,
             'action': ActionType.UPDATE,
             'category': 'users',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'user.activate_deactivate',
@@ -118,7 +118,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.USER_MANAGEMENT,
             'action': ActionType.UPDATE,
             'category': 'users',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ])
 
@@ -133,7 +133,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ROLE_PERMISSION,
             'action': ActionType.VIEW,
             'category': 'roles',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'role.create',
@@ -142,7 +142,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ROLE_PERMISSION,
             'action': ActionType.CREATE,
             'category': 'roles',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'role.update',
@@ -151,7 +151,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ROLE_PERMISSION,
             'action': ActionType.UPDATE,
             'category': 'roles',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'role.delete',
@@ -160,7 +160,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ROLE_PERMISSION,
             'action': ActionType.DELETE,
             'category': 'roles',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'permission.view',
@@ -169,7 +169,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ROLE_PERMISSION,
             'action': ActionType.VIEW,
             'category': 'permissions',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'permission.assign',
@@ -178,7 +178,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ROLE_PERMISSION,
             'action': ActionType.UPDATE,
             'category': 'permissions',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'permission.revoke',
@@ -187,7 +187,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ROLE_PERMISSION,
             'action': ActionType.DELETE,
             'category': 'permissions',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(role_perms)
@@ -211,7 +211,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.BRANCH_MANAGEMENT,
             'action': action_def['action'],
             'category': 'branches',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # ============================================================
@@ -237,7 +237,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.INVENTORY,
             'action': action_def['action'],
             'category': 'products',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # Stock Management
@@ -249,7 +249,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.INVENTORY,
             'action': ActionType.VIEW,
             'category': 'stock',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'inventory.stock.adjust',
@@ -258,7 +258,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.INVENTORY,
             'action': ActionType.UPDATE,
             'category': 'stock',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'inventory.stock.transfer',
@@ -267,7 +267,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.INVENTORY,
             'action': ActionType.CREATE,
             'category': 'stock',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'inventory.stock.approve',
@@ -276,7 +276,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.INVENTORY,
             'action': ActionType.APPROVE,
             'category': 'stock',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(stock_perms)
@@ -297,7 +297,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.INVENTORY,
             'action': action_def['action'],
             'category': 'warehouses',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # ============================================================
@@ -323,7 +323,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SALES,
             'action': action_def['action'],
             'category': 'orders',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # Quotations
@@ -343,7 +343,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SALES,
             'action': action_def['action'],
             'category': 'quotations',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # Invoices
@@ -355,7 +355,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SALES,
             'action': ActionType.VIEW,
             'category': 'invoices',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'sales.invoice.create',
@@ -364,7 +364,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SALES,
             'action': ActionType.CREATE,
             'category': 'invoices',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'sales.invoice.print',
@@ -373,7 +373,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SALES,
             'action': ActionType.PRINT,
             'category': 'invoices',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(invoice_perms)
@@ -399,7 +399,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.PURCHASING,
             'action': action_def['action'],
             'category': 'purchase_orders',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # Suppliers
@@ -418,7 +418,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.PURCHASING,
             'action': action_def['action'],
             'category': 'suppliers',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # ============================================================
@@ -434,7 +434,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.FINANCIAL,
             'action': ActionType.VIEW,
             'category': 'payments',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'financial.payment.create',
@@ -443,7 +443,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.FINANCIAL,
             'action': ActionType.CREATE,
             'category': 'payments',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'financial.payment.approve',
@@ -452,7 +452,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.FINANCIAL,
             'action': ActionType.APPROVE,
             'category': 'payments',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'financial.payment.reject',
@@ -461,7 +461,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.FINANCIAL,
             'action': ActionType.REJECT,
             'category': 'payments',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(payment_perms)
@@ -475,7 +475,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.FINANCIAL,
             'action': ActionType.VIEW,
             'category': 'accounting',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'financial.transaction.view',
@@ -484,7 +484,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.FINANCIAL,
             'action': ActionType.VIEW,
             'category': 'transactions',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'financial.transaction.create',
@@ -493,7 +493,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.FINANCIAL,
             'action': ActionType.CREATE,
             'category': 'transactions',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(accounting_perms)
@@ -519,7 +519,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.CUSTOMER,
             'action': action_def['action'],
             'category': 'customers',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # ============================================================
@@ -541,7 +541,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.EMPLOYEE,
             'action': action_def['action'],
             'category': 'employees',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         })
 
     # ============================================================
@@ -565,7 +565,7 @@ def get_comprehensive_permissions():
                 'module': ModuleType.REPORTS,
                 'action': ActionType.VIEW,
                 'category': report_code,
-                'display_order': order := order + 1
+                'display_order': (order := order + 1)
             },
             {
                 'code': f'reports.{report_code}.export',
@@ -574,7 +574,7 @@ def get_comprehensive_permissions():
                 'module': ModuleType.REPORTS,
                 'action': ActionType.EXPORT,
                 'category': report_code,
-                'display_order': order := order + 1
+                'display_order': (order := order + 1)
             },
         ])
 
@@ -587,7 +587,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ANALYTICS,
             'action': ActionType.VIEW,
             'category': 'dashboards',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'analytics.kpi.view',
@@ -596,7 +596,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.ANALYTICS,
             'action': ActionType.VIEW,
             'category': 'kpi',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(analytics_perms)
@@ -613,7 +613,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SETTINGS,
             'action': ActionType.VIEW,
             'category': 'system',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'settings.system.update',
@@ -622,7 +622,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SETTINGS,
             'action': ActionType.UPDATE,
             'category': 'system',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'settings.company.view',
@@ -631,7 +631,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SETTINGS,
             'action': ActionType.VIEW,
             'category': 'company',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'settings.company.update',
@@ -640,7 +640,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.SETTINGS,
             'action': ActionType.UPDATE,
             'category': 'company',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(settings_perms)
@@ -657,7 +657,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.AUDIT,
             'action': ActionType.VIEW,
             'category': 'logs',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'audit.logs.export',
@@ -666,7 +666,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.AUDIT,
             'action': ActionType.EXPORT,
             'category': 'logs',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
         {
             'code': 'audit.security_events.view',
@@ -675,7 +675,7 @@ def get_comprehensive_permissions():
             'module': ModuleType.AUDIT,
             'action': ActionType.VIEW,
             'category': 'security',
-            'display_order': order := order + 1
+            'display_order': (order := order + 1)
         },
     ]
     permissions.extend(audit_perms)

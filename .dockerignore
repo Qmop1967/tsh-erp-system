@@ -1,66 +1,136 @@
-# Python
+# Python bytecode and cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+*.pyc
+**/__pycache__/
+
+# Virtual environments
 .venv/
 venv/
 ENV/
 env/
+.virtualenv/
 
-# IDE
+# IDE and editors
 .vscode/
 .idea/
 *.swp
 *.swo
+*.swn
 .DS_Store
+*.sublime-project
+*.sublime-workspace
 
 # Git
 .git/
 .gitignore
 .gitattributes
+.gitmodules
 
-# Testing
+# Testing and coverage
 .pytest_cache/
 htmlcov/
 .coverage
 *.cover
+.tox/
+.nox/
+pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.coveragerc
 
-# Documentation
+# Documentation (keep essential docs only)
 docs/
 *.md
 !README.md
+ARCHITECTURE*.md
+DEPLOYMENT*.md
+TDS*.md
+CONSUMER*.md
+ZOHO*.md
+ENHANCEMENT*.md
+PHASE*.md
+ROUTER*.md
+PRICELIST*.md
 
-# Development
+# Environment files (mounted at runtime)
 .env
-.env.local
-.env.development
+.env.*
+!.env.example
+!.env.chatgpt.example
 
-# Logs
+# Logs (mounted as volume)
 logs/
 *.log
+*.log.*
 
-# Database
+# Database files (for SQLite, not needed for Postgres)
 *.db
 *.sqlite
+*.sqlite3
 
-# Uploads (will be mounted as volume)
+# Uploads and static (mounted as volumes)
 uploads/
+static/
 
-# Backups
+# Backups (mounted as volume)
 backups/
 
 # CI/CD
 .github/
 .cicd_test
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
 
-# Node modules (if any)
+# Node/Frontend (if any)
 node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+dist/
+build/
 
-# Claude
+# Mobile development
+mobile/
+*.apk
+*.ipa
+*.aab
+
+# Claude AI tools
 .claude/
 .mcp/
 
-# Config files
+# Deployment and scripts (not needed in container)
+deployment/
+scripts/
+archived/
+
+# System and temp files
 .config/
+.cache/
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+.gnupg/
+
+# Docker files (avoid Docker inception)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Database migrations (handled separately)
+migrations/
+
+# Security and secrets
+*.pem
+*.key
+*.crt
+ssl/
+secrets/

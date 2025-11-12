@@ -2,12 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/order.dart';
-import '../services/api_service.dart';
+import '../services/bff_api_service.dart';
 import '../utils/tsh_theme.dart';
 import '../utils/currency_formatter.dart';
 
 final ordersProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  return await ApiService.getMyOrders();
+  // Get user email first
+  final user = await BFFApiService.getUserProfile();
+  if (user == null) {
+    return [];
+  }
+  
+  // Get orders from BFF
+  final result = await BFFApiService.getConsumerOrderHistory(
+    customerEmail: user.email,
+  );
+  
+  return List<Map<String, dynamic>>.from(result['orders'] ?? []);
 });
 
 class OrdersScreenComplete extends ConsumerStatefulWidget {

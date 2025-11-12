@@ -1,0 +1,18 @@
+{
+  "comment": "ZohoMCP Server Configuration - Add this to your Claude Desktop config",
+  "mcpServers": {
+    "ZohoMCP": {
+      "url": "https://ubuntu-s-2vcpu-4gb-fra1-01-905434759.zohomcp.com/mcp/message?key=21b3bdab7b3885000b143a5937c9c55b"
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+

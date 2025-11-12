@@ -1,0 +1,176 @@
+# Dependabot Configuration
+# Automated dependency updates for TSH ERP Ecosystem
+
+version: 2
+
+updates:
+  # Python dependencies (backend)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Qmop1967"
+    assignees:
+      - "Qmop1967"
+    labels:
+      - "dependencies"
+      - "python"
+      - "backend"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "/"
+    versioning-strategy: "increase"
+    # Group minor and patch updates together
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "08:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Qmop1967"
+    assignees:
+      - "Qmop1967"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "infrastructure"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+
+  # NeuroLink Docker
+  - package-ecosystem: "docker"
+    directory: "/app/neurolink"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "08:30"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "Qmop1967"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "neurolink"
+    commit-message:
+      prefix: "chore(neurolink)"
+
+  # GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "08:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Qmop1967"
+    assignees:
+      - "Qmop1967"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    # Group all GitHub Actions updates
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Next.js TDS Admin Dashboard
+  - package-ecosystem: "npm"
+    directory: "/tds-admin-dashboard"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "08:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 15
+    reviewers:
+      - "Qmop1967"
+    assignees:
+      - "Qmop1967"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "frontend"
+      - "tds-admin"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    versioning-strategy: "increase"
+    # Group development dependencies separately
+    groups:
+      production-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@types/*"
+          - "eslint*"
+          - "typescript"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Flutter Mobile Apps (if pubspec.yaml exists in root)
+  - package-ecosystem: "pub"
+    directory: "/mobile_apps/tsh_sales"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "08:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Qmop1967"
+    labels:
+      - "dependencies"
+      - "flutter"
+      - "mobile"
+      - "sales-app"
+    commit-message:
+      prefix: "chore(mobile)"
+    versioning-strategy: "widen"
+    groups:
+      flutter-packages:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+# Security updates are always created immediately, regardless of schedule
+# Critical security updates bypass the open-pull-requests-limit
+
+# Ignored dependencies (if needed)
+# - dependency-name: "package-name"
+#   versions: ["x.x.x"]

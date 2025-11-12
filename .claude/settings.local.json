@@ -15,7 +15,21 @@
       "Bash(flutter doctor:*)",
       "Bash(gh run:*)",
       "Bash(gh workflow:*)",
-      "Bash(git push origin develop)"
+      "Bash(git push origin develop)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/validate_docker_setup.sh:*)",
+      "Bash(bash:*)",
+      "Bash(python3:*)",
+      "Bash(cat:*)",
+      "Bash(./scripts/deploy_complete_zoho_sync.sh:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(ssh tsh-vps:*)",
+      "Bash(scp:*)",
+      "Bash(curl:*)",
+      "Bash(for id in 426864 2c07cd dc0211 b22fa8 3653bb)",
+      "Bash(do pkill -f \"$id\")",
+      "Bash(done)"
     ],
     "deny": [
       "Bash(rsync:*root@167.71.39.50:*)",

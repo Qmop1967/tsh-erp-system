@@ -1,0 +1,478 @@
+name: Performance Testing
+
+on:
+  workflow_call:
+    inputs:
+      target_url:
+        description: 'Target URL to test'
+        required: true
+        type: string
+      users:
+        description: 'Number of concurrent users'
+        required: false
+        type: number
+        default: 100
+      spawn_rate:
+        description: 'Users spawned per second'
+        required: false
+        type: number
+        default: 10
+      run_time:
+        description: 'Test duration (e.g., 5m, 10s)'
+        required: false
+        type: string
+        default: '5m'
+
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to test'
+        required: true
+        type: choice
+        options:
+          - https://staging.erp.tsh.sale
+          - https://erp.tsh.sale
+          - http://localhost:8000
+        default: 'https://staging.erp.tsh.sale'
+      users:
+        description: 'Number of concurrent users'
+        required: false
+        type: number
+        default: 100
+      spawn_rate:
+        description: 'Users spawned per second'
+        required: false
+        type: number
+        default: 10
+      run_time:
+        description: 'Test duration (5m, 10m, etc.)'
+        required: false
+        type: string
+        default: '5m'
+      test_scenario:
+        description: 'Test scenario to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - api_basic
+          - api_heavy
+          - web_browsing
+        default: 'all'
+
+  schedule:
+    # Run performance tests every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  performance-test:
+    name: Load Test - ${{ inputs.target_url || 'staging' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Locust
+        run: |
+          python -m pip install --upgrade pip
+          pip install locust==2.20.0
+
+      - name: Create Locustfile
+        run: |
+          cat > locustfile.py << 'EOF'
+          """
+          Performance Test Scenarios for TSH ERP
+          """
+          from locust import HttpUser, task, between, SequentialTaskSet
+          import json
+          import random
+
+
+          class AuthenticatedUser(HttpUser):
+              """Base user that authenticates before running tasks"""
+              wait_time = between(1, 3)
+              token = None
+
+              def on_start(self):
+                  """Login before starting tasks"""
+                  response = self.client.post(
+                      "/api/auth/login",
+                      json={
+                          "email": "loadtest@tsh.sale",
+                          "password": "loadtest123"
+                      },
+                      catch_response=True
+                  )
+
+                  if response.status_code == 200:
+                      data = response.json()
+                      self.token = data.get("access_token")
+                      response.success()
+                  else:
+                      # Use fallback credentials
+                      response = self.client.post(
+                          "/api/auth/login",
+                          json={
+                              "email": "admin@tsh.sale",
+                              "password": "admin123"
+                          }
+                      )
+                      if response.status_code == 200:
+                          data = response.json()
+                          self.token = data.get("access_token")
+
+              def get_headers(self):
+                  """Get authorization headers"""
+                  if self.token:
+                      return {"Authorization": f"Bearer {self.token}"}
+                  return {}
+
+
+          class APIBasicUser(AuthenticatedUser):
+              """Basic API operations - lightweight"""
+
+              @task(10)
+              def view_products(self):
+                  """GET /api/products"""
+                  self.client.get(
+                      "/api/products",
+                      headers=self.get_headers(),
+                      name="/api/products"
+                  )
+
+              @task(5)
+              def view_customers(self):
+                  """GET /api/customers"""
+                  self.client.get(
+                      "/api/customers",
+                      headers=self.get_headers(),
+                      name="/api/customers"
+                  )
+
+              @task(5)
+              def view_inventory(self):
+                  """GET /api/inventory"""
+                  self.client.get(
+                      "/api/inventory",
+                      headers=self.get_headers(),
+                      name="/api/inventory"
+                  )
+
+              @task(3)
+              def search_products(self):
+                  """Search products"""
+                  search_terms = ["laptop", "phone", "cable", "adapter", "mouse"]
+                  term = random.choice(search_terms)
+                  self.client.get(
+                      f"/api/products?search={term}",
+                      headers=self.get_headers(),
+                      name="/api/products?search=[term]"
+                  )
+
+              @task(2)
+              def view_product_detail(self):
+                  """GET /api/products/{id}"""
+                  product_id = random.randint(1, 100)
+                  self.client.get(
+                      f"/api/products/{product_id}",
+                      headers=self.get_headers(),
+                      name="/api/products/[id]"
+                  )
+
+              @task(1)
+              def health_check(self):
+                  """GET /health"""
+                  self.client.get("/health", name="/health")
+
+
+          class APIHeavyUser(AuthenticatedUser):
+              """Heavy API operations - complex queries"""
+
+              @task(5)
+              def generate_sales_report(self):
+                  """Generate sales report"""
+                  self.client.get(
+                      "/api/reports/sales?start_date=2025-01-01&end_date=2025-01-31",
+                      headers=self.get_headers(),
+                      name="/api/reports/sales"
+                  )
+
+              @task(3)
+              def create_sales_order(self):
+                  """Create sales order"""
+                  order_data = {
+                      "customer_id": random.randint(1, 50),
+                      "items": [
+                          {
+                              "product_id": random.randint(1, 100),
+                              "quantity": random.randint(1, 10),
+                              "unit_price": random.uniform(10, 1000)
+                          }
+                      ],
+                      "notes": "Load test order"
+                  }
+                  self.client.post(
+                      "/api/sales/orders",
+                      json=order_data,
+                      headers=self.get_headers(),
+                      name="/api/sales/orders [POST]"
+                  )
+
+              @task(2)
+              def inventory_valuation(self):
+                  """Get inventory valuation"""
+                  self.client.get(
+                      "/api/reports/inventory/valuation",
+                      headers=self.get_headers(),
+                      name="/api/reports/inventory/valuation"
+                  )
+
+              @task(2)
+              def dashboard_stats(self):
+                  """Get dashboard statistics"""
+                  self.client.get(
+                      "/api/dashboard/stats",
+                      headers=self.get_headers(),
+                      name="/api/dashboard/stats"
+                  )
+
+
+          class WebBrowsingUser(HttpUser):
+              """Simulates web browsing behavior"""
+              wait_time = between(2, 5)
+
+              @task(10)
+              def index(self):
+                  """Visit homepage"""
+                  self.client.get("/", name="/")
+
+              @task(5)
+              def docs(self):
+                  """Visit API docs"""
+                  self.client.get("/docs", name="/docs")
+
+              @task(3)
+              def openapi_spec(self):
+                  """Get OpenAPI spec"""
+                  self.client.get("/openapi.json", name="/openapi.json")
+
+              @task(2)
+              def health(self):
+                  """Health check"""
+                  self.client.get("/health", name="/health")
+          EOF
+
+      - name: Run Locust performance test
+        env:
+          TARGET_URL: ${{ inputs.target_url || 'https://staging.erp.tsh.sale' }}
+          USERS: ${{ inputs.users || 100 }}
+          SPAWN_RATE: ${{ inputs.spawn_rate || 10 }}
+          RUN_TIME: ${{ inputs.run_time || '5m' }}
+        run: |
+          echo "🚀 Starting performance test..."
+          echo "Target: $TARGET_URL"
+          echo "Users: $USERS"
+          echo "Spawn Rate: $SPAWN_RATE/s"
+          echo "Duration: $RUN_TIME"
+          echo ""
+
+          # Run Locust in headless mode
+          locust \
+            --headless \
+            --host="$TARGET_URL" \
+            --users="$USERS" \
+            --spawn-rate="$SPAWN_RATE" \
+            --run-time="$RUN_TIME" \
+            --html=locust_report.html \
+            --csv=locust_stats \
+            --loglevel=INFO \
+            || echo "PERF_TEST_FAILED=true" >> $GITHUB_ENV
+
+      - name: Analyze results
+        if: always()
+        run: |
+          python3 << 'EOF'
+          import csv
+          import json
+          import os
+          from pathlib import Path
+
+          # Read Locust stats
+          stats_file = Path('locust_stats_stats.csv')
+
+          if not stats_file.exists():
+              print("❌ No stats file found")
+              exit(0)
+
+          print("\n" + "=" * 70)
+          print("⚡ PERFORMANCE TEST RESULTS")
+          print("=" * 70)
+
+          stats = []
+          with open(stats_file, 'r') as f:
+              reader = csv.DictReader(f)
+              for row in reader:
+                  stats.append(row)
+
+          # Summary
+          print(f"\nTest Configuration:")
+          print(f"  Target: ${{ inputs.target_url || 'staging' }}")
+          print(f"  Users: ${{ inputs.users || 100 }}")
+          print(f"  Duration: ${{ inputs.run_time || '5m' }}")
+
+          print(f"\n{'Endpoint':<40} {'Requests':<10} {'Failures':<10} {'Avg (ms)':<10} {'P95 (ms)':<10}")
+          print("-" * 70)
+
+          total_requests = 0
+          total_failures = 0
+          failed_endpoints = []
+
+          for row in stats:
+              if row['Type'] == 'None' or not row['Name']:
+                  continue
+
+              name = row['Name'][:38]
+              requests = int(row['Request Count']) if row['Request Count'] else 0
+              failures = int(row['Failure Count']) if row['Failure Count'] else 0
+              avg_time = float(row['Average Response Time']) if row['Average Response Time'] else 0
+              p95_time = float(row['95%']) if row['95%'] else 0
+
+              total_requests += requests
+              total_failures += failures
+
+              # Flag slow endpoints
+              status = ""
+              if avg_time > 1000:
+                  status = "⚠️"
+                  failed_endpoints.append((name, avg_time))
+              elif failures > 0:
+                  status = "❌"
+                  failed_endpoints.append((name, failures))
+
+              print(f"{name:<40} {requests:<10} {failures:<10} {avg_time:<10.0f} {p95_time:<10.0f} {status}")
+
+          print("-" * 70)
+          print(f"{'TOTAL':<40} {total_requests:<10} {total_failures:<10}")
+          print("=" * 70)
+
+          # Calculate success rate
+          success_rate = ((total_requests - total_failures) / total_requests * 100) if total_requests > 0 else 0
+
+          print(f"\n📊 Summary:")
+          print(f"  Total Requests: {total_requests}")
+          print(f"  Failed Requests: {total_failures}")
+          print(f"  Success Rate: {success_rate:.2f}%")
+
+          # Performance assessment
+          print(f"\n🎯 Performance Assessment:")
+          if success_rate >= 99.5:
+              print("  ✅ EXCELLENT - Success rate above 99.5%")
+          elif success_rate >= 95:
+              print("  ✅ GOOD - Success rate above 95%")
+          elif success_rate >= 90:
+              print("  ⚠️  ACCEPTABLE - Success rate above 90%")
+          else:
+              print("  ❌ POOR - Success rate below 90%")
+
+          if failed_endpoints:
+              print(f"\n⚠️  Issues Detected:")
+              for endpoint, metric in failed_endpoints[:5]:
+                  print(f"  • {endpoint}: {metric}")
+
+          print("=" * 70 + "\n")
+
+          # Write summary
+          summary = {
+              "target_url": "${{ inputs.target_url || 'staging' }}",
+              "users": ${{ inputs.users || 100 }},
+              "duration": "${{ inputs.run_time || '5m' }}",
+              "total_requests": total_requests,
+              "total_failures": total_failures,
+              "success_rate": round(success_rate, 2),
+              "failed_endpoints": len(failed_endpoints)
+          }
+
+          with open('performance-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+
+          # Set output
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"success_rate={success_rate:.2f}\n")
+              f.write(f"total_requests={total_requests}\n")
+              f.write(f"total_failures={total_failures}\n")
+          EOF
+
+      - name: Upload performance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: |
+            locust_report.html
+            locust_stats*.csv
+            performance-summary.json
+          retention-days: 90
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          if [ -f "locust_report.html" ]; then
+            echo "## ⚡ Performance Test Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Target:** \`${{ inputs.target_url || 'staging' }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "**Users:** ${{ inputs.users || 100 }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Duration:** ${{ inputs.run_time || '5m' }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "[📊 Download Full Report](../artifacts/performance-test-results)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Send Telegram notification
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
+
+          SUCCESS_RATE="${{ steps.analyze.outputs.success_rate || 'N/A' }}"
+          TOTAL_REQUESTS="${{ steps.analyze.outputs.total_requests || 0 }}"
+          TOTAL_FAILURES="${{ steps.analyze.outputs.total_failures || 0 }}"
+
+          if [ "$SUCCESS_RATE" != "N/A" ]; then
+            if (( $(echo "$SUCCESS_RATE >= 99.5" | bc -l) )); then
+              EMOJI="✅"
+              STATUS="EXCELLENT"
+            elif (( $(echo "$SUCCESS_RATE >= 95" | bc -l) )); then
+              EMOJI="✅"
+              STATUS="GOOD"
+            elif (( $(echo "$SUCCESS_RATE >= 90" | bc -l) )); then
+              EMOJI="⚠️"
+              STATUS="ACCEPTABLE"
+            else
+              EMOJI="❌"
+              STATUS="POOR"
+            fi
+          else
+            EMOJI="ℹ️"
+            STATUS="COMPLETED"
+          fi
+
+          TEXT="Performance Test ${EMOJI} ${STATUS} - Target: ${{ inputs.target_url || 'staging' }} - Requests: ${TOTAL_REQUESTS} - Failures: ${TOTAL_FAILURES} - Success Rate: ${SUCCESS_RATE}% - Branch: ${{ github.ref_name }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT" \
+            -d disable_web_page_preview=true

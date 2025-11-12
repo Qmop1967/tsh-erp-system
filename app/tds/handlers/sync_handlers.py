@@ -12,6 +12,7 @@ from app.tds.core.events import (
     TDSDeadLetterEvent,
     TDSAlertTriggeredEvent,
 )
+from app.utils.neurolink_emitter import neurolink_emitter
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ async def handle_sync_completed(event: TDSSyncCompletedEvent):
 
     Actions:
     - Log completion statistics
-    - Send success notification
+    - Send success notification via NeuroLink
     - Update dashboard metrics
     """
     data = event.data
@@ -59,17 +60,30 @@ async def handle_sync_completed(event: TDSSyncCompletedEvent):
     # Calculate success rate
     success_rate = (data['successful'] / data['total_processed'] * 100) if data['total_processed'] > 0 else 0
 
-    # TODO: Send metrics to monitoring
-    # await monitoring.record_sync_completion({
-    #     'entity_type': data['entity_type'],
-    #     'success_rate': success_rate,
-    #     'duration': data['duration_seconds'],
-    #     'throughput': data['total_processed'] / data['duration_seconds']
-    # })
+    # Emit event to NeuroLink for notifications
+    try:
+        await neurolink_emitter.emit_sync_completed(
+            entity_type=data['entity_type'],
+            total_processed=data['total_processed'],
+            successful=data['successful'],
+            failed=data['failed'],
+            duration=data['duration_seconds']
+        )
 
-    # TODO: Send notification if configured
-    # if success_rate < 90:
-    #     await send_alert(f"Low success rate: {success_rate:.1f}%")
+        # Special handling for price list updates
+        if data['entity_type'] in ['price_list', 'price_list_items', 'pricelists']:
+            await neurolink_emitter.emit_price_list_updated(
+                price_list_name=data.get('price_list_name', 'Consumer Price List'),
+                products_updated=data['successful'],
+                sync_duration=data['duration_seconds'],
+                details={
+                    'total_processed': data['total_processed'],
+                    'failed': data['failed'],
+                    'success_rate': success_rate
+                }
+            )
+    except Exception as e:
+        logger.error(f"Failed to emit NeuroLink event: {str(e)}", exc_info=True)
 
 
 @event_bus.subscribe('tds.sync.failed')
@@ -79,7 +93,7 @@ async def handle_sync_failed(event: TDSSyncFailedEvent):
 
     Actions:
     - Log failure details
-    - Send alert to ops team
+    - Send alert to ops team via NeuroLink
     - Create incident ticket (if configured)
     """
     data = event.data
@@ -88,13 +102,15 @@ async def handle_sync_failed(event: TDSSyncFailedEvent):
         f"(code={data.get('error_code', 'unknown')})"
     )
 
-    # TODO: Send critical alert
-    # await alerting.send_critical_alert({
-    #     'title': f"Sync Failed: {data['entity_type']}",
-    #     'message': data['error_message'],
-    #     'severity': 'high',
-    #     'sync_run_id': data['sync_run_id']
-    # })
+    # Emit critical alert to NeuroLink
+    try:
+        await neurolink_emitter.emit_sync_failed(
+            entity_type=data['entity_type'],
+            error_message=data['error_message'],
+            error_code=data.get('error_code')
+        )
+    except Exception as e:
+        logger.error(f"Failed to emit NeuroLink event: {str(e)}", exc_info=True)
 
 
 # ============================================================================

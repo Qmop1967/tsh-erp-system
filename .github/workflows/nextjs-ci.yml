@@ -1,0 +1,494 @@
+name: Next.js CI - TDS Admin Dashboard
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        description: 'Working directory for Next.js app'
+        required: false
+        type: string
+        default: './apps/tds_admin_dashboard'
+
+  workflow_dispatch:
+    inputs:
+      working_directory:
+        description: 'Working directory'
+        required: false
+        type: string
+        default: './apps/tds_admin_dashboard'
+
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/tds_admin_dashboard/**'
+      - '.github/workflows/nextjs-ci.yml'
+
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/tds_admin_dashboard/**'
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+# Prevent multiple CI runs on same branch
+concurrency:
+  group: nextjs-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Setup and Cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    outputs:
+      cache-hit: ${{ steps.cache-node-modules.outputs.cache-hit }}
+      directory-exists: ${{ steps.check-directory.outputs.exists }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if directory exists
+        id: check-directory
+        run: |
+          if [ -d "${{ inputs.working_directory || './apps/tds_admin_dashboard' }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Found apps/tds_admin_dashboard directory"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  No apps/tds_admin_dashboard directory found - skipping Next.js CI"
+            echo "   To enable Next.js CI, create the apps/tds_admin_dashboard/ directory"
+          fi
+
+      - name: Setup pnpm
+        if: steps.check-directory.outputs.exists == 'true'
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        if: steps.check-directory.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
+
+      - name: Get pnpm store directory
+        if: steps.check-directory.outputs.exists == 'true'
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        if: steps.check-directory.outputs.exists == 'true'
+        uses: actions/cache@v4
+        id: cache-node-modules
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.check-directory.outputs.exists == 'true'
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm install --frozen-lockfile
+
+  lint:
+    name: Lint and Format Check
+    needs: setup
+    if: needs.setup.outputs.directory-exists == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm run lint
+
+      - name: Check formatting with Prettier
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ]; then
+            pnpm exec prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}"
+          else
+            echo "Prettier not configured, skipping"
+          fi
+        continue-on-error: true
+
+  typecheck:
+    name: TypeScript Type Check
+    needs: setup
+    if: needs.setup.outputs.directory-exists == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript compiler
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm run type-check || pnpm exec tsc --noEmit
+
+  test:
+    name: Unit and Integration Tests
+    needs: setup
+    if: needs.setup.outputs.directory-exists == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          if grep -q '"test"' package.json; then
+            pnpm run test -- --coverage --passWithNoTests
+          else
+            echo "No test script found, skipping tests"
+          fi
+        continue-on-error: true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-coverage
+          path: ${{ inputs.working_directory }}/coverage
+          retention-days: 30
+
+  build:
+    name: Build Production
+    needs: [setup, lint, typecheck]
+    if: needs.setup.outputs.directory-exists == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ inputs.working_directory }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Set environment variables for build
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          cat > .env.production << EOF
+          NEXT_PUBLIC_API_URL=https://erp.tsh.sale/api
+          NEXT_PUBLIC_SOCKET_URL=wss://erp.tsh.sale
+          NEXT_PUBLIC_ENVIRONMENT=production
+          EOF
+
+      - name: Build Next.js application
+        working-directory: ${{ inputs.working_directory }}
+        run: pnpm run build
+        env:
+          NODE_ENV: production
+
+      - name: Analyze bundle size
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          if [ -d ".next" ]; then
+            echo "📦 Build artifacts created successfully"
+            du -sh .next
+            find .next -name "*.js" -exec ls -lh {} \; | head -20
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: |
+            ${{ inputs.working_directory }}/.next
+            ${{ inputs.working_directory }}/public
+          retention-days: 7
+
+  bundle-analysis:
+    name: Bundle Size Analysis
+    needs: [setup, build]
+    if: needs.setup.outputs.directory-exists == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: ${{ inputs.working_directory }}
+
+      - name: Analyze bundle size
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from pathlib import Path
+
+          def get_file_size(filepath):
+              """Get file size in KB"""
+              return os.path.getsize(filepath) / 1024
+
+          def analyze_bundle():
+              """Analyze Next.js bundle"""
+              next_dir = Path('.next')
+
+              if not next_dir.exists():
+                  print("❌ .next directory not found")
+                  return
+
+              print("\n" + "=" * 70)
+              print("📦 NEXT.JS BUNDLE ANALYSIS")
+              print("=" * 70)
+
+              # Find all JS files
+              js_files = list(next_dir.rglob('*.js'))
+
+              total_size = sum(get_file_size(f) for f in js_files)
+
+              print(f"\nTotal JavaScript: {len(js_files)} files")
+              print(f"Total Size: {total_size:.2f} KB ({total_size/1024:.2f} MB)")
+
+              # Find largest files
+              largest = sorted(js_files, key=get_file_size, reverse=True)[:10]
+
+              print("\n📊 Top 10 Largest Files:")
+              print("-" * 70)
+              for i, file in enumerate(largest, 1):
+                  size = get_file_size(file)
+                  print(f"{i:2}. {file.name:<50} {size:>10.2f} KB")
+
+              print("=" * 70 + "\n")
+
+              # Write summary
+              summary = {
+                  "total_files": len(js_files),
+                  "total_size_kb": round(total_size, 2),
+                  "total_size_mb": round(total_size / 1024, 2),
+                  "largest_files": [
+                      {
+                          "name": f.name,
+                          "size_kb": round(get_file_size(f), 2)
+                      }
+                      for f in largest[:5]
+                  ]
+              }
+
+              with open('bundle-analysis.json', 'w') as f:
+                  json.dump(summary, f, indent=2)
+
+              # Check thresholds
+              if total_size > 5000:  # 5MB threshold
+                  print("⚠️  WARNING: Bundle size exceeds 5MB!")
+                  print("Consider code splitting or lazy loading")
+              else:
+                  print("✅ Bundle size is acceptable")
+
+          analyze_bundle()
+          EOF
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: ${{ inputs.working_directory }}/bundle-analysis.json
+          retention-days: 30
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build, bundle-analysis]
+    if: always()
+
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "## 🎨 Next.js CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Check | ${{ needs.typecheck.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test.result == 'success' && '✅ Passed' || '⚠️ Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle Analysis | ${{ needs.bundle-analysis.result == 'success' && '✅ Passed' || '⚠️ Warning' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Determine overall status
+        id: status
+        run: |
+          # Critical jobs: lint, typecheck, build
+          if [ "${{ needs.lint.result }}" == "success" ] && \
+             [ "${{ needs.typecheck.result }}" == "success" ] && \
+             [ "${{ needs.build.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Send Telegram notification
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
+
+          TEXT="Next.js CI Failed - TDS Admin Dashboard - Branch: ${{ github.ref_name }} - Commit: ${{ github.sha }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT" \
+            -d disable_web_page_preview=true

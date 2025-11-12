@@ -1,0 +1,388 @@
+name: Database Schema Drift Detection
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to check (staging, production)'
+        required: true
+        type: string
+      fail_on_drift:
+        description: 'Fail workflow if drift detected'
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      drift_detected:
+        description: 'Whether schema drift was detected'
+        value: ${{ jobs.check-drift.outputs.drift_detected }}
+      drift_severity:
+        description: 'Severity of drift (none, minor, major, critical)'
+        value: ${{ jobs.check-drift.outputs.drift_severity }}
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      fail_on_drift:
+        description: 'Fail workflow if drift detected'
+        required: false
+        type: boolean
+        default: false
+
+  schedule:
+    # Run every day at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  check-drift:
+    name: Check Schema Drift - ${{ inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    outputs:
+      drift_detected: ${{ steps.analyze.outputs.drift_detected }}
+      drift_severity: ${{ steps.analyze.outputs.drift_severity }}
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tsh_erp_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install migra psycopg2-binary alembic
+
+      - name: Set environment variables
+        run: |
+          ENV="${{ inputs.environment || 'production' }}"
+
+          if [ "$ENV" == "production" ]; then
+            echo "REMOTE_DB_HOST=${{ secrets.PROD_DB_HOST }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_PORT=${{ secrets.PROD_DB_PORT }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_NAME=${{ secrets.PROD_DB_NAME }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_USER=${{ secrets.PROD_DB_USER }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" >> $GITHUB_ENV
+          elif [ "$ENV" == "staging" ]; then
+            echo "REMOTE_DB_HOST=${{ secrets.STAGING_DB_HOST }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_PORT=${{ secrets.STAGING_DB_PORT }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_NAME=${{ secrets.STAGING_DB_NAME }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_USER=${{ secrets.STAGING_DB_USER }}" >> $GITHUB_ENV
+            echo "REMOTE_DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}" >> $GITHUB_ENV
+          fi
+
+          echo "LOCAL_DB_URL=postgresql://postgres:postgres@localhost:5432/tsh_erp_local" >> $GITHUB_ENV
+
+      - name: Create local schema from models
+        run: |
+          echo "Creating local database schema from SQLAlchemy models..."
+          python -c "
+          from app.db.database import Base, engine
+          Base.metadata.create_all(bind=engine)
+          print('✅ Local schema created successfully')
+          "
+
+      - name: Export remote database schema
+        run: |
+          echo "Exporting schema from ${{ inputs.environment || 'production' }} database..."
+
+          # Test connection first
+          PGPASSWORD="$REMOTE_DB_PASSWORD" psql \
+            -h "$REMOTE_DB_HOST" \
+            -p "$REMOTE_DB_PORT" \
+            -U "$REMOTE_DB_USER" \
+            -d "$REMOTE_DB_NAME" \
+            -c "SELECT version();" || {
+              echo "❌ Failed to connect to remote database"
+              exit 1
+            }
+
+          echo "✅ Remote database connection successful"
+
+      - name: Compare schemas with migra
+        id: compare
+        run: |
+          echo "Comparing schemas using migra..."
+
+          REMOTE_URL="postgresql://${REMOTE_DB_USER}:${REMOTE_DB_PASSWORD}@${REMOTE_DB_HOST}:${REMOTE_DB_PORT}/${REMOTE_DB_NAME}"
+
+          # Run migra and capture output
+          migra --unsafe "$REMOTE_URL" "$LOCAL_DB_URL" > schema-diff.sql 2>&1 || true
+
+          # Check if there are differences
+          if [ -s schema-diff.sql ]; then
+            echo "drift=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Schema drift detected!"
+            cat schema-diff.sql
+          else
+            echo "drift=false" >> $GITHUB_OUTPUT
+            echo "✅ No schema drift detected"
+          fi
+
+      - name: Analyze drift severity
+        id: analyze
+        if: steps.compare.outputs.drift == 'true'
+        run: |
+          python3 << 'EOF'
+          import re
+          import json
+
+          # Read the diff file
+          with open('schema-diff.sql', 'r') as f:
+              diff = f.read()
+
+          # Classify drift severity
+          critical_patterns = [
+              r'DROP TABLE',
+              r'DROP COLUMN',
+              r'ALTER COLUMN .* DROP NOT NULL',
+              r'DROP CONSTRAINT .* FOREIGN KEY'
+          ]
+
+          major_patterns = [
+              r'ALTER TABLE .* ADD COLUMN .* NOT NULL',
+              r'ALTER COLUMN .* TYPE',
+              r'ADD CONSTRAINT .* FOREIGN KEY',
+              r'CREATE INDEX'
+          ]
+
+          minor_patterns = [
+              r'ALTER TABLE .* ADD COLUMN',
+              r'CREATE TABLE',
+              r'ALTER TABLE .* DROP CONSTRAINT .* CHECK',
+              r'COMMENT ON'
+          ]
+
+          severity = "none"
+          critical_count = 0
+          major_count = 0
+          minor_count = 0
+
+          for pattern in critical_patterns:
+              matches = re.findall(pattern, diff, re.IGNORECASE)
+              critical_count += len(matches)
+
+          for pattern in major_patterns:
+              matches = re.findall(pattern, diff, re.IGNORECASE)
+              major_count += len(matches)
+
+          for pattern in minor_patterns:
+              matches = re.findall(pattern, diff, re.IGNORECASE)
+              minor_count += len(matches)
+
+          if critical_count > 0:
+              severity = "critical"
+          elif major_count > 0:
+              severity = "major"
+          elif minor_count > 0:
+              severity = "minor"
+
+          # Generate report
+          report = {
+              "severity": severity,
+              "critical_changes": critical_count,
+              "major_changes": major_count,
+              "minor_changes": minor_count,
+              "total_changes": critical_count + major_count + minor_count
+          }
+
+          print(f"drift_detected=true")
+          print(f"drift_severity={severity}")
+          print(f"\n📊 Drift Analysis:")
+          print(f"  Severity: {severity.upper()}")
+          print(f"  Critical: {critical_count}")
+          print(f"  Major: {major_count}")
+          print(f"  Minor: {minor_count}")
+
+          # Write to GitHub output
+          with open('drift-report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+
+          # Set outputs
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"drift_detected=true\n")
+              f.write(f"drift_severity={severity}\n")
+              f.write(f"critical_count={critical_count}\n")
+              f.write(f"major_count={major_count}\n")
+              f.write(f"minor_count={minor_count}\n")
+          EOF
+
+      - name: Set no drift outputs
+        id: no-drift
+        if: steps.compare.outputs.drift == 'false'
+        run: |
+          echo "drift_detected=false" >> $GITHUB_OUTPUT
+          echo "drift_severity=none" >> $GITHUB_OUTPUT
+          echo '{"severity": "none", "total_changes": 0}' > drift-report.json
+
+      - name: Generate drift report
+        if: always()
+        run: |
+          cat > drift-summary.md << 'EOFMD'
+          # Database Schema Drift Report
+
+          **Environment:** ${{ inputs.environment || 'production' }}
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+
+          ## Summary
+
+          EOFMD
+
+          if [ "${{ steps.compare.outputs.drift }}" == "true" ]; then
+            cat >> drift-summary.md << 'EOFMD'
+          ⚠️ **Schema Drift Detected**
+
+          **Severity:** ${{ steps.analyze.outputs.drift_severity }}
+
+          ### Change Breakdown
+          - 🔴 Critical: ${{ steps.analyze.outputs.critical_count || 0 }}
+          - 🟠 Major: ${{ steps.analyze.outputs.major_count || 0 }}
+          - 🟡 Minor: ${{ steps.analyze.outputs.minor_count || 0 }}
+
+          ### Differences
+
+          ```sql
+          EOFMD
+            cat schema-diff.sql >> drift-summary.md
+            echo '```' >> drift-summary.md
+          else
+            cat >> drift-summary.md << 'EOFMD'
+          ✅ **No Schema Drift Detected**
+
+          The database schema matches the SQLAlchemy models exactly.
+          EOFMD
+          fi
+
+          cat >> drift-summary.md << 'EOFMD'
+
+          ## Recommendations
+
+          EOFMD
+
+          if [ "${{ steps.analyze.outputs.drift_severity }}" == "critical" ]; then
+            cat >> drift-summary.md << 'EOFMD'
+          🔴 **Critical drift detected - Immediate action required:**
+          1. Review all DROP operations carefully
+          2. Create database backup before applying changes
+          3. Generate and review Alembic migration
+          4. Test migration on staging environment first
+          5. Schedule maintenance window for production
+          EOFMD
+          elif [ "${{ steps.analyze.outputs.drift_severity }}" == "major" ]; then
+            cat >> drift-summary.md << 'EOFMD'
+          🟠 **Major drift detected - Action recommended:**
+          1. Review schema changes
+          2. Generate Alembic migration
+          3. Test on staging environment
+          4. Deploy during low-traffic period
+          EOFMD
+          elif [ "${{ steps.analyze.outputs.drift_severity }}" == "minor" ]; then
+            cat >> drift-summary.md << 'EOFMD'
+          🟡 **Minor drift detected - Low priority:**
+          1. Review changes at convenience
+          2. Generate migration when ready
+          3. Can be deployed with next regular release
+          EOFMD
+          else
+            cat >> drift-summary.md << 'EOFMD'
+          ✅ **No action needed** - Schemas are synchronized
+          EOFMD
+          fi
+
+          cat drift-summary.md
+
+      - name: Upload drift artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: schema-drift-report-${{ inputs.environment || 'production' }}
+          path: |
+            schema-diff.sql
+            drift-report.json
+            drift-summary.md
+          retention-days: 90
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          cat drift-summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Telegram notification
+        if: steps.compare.outputs.drift == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials not configured, skipping notification"
+            exit 0
+          fi
+
+          SEVERITY="${{ steps.analyze.outputs.drift_severity }}"
+          ENVIRONMENT="${{ inputs.environment || 'production' }}"
+
+          if [ "$SEVERITY" == "critical" ]; then
+            EMOJI="🔴"
+            STATUS="CRITICAL"
+          elif [ "$SEVERITY" == "major" ]; then
+            EMOJI="🟠"
+            STATUS="MAJOR"
+          else
+            EMOJI="🟡"
+            STATUS="MINOR"
+          fi
+
+          TEXT="Schema Drift Alert ${EMOJI} ${STATUS} - Environment: ${ENVIRONMENT} - Critical: ${{ steps.analyze.outputs.critical_count || 0 }} - Major: ${{ steps.analyze.outputs.major_count || 0 }} - Minor: ${{ steps.analyze.outputs.minor_count || 0 }} - Branch: ${{ github.ref_name }} - View: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT" \
+            -d disable_web_page_preview=true
+
+      - name: Fail on critical drift
+        if: |
+          steps.analyze.outputs.drift_severity == 'critical' &&
+          (inputs.fail_on_drift == true || inputs.fail_on_drift == null)
+        run: |
+          echo "❌ Critical schema drift detected - Failing workflow"
+          echo "Review the drift report and create a migration before deploying"
+          exit 1
+
+      - name: Warn on major drift
+        if: |
+          steps.analyze.outputs.drift_severity == 'major' &&
+          (inputs.fail_on_drift == true || inputs.fail_on_drift == null)
+        run: |
+          echo "⚠️ Major schema drift detected - Consider creating migration"
+          exit 1

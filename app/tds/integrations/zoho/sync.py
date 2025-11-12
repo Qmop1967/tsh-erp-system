@@ -138,6 +138,7 @@ class ZohoSyncOrchestrator:
     def __init__(
         self,
         zoho_client: UnifiedZohoClient,
+        db: Optional[Any] = None,
         event_bus: Optional[EventBus] = None,
         queue: Optional[TDSQueueService] = None
     ):
@@ -146,10 +147,12 @@ class ZohoSyncOrchestrator:
 
         Args:
             zoho_client: Unified Zoho client instance
+            db: Database session for storing sync results
             event_bus: Event bus for publishing events
             queue: TDS queue for async processing
         """
         self.zoho = zoho_client
+        self.db = db
         self.event_bus = event_bus
         self.queue = queue
 

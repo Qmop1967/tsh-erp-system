@@ -1,97 +1,318 @@
-version: '3.8'
+version: "3.9"
+
+x-logging-default: &logging-default
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app-env-files: &app-env-files
+  - ${APP_ENV_FILE:-.env.production}
 
 services:
-  # PostgreSQL Database
   tsh_postgres:
     image: postgres:15-alpine
     container_name: tsh_postgres
     restart: always
+    profiles:
+      - core
     environment:
-      POSTGRES_DB: tsh_erp
-      POSTGRES_USER: tsh_admin
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-TSH@2025Secure!Production}
+      POSTGRES_DB: ${POSTGRES_DB:-tsh_erp}
+      POSTGRES_USER: ${POSTGRES_USER:-tsh_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     networks:
       - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tsh_admin -d tsh_erp"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-tsh_admin} -d ${POSTGRES_DB:-tsh_erp}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *logging-default
 
-  # Redis Cache (Optional, for future use)
   redis:
     image: redis:7-alpine
     container_name: tsh_redis
     restart: always
+    profiles:
+      - cache
+      - core
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     networks:
       - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+    logging: *logging-default
 
-  # TSH ERP Application
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      tags:
+        - "tsh-erp:${VERSION:-latest}"
+        - "tsh-erp:latest"
+    image: tsh-erp:${VERSION:-latest}
     container_name: tsh_erp_app
     restart: always
-    env_file:
-      - .env.production
+    profiles:
+      - core
+    env_file: *app-env-files
     environment:
-      - REDIS_URL=redis://redis:6379/0
+      REDIS_URL: ${REDIS_URL:-redis://tsh_redis:6379/0}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://tsh_admin:changeme@tsh_postgres:5432/tsh_erp}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-4}
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     depends_on:
       tsh_postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
     networks:
       - tsh_network
     volumes:
       - ./logs:/var/log/tsh_erp
       - ./uploads:/app/uploads
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    logging: *logging-default
 
-  # Nginx Reverse Proxy
+  neurolink:
+    build:
+      context: ./app/neurolink
+      dockerfile: Dockerfile
+      tags:
+        - "tsh-neurolink:${VERSION:-latest}"
+        - "tsh-neurolink:latest"
+    image: tsh-neurolink:${VERSION:-latest}
+    container_name: tsh_neurolink
+    restart: always
+    profiles:
+      - notifications
+      - core
+    environment:
+      # Database
+      DATABASE_URL: ${NEUROLINK_DATABASE_URL:-postgresql+asyncpg://tsh_admin:changeme@tsh_postgres:5432/tsh_erp}
+      DB_POOL_SIZE: ${NEUROLINK_DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${NEUROLINK_DB_MAX_OVERFLOW:-10}
+
+      # Redis
+      REDIS_URL: ${NEUROLINK_REDIS_URL:-redis://tsh_redis:6379/2}
+
+      # JWT (must match TSH ERP)
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+
+      # Email (Resend)
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-notifications@tsh.sale}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TSH ERP Notifications}
+
+      # Firebase Cloud Messaging
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-/app/firebase/service-account.json}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+
+      # SMS (Twilio)
+      SMS_ENABLED: ${SMS_ENABLED:-false}
+      SMS_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      SMS_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      SMS_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
+
+      # Application
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      APP_BASE_URL: ${APP_BASE_URL:-https://erp.tsh.sale}
+      LOG_LEVEL: ${NEUROLINK_LOG_LEVEL:-INFO}
+
+      # Performance
+      WORKERS: ${NEUROLINK_WORKERS:-4}
+      EVENT_BATCH_SIZE: ${EVENT_BATCH_SIZE:-100}
+
+    ports:
+      - "${NEUROLINK_PORT:-8002}:8002"
+    depends_on:
+      tsh_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - tsh_network
+    volumes:
+      - ./logs/neurolink:/app/logs
+      - ./firebase:/app/firebase:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *logging-default
+
+  tds_admin_dashboard:
+    build:
+      context: ./apps/tds_admin_dashboard
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://app:8000}
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-ws://app:8000}
+      tags:
+        - "tds-admin-dashboard:${VERSION:-latest}"
+        - "tds-admin-dashboard:latest"
+    image: tds-admin-dashboard:${VERSION:-latest}
+    container_name: tds_admin_dashboard
+    restart: always
+    profiles:
+      - dashboard
+      - core
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://app:8000}
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-ws://app:8000}
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${TDS_DASHBOARD_PORT:-3000}:3000"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging: *logging-default
+
   nginx:
     image: nginx:alpine
     container_name: tsh_nginx
     restart: always
+    profiles:
+      - proxy
+    depends_on:
+      - app
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./logs/nginx:/var/log/nginx
-    depends_on:
-      - app
+      - ./uploads:/app/uploads:ro
+      - ./static:/app/static:ro
     networks:
       - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
+    logging: *logging-default
+
+  pgadmin:
+    image: dpage/pgadmin4:8.11
+    container_name: tsh_pgadmin
+    restart: always
+    profiles:
+      - dev
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@local.test}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-changeme}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      tsh_postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - tsh_network
+    logging: *logging-default
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
     driver: local
 
 networks:

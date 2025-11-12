@@ -13,19 +13,17 @@ All staging workflow files have been disabled:
 - ✅ `.github/workflows/intelligent-staging.yml` → `intelligent-staging.yml.disabled`
 - ✅ `.github/workflows/staging-fast.yml` → `staging-fast.yml.disabled`
 
-### 2. Cleaned Up Active Workflows
-
-**`.github/workflows/intelligent-production.yml`:**
-- ✅ Removed staging workflow trigger dependencies
-- ✅ Removed staging server references
-- ✅ Simplified to trigger only on `main` branch
-- ✅ Removed staging commit verification logic
-- ✅ Cleaned up staging references in error messages
+### 2. Production Workflow Simplification
 
 **`.github/workflows/ci-deploy.yml`:**
 - ✅ Removed entire `deploy-staging` job
 - ✅ Removed `develop` branch triggers
 - ✅ Now only triggers on `main` branch
+- ✅ Hardened deployment script with blue/green fallbacks removed
+
+**`.github/workflows/intelligent-production.yml.disabled`:**
+- ✅ Advanced blue/green workflow archived (was tightly coupled to staging VPS)
+- ✅ Prevents repeated GitHub workflow failures until infrastructure is ready
 
 ### 3. Created Documentation
 
@@ -35,17 +33,20 @@ All staging workflow files have been disabled:
 
 ## 📋 Current Active Workflows
 
-### Production Deployment Workflows
-
-1. **🎯 Production Deployment** (`.github/workflows/intelligent-production.yml`)
-   - Triggers: Push to `main`, PRs to `main`, Manual dispatch
-   - Full validation suite + production deployment
-
-2. **CI/CD - Test and Deploy** (`.github/workflows/ci-deploy.yml`)
+1. **CI/CD - Test and Deploy** (`.github/workflows/ci-deploy.yml`)
    - Triggers: Push to `main`, PRs to `main`
-   - Tests + production deployment
+- Tests + production deployment
 
-### Other Active Workflows
+2. **Zoho Integration Tests** (`.github/workflows/zoho-integration-test.yml`)
+   - Manual / scheduled Zoho sync validation
+
+### Archived / Disabled Workflows
+
+- `.github/workflows/intelligent-production.yml.disabled`
+  - Former blue/green production pipeline (requires staging VPS + systemd)
+- `.github/workflows/deploy-staging.yml.disabled`
+- `.github/workflows/intelligent-staging.yml.disabled`
+- `.github/workflows/staging-fast.yml.disabled`
 
 - `ci-deploy.yml` - CI/CD pipeline
 - `zoho-integration-test.yml` - Zoho integration tests

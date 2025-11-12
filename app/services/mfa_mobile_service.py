@@ -61,9 +61,9 @@ class MFAMobileService:
     
     # === DEVICE REGISTRATION ===
     
-    def register_mobile_device(self, user_id: int, device_info: DeviceInfo, 
+    def register_mobile_device(self, user_id: int, device_info: DeviceInfo,
                               push_token: str, context: AccessContext) -> Dict:
-        """Register mobile device for MFA""""
+        """Register mobile device for MFA"""
         try:
             # Create device fingerprint
             fingerprint_data = f"{device_info.platform}{device_info.model}{device_info.manufacturer}"
