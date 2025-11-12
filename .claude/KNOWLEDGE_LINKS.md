@@ -96,23 +96,40 @@ Manual Actions:
 
 ---
 
-## 🖥️ VPS Server (DigitalOcean)
+## 🖥️ VPS Servers (DigitalOcean)
 
-### Server Details
+### Production Server
 ```yaml
 Provider: DigitalOcean
 IP Address: 167.71.39.50
-Location: Europe (EU-North-1 recommended based on AWS region)
+Location: Europe (EU-North-1)
 OS: Ubuntu (latest LTS)
+Purpose: Production environment
+```
+
+### Staging Server
+```yaml
+Provider: DigitalOcean
+IP Address: 167.71.58.65
+Hostname: tsh-erp-staging
+Location: Europe
+OS: Ubuntu 22.04.4 LTS
+Purpose: Staging environment
+User: khaleel
+Password: Zcbm.97531tsh
 ```
 
 ### SSH Access
 ```bash
-# Primary access
+# Production server
 ssh root@167.71.39.50
 
+# Staging server
+ssh khaleel@167.71.58.65
+
 # Or using configured host (if set up)
-ssh tsh-vps
+ssh tsh-vps-prod      # Production
+ssh tsh-vps-staging   # Staging
 
 # SSH Config Location
 ~/.ssh/config
@@ -234,16 +251,19 @@ TDS Dashboard:
 ```yaml
 Backend API:
   - URL: https://staging.erp.tsh.sale
-  - Direct: http://167.71.39.50:8002
+  - Server: 167.71.58.65 (dedicated staging server)
+  - Direct: http://167.71.58.65:8002
   - API Docs: https://staging.erp.tsh.sale/docs
   - Health Check: https://staging.erp.tsh.sale/health
   - Port: 8002
 
 ERP Admin:
   - URL: https://staging.erp.tsh.sale
+  - Server: 167.71.58.65
 
 Consumer App:
   - URL: https://staging.consumer.tsh.sale
+  - Server: 167.71.58.65
 ```
 
 ---
@@ -665,11 +685,14 @@ Domains:
 📍 DNS Management:      https://ap.www.namecheap.com/domains/domaincontrolpanel/tsh.sale/advancedns
 
 DNS Records (Current Configuration):
-  - A Record: erp.tsh.sale → 167.71.39.50
-  - A Record: consumer.tsh.sale → 167.71.39.50
-  - A Record: shop.tsh.sale → 167.71.39.50
-  - A Record: staging.erp.tsh.sale → 167.71.39.50
-  - A Record: staging.consumer.tsh.sale → 167.71.39.50
+  Production:
+    - A Record: erp.tsh.sale → 167.71.39.50
+    - A Record: consumer.tsh.sale → 167.71.39.50
+    - A Record: shop.tsh.sale → 167.71.39.50
+
+  Staging:
+    - A Record: staging.erp.tsh.sale → 167.71.58.65
+    - A Record: staging.consumer.tsh.sale → 167.71.58.65
 ```
 
 ### SSL Certificates
@@ -811,18 +834,30 @@ git pull origin develop
 
 ### Server Commands (via SSH)
 ```bash
-# SSH to VPS
+# SSH to Production VPS
 ssh root@167.71.39.50
 
-# Services
+# SSH to Staging VPS
+ssh khaleel@167.71.58.65
+
+# Production Services
 systemctl status tsh_erp-blue
 systemctl restart tsh_erp-blue
 systemctl status tds-core-worker
 journalctl -u tsh_erp-blue -f
 journalctl -u tsh_erp-blue -n 100
 
-# Database
+# Staging Services
+ssh khaleel@167.71.58.65
+systemctl status tsh_erp-staging  # Check staging service
+journalctl -u tsh_erp-staging -f   # View staging logs
+
+# Production Database
 PGPASSWORD='TSH@2025Secure!Production' psql -h localhost -U tsh_app_user -d tsh_erp_production
+
+# Staging Database (on staging server)
+ssh khaleel@167.71.58.65
+PGPASSWORD='[staging_password]' psql -h localhost -U tsh_app_user -d tsh_erp_staging
 
 # Quick queries
 PGPASSWORD='TSH@2025Secure!Production' psql -h localhost -U tsh_app_user -d tsh_erp_production -c "SELECT COUNT(*) FROM products;"
@@ -896,13 +931,15 @@ docker exec -it tsh_backend_container bash
 1. GitHub Repository:     https://github.com/Qmop1967/tsh-erp-system
 2. GitHub Actions:        https://github.com/Qmop1967/tsh-erp-system/actions
 3. Production Health:     https://erp.tsh.sale/health
-4. TDS Dashboard:         https://erp.tsh.sale/tds-admin/
-5. API Docs:              https://erp.tsh.sale/docs
-6. VPS SSH:               ssh root@167.71.39.50
-7. GitHub Secrets:        https://github.com/Qmop1967/tsh-erp-system/settings/secrets/actions
-8. AWS S3 Console:        https://s3.console.aws.amazon.com/s3/buckets/tsh-erp-backups?region=eu-north-1
-9. Zoho Books:            https://books.zoho.com/app#/home/dashboard/748369814
-10. Zoho Inventory:       https://inventory.zoho.com/app#/home/748369814
+4. Staging Health:        https://staging.erp.tsh.sale/health
+5. TDS Dashboard:         https://erp.tsh.sale/tds-admin/
+6. API Docs:              https://erp.tsh.sale/docs
+7. Production SSH:        ssh root@167.71.39.50
+8. Staging SSH:           ssh khaleel@167.71.58.65
+9. GitHub Secrets:        https://github.com/Qmop1967/tsh-erp-system/settings/secrets/actions
+10. AWS S3 Console:       https://s3.console.aws.amazon.com/s3/buckets/tsh-erp-backups?region=eu-north-1
+11. Zoho Books:           https://books.zoho.com/app#/home/dashboard/748369814
+12. Zoho Inventory:       https://inventory.zoho.com/app#/home/748369814
 ```
 
 ---
