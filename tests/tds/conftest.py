@@ -9,6 +9,13 @@ import os
 from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
+# Set required environment variables BEFORE importing app modules
+# This prevents Pydantic Settings validation errors during test collection
+if "SECRET_KEY" not in os.environ:
+    os.environ["SECRET_KEY"] = "test_secret_key_for_ci_testing_only_do_not_use_in_production_environments"
+if "JWT_SECRET_KEY" not in os.environ:
+    os.environ["JWT_SECRET_KEY"] = "test_jwt_secret_key_for_ci_testing_only_do_not_use_in_production"
+
 from app.tds.integrations.zoho import (
     UnifiedZohoClient,
     ZohoAuthManager,
