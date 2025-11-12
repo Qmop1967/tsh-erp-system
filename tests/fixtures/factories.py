@@ -69,7 +69,7 @@ class BranchFactory(BaseFactory):
     name = factory.Faker('city')
     code = factory.Sequence(lambda n: f"BR{n:03d}")
     address = factory.Faker('address')
-    phone = factory.Faker('phone_number')
+    phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
     is_active = True
     created_at = factory.LazyFunction(datetime.utcnow)
 
@@ -187,7 +187,7 @@ class CustomerFactory(BaseFactory):
     name = factory.Faker('company')
     company_name = factory.Faker('company')
     email = factory.Faker('company_email')
-    phone = factory.Faker('phone_number')
+    phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
     # mobile removed - not in Customer model
     address = factory.Faker('address')
     city = factory.Faker('city')
@@ -215,7 +215,7 @@ class SupplierFactory(BaseFactory):
     name = factory.Faker('company')
     company_name = factory.Faker('company')
     email = factory.Faker('company_email')
-    phone = factory.Faker('phone_number')
+    phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
     address = factory.Faker('address')
     city = factory.Faker('city')
     country = factory.Iterator(["China", "Turkey", "UAE", "Germany", "USA"])
@@ -456,7 +456,7 @@ class EmployeeFactory(BaseFactory):
     first_name = factory.Faker('first_name')
     last_name = factory.Faker('last_name')
     email = factory.Faker('email')
-    phone = factory.Faker('phone_number')
+    phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
     date_of_birth = factory.Faker('date_of_birth', minimum_age=22, maximum_age=55)
     hire_date = factory.LazyFunction(datetime.utcnow)
     department_id = factory.SubFactory(DepartmentFactory)
