@@ -148,19 +148,19 @@ jobs:
         run: flutter doctor -v
 
       - name: Get dependencies
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: flutter pub get
 
       - name: Verify dependencies
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: flutter pub deps
 
       - name: Run Flutter analyze
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: flutter analyze --no-fatal-infos
 
       - name: Check formatting
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: dart format --output=none --set-exit-if-changed .
         continue-on-error: true
 
@@ -188,11 +188,11 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: flutter pub get
 
       - name: Run tests
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: |
           if [ -d "test" ] && [ "$(find test -name '*_test.dart' | wc -l)" -gt 0 ]; then
             flutter test --coverage --reporter expanded
@@ -206,7 +206,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.app }}
-          path: mobile_apps/${{ matrix.app }}/coverage/
+          path: mobile/flutter_apps/${{ matrix.app }}/coverage/
           retention-days: 30
 
   # Build Android APK
@@ -242,21 +242,21 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: flutter pub get
 
       - name: Build APK (debug)
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: flutter build apk --debug --split-per-abi
         continue-on-error: true
 
       - name: Build APK (release)
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: flutter build apk --release --split-per-abi
         continue-on-error: true
 
       - name: Analyze APK size
-        working-directory: mobile_apps/${{ matrix.app }}
+        working-directory: mobile/flutter_apps/${{ matrix.app }}
         run: |
           if [ -d "build/app/outputs/flutter-apk" ]; then
             echo "📦 APK Build Summary"
@@ -271,7 +271,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apk-${{ matrix.app }}
-          path: mobile_apps/${{ matrix.app }}/build/app/outputs/flutter-apk/*.apk
+          path: mobile/flutter_apps/${{ matrix.app }}/build/app/outputs/flutter-apk/*.apk
           retention-days: 7
 
   # Build iOS (macOS runner required - expensive, optional)

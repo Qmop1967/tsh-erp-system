@@ -79,7 +79,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: '${{ inputs.working_directory }}/pnpm-lock.yaml'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
 
       - name: Get pnpm store directory
         if: steps.check-directory.outputs.exists == 'true'
@@ -124,7 +124,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: '${{ inputs.working_directory }}/pnpm-lock.yaml'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -179,7 +179,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: '${{ inputs.working_directory }}/pnpm-lock.yaml'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -224,7 +224,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: '${{ inputs.working_directory }}/pnpm-lock.yaml'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -283,7 +283,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: '${{ inputs.working_directory }}/pnpm-lock.yaml'
+          cache-dependency-path: 'apps/tds_admin_dashboard/pnpm-lock.yaml'
 
       - name: Get pnpm store directory
         id: pnpm-cache
