@@ -10,6 +10,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import requests
 
+# Set required environment variables BEFORE importing app modules
+# This prevents Pydantic Settings validation errors during test collection
+if "SECRET_KEY" not in os.environ:
+    os.environ["SECRET_KEY"] = "test_secret_key_for_ci_testing_only_do_not_use_in_production_environments"
+if "JWT_SECRET_KEY" not in os.environ:
+    os.environ["JWT_SECRET_KEY"] = "test_jwt_secret_key_for_ci_testing_only_do_not_use_in_production"
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
