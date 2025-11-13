@@ -9,11 +9,11 @@ class Product {
   final String? category;
   final int stockQuantity;
   final int actualAvailableStock;
-  final String warehouseId;
+  final String? warehouseId;
   final bool isActive;
-  final DateTime lastSynced;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? lastSynced;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final double price;
   final String currency;
   final String? pricelistName;
@@ -29,11 +29,11 @@ class Product {
     this.category,
     required this.stockQuantity,
     required this.actualAvailableStock,
-    required this.warehouseId,
+    this.warehouseId,
     required this.isActive,
-    required this.lastSynced,
-    required this.createdAt,
-    required this.updatedAt,
+    this.lastSynced,
+    this.createdAt,
+    this.updatedAt,
     required this.price,
     this.currency = 'IQD',
     this.pricelistName,
@@ -51,17 +51,17 @@ class Product {
       category: json['category'] as String? ?? json['category_name'] as String?,
       stockQuantity: json['stock_quantity'] as int? ?? (json['quantity'] as num?)?.toInt() ?? 0,
       actualAvailableStock: json['actual_available_stock'] as int? ?? (json['quantity'] as num?)?.toInt() ?? 0,
-      warehouseId: json['warehouse_id'] as String? ?? '',
+      warehouseId: json['warehouse_id'] as String?,
       isActive: json['is_active'] as bool? ?? json['in_stock'] as bool? ?? true,
       lastSynced: json['last_synced'] != null
           ? DateTime.parse(json['last_synced'] as String)
-          : DateTime.now(),
+          : null,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
+          : null,
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
-          : DateTime.now(),
+          : null,
       price: (json['price'] as num?)?.toDouble() ?? (json['selling_price'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'IQD',
       pricelistName: json['pricelist_name'] as String?,
@@ -82,9 +82,9 @@ class Product {
       'actual_available_stock': actualAvailableStock,
       'warehouse_id': warehouseId,
       'is_active': isActive,
-      'last_synced': lastSynced.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'last_synced': lastSynced?.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
       'price': price,
       'currency': currency,
       'pricelist_name': pricelistName,

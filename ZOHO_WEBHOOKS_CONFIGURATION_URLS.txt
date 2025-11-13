@@ -1,0 +1,88 @@
+# ZOHO BOOKS WEBHOOKS - CONFIGURATION URLS
+# Copy these URLs into Zoho Books Webhook Settings
+# Date: November 13, 2025
+# Production URL: https://erp.tsh.sale
+
+========================================
+WEBHOOK URLS - COPY & PASTE INTO ZOHO
+========================================
+
+1. PRODUCTS/ITEMS
+   URL: https://erp.tsh.sale/api/tds/webhooks/products
+   Module: Items
+   Events: Item Created, Item Updated, Item Deleted
+
+2. CUSTOMERS/CONTACTS
+   URL: https://erp.tsh.sale/api/tds/webhooks/customers
+   Module: Contacts
+   Events: Contact Created, Contact Updated, Contact Deleted
+
+3. INVOICES
+   URL: https://erp.tsh.sale/api/tds/webhooks/invoices
+   Module: Invoices
+   Events: Invoice Created, Invoice Updated, Invoice Sent, Invoice Payment Received
+
+4. SALES ORDERS
+   URL: https://erp.tsh.sale/api/tds/webhooks/orders
+   Module: Sales Orders
+   Events: Sales Order Created, Sales Order Updated, Sales Order Confirmed
+
+5. PURCHASE BILLS
+   URL: https://erp.tsh.sale/api/tds/webhooks/bills
+   Module: Bills
+   Events: Bill Created, Bill Updated, Bill Payment Made
+
+6. CREDIT NOTES
+   URL: https://erp.tsh.sale/api/tds/webhooks/credit-notes
+   Module: Credit Notes
+   Events: Credit Note Created, Credit Note Updated, Credit Note Applied
+
+7. STOCK/INVENTORY ADJUSTMENTS
+   URL: https://erp.tsh.sale/api/tds/webhooks/stock
+   Module: Inventory Adjustments
+   Events: Adjustment Created, Adjustment Updated
+
+8. PRICE LISTS
+   URL: https://erp.tsh.sale/api/tds/webhooks/prices
+   Module: Price Lists
+   Events: Price List Updated, Price List Item Added, Price List Item Updated
+
+========================================
+MONITORING URLS
+========================================
+
+Health Check:
+https://erp.tsh.sale/api/tds/webhooks/health
+
+Statistics:
+https://erp.tsh.sale/api/tds/webhooks/stats
+
+========================================
+ZOHO BOOKS ACCESS
+========================================
+
+1. Log in to: https://books.zoho.com
+2. Go to: Settings → Automation → Webhooks
+3. Click: "+ New Webhook" for each URL above
+4. Set Method: POST
+5. Select Events: As listed above
+6. Click: Save → Test Webhook
+
+========================================
+VERIFICATION COMMANDS
+========================================
+
+# Check health
+curl http://localhost:8000/api/tds/webhooks/health
+
+# Get statistics
+curl http://localhost:8000/api/tds/webhooks/stats | jq .
+
+# Check recent events
+docker compose exec tsh_postgres psql -U tsh_admin -d tsh_erp -c \
+  "SELECT entity_type, status, COUNT(*) FROM tds_inbox_events \
+   WHERE created_at >= NOW() - INTERVAL '1 hour' \
+   GROUP BY entity_type, status;"
+
+========================================
+
