@@ -47,6 +47,14 @@ At the start of EVERY new session, load files in this exact order:
 - Stock data handling
 - NEVER bypass these rules
 
+### 4.6. **CONSUMER_APP_TROUBLESHOOTING.md** - CONSUMER APP FIXES
+**Priority: CRITICAL**
+- Consumer app "Failed to load products" issue
+- Price data migration procedures
+- ALWAYS check product_prices table after deployment
+- Two pricing systems bridge (product_prices ↔ price_list_items)
+- Emergency fix procedures
+
 ### 5. **WORKING_TOGETHER.md** - COLLABORATION GUIDE
 **Priority: MEDIUM**
 - How Khaleel and I work together
