@@ -168,13 +168,13 @@ jobs:
               if docker compose version >/dev/null 2>&1; then
                 echo "Using docker compose with core profile"
                 docker compose --profile core pull || true
-                docker compose --profile core up -d --build
+                docker compose --profile core up -d --build --force-recreate
                 RESTART_SUCCESS=1
                 DEPLOYMENT_METHOD="docker compose (profile: core)"
               elif command -v docker-compose >/dev/null 2>&1; then
                 echo "Using docker-compose with core profile"
                 docker-compose --profile core pull || true
-                docker-compose --profile core up -d --build
+                docker-compose --profile core up -d --build --force-recreate
                 RESTART_SUCCESS=1
                 DEPLOYMENT_METHOD="docker-compose (profile: core)"
               fi
