@@ -175,13 +175,34 @@ async def get_products(
         for row in result:
             # Use local product images (already downloaded from Zoho)
             image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
+            has_image = False
 
             if row.zoho_item_id:
-                # Use local product images stored on server
-                image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
-            elif row.image_url and 'zohoapis.com' not in row.image_url:
-                # Use CDN or other non-Zoho image URL as-is
-                image_url = row.image_url
+                # Check if image file exists on server
+                import os
+                image_path = f"/app/uploads/products/{row.zoho_item_id}.jpg"
+                if os.path.exists(image_path) or os.path.islink(image_path):
+                    # Use local product images stored on server
+                    image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
+                    has_image = True
+                elif row.image_url and row.image_url.startswith('/uploads/products/'):
+                    # Use image from database if file exists
+                    filename = row.image_url.split('/')[-1]
+                    file_path = f"/app/uploads/products/{filename}"
+                    if os.path.exists(file_path):
+                        # Create symlink if it doesn't exist
+                        symlink_path = f"/app/uploads/products/{row.zoho_item_id}.jpg"
+                        if not os.path.exists(symlink_path):
+                            try:
+                                os.symlink(filename, symlink_path)
+                            except:
+                                pass
+                        image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
+                        has_image = True
+            elif row.image_url and 'zohoapis.com' not in row.image_url and row.image_url.startswith('/uploads/'):
+                # Use local image URL from database
+                image_url = f"{base_url}{row.image_url}"
+                has_image = True
 
             # STANDARDIZED RESPONSE FORMAT - matches Flutter Product model
             products.append({
@@ -211,7 +232,7 @@ async def get_products(
                 'barcode': row.sku,
                 'image_path': image_url,
                 'in_stock': (row.actual_available_stock or 0) > 0,
-                'has_image': bool(row.image_url)
+                'has_image': has_image
             })
 
         return {
