@@ -167,14 +167,16 @@ jobs:
             if [ ${RESTART_SUCCESS} -eq 0 ] && [ -f "docker-compose.yml" ] && command -v docker >/dev/null 2>&1; then
               if docker compose version >/dev/null 2>&1; then
                 echo "Using docker compose with core profile"
+                docker compose --profile core down --remove-orphans || true
                 docker compose --profile core pull || true
-                docker compose --profile core up -d --build --force-recreate
+                docker compose --profile core up -d --build
                 RESTART_SUCCESS=1
                 DEPLOYMENT_METHOD="docker compose (profile: core)"
               elif command -v docker-compose >/dev/null 2>&1; then
                 echo "Using docker-compose with core profile"
+                docker-compose --profile core down --remove-orphans || true
                 docker-compose --profile core pull || true
-                docker-compose --profile core up -d --build --force-recreate
+                docker-compose --profile core up -d --build
                 RESTART_SUCCESS=1
                 DEPLOYMENT_METHOD="docker-compose (profile: core)"
               fi
