@@ -181,6 +181,11 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
 
                         const Spacer(),
 
+                        // Stock Quantity Display
+                        _buildStockQuantitySection(),
+
+                        const SizedBox(height: 8),
+
                         // Price Section
                         _buildPriceSection(),
 
@@ -404,6 +409,85 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _buildStockQuantitySection() {
+    // Format stock number with thousands separator
+    String formattedStock = widget.product.actualAvailableStock
+        .toString()
+        .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            widget.product.lowStock
+                ? TSHTheme.warningOrange.withOpacity(0.15)
+                : TSHTheme.successGreen.withOpacity(0.12),
+            widget.product.lowStock
+                ? TSHTheme.warningOrange.withOpacity(0.08)
+                : TSHTheme.successGreen.withOpacity(0.06),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: (widget.product.lowStock
+                  ? TSHTheme.warningOrange
+                  : TSHTheme.successGreen)
+              .withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 16,
+            color: widget.product.lowStock
+                ? TSHTheme.warningOrange
+                : TSHTheme.successGreen,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'المخزون: ',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: TSHTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: formattedStock,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: widget.product.lowStock
+                          ? TSHTheme.warningOrange
+                          : TSHTheme.successGreen,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' قطعة',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: TSHTheme.textSecondary.withOpacity(0.8),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

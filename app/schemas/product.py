@@ -152,7 +152,8 @@ class ProductSummary(BaseModel):
     category_name: str
     category_name_ar: Optional[str] = None
     image_url: Optional[str] = None
-    
+    actual_available_stock: int = 0  # Stock quantity from Zoho
+
     class Config:
         from_attributes = True
 

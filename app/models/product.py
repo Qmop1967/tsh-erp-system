@@ -60,12 +60,21 @@ class Product(Base):
     is_trackable = Column(Boolean, default=True)  # هل يتم تتبع المخزون
     is_digital = Column(Boolean, default=False)  # منتج رقمي
     is_featured = Column(Boolean, default=False)  # منتج مميز
-    
+
+    # Stock tracking (synced from Zoho)
+    actual_available_stock = Column(Integer, default=0, nullable=False)  # المخزون المتاح الفعلي من Zoho
+
     # SEO fields
     meta_title = Column(String(200), nullable=True)
     meta_description = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True, default=list)  # Search tags
-    
+
+    # Zoho integration
+    zoho_item_id = Column(String(100), nullable=True, unique=True, index=True)  # Zoho Books Item ID
+    cdn_image_url = Column(String(500), nullable=True)  # CDN image URL
+    image_name = Column(String(500), nullable=True)  # Image filename
+    image_type = Column(String(50), nullable=True)  # Image MIME type
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
