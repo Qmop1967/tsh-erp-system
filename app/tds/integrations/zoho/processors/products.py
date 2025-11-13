@@ -12,10 +12,20 @@ Date: November 6, 2025
 
 import logging
 from typing import Dict, Any, Optional
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def safe_decimal(value: Any, default: Decimal = Decimal('0')) -> Decimal:
+    """Safely convert value to Decimal, handling None, empty strings, and invalid values"""
+    if value is None or value == '' or value == 'None':
+        return default
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return default
 
 
 class ProductProcessor:
@@ -76,21 +86,21 @@ class ProductProcessor:
             'unit': product_data.get('unit'),
 
             # Pricing
-            'rate': Decimal(str(product_data.get('rate', 0))),
-            'purchase_rate': Decimal(str(product_data.get('purchase_rate', 0))),
-            'cost_price': Decimal(str(product_data.get('purchase_rate', 0))),
-            'selling_price': Decimal(str(product_data.get('rate', 0))),
+            'rate': safe_decimal(product_data.get('rate')),
+            'purchase_rate': safe_decimal(product_data.get('purchase_rate')),
+            'cost_price': safe_decimal(product_data.get('purchase_rate')),
+            'selling_price': safe_decimal(product_data.get('rate')),
 
             # Stock - Zoho returns 'actual_available_stock' and 'available_stock'
-            'stock_on_hand': Decimal(str(product_data.get('actual_available_stock', 0))),
-            'available_stock': Decimal(str(product_data.get('available_stock', 0))),
-            'actual_available_stock': Decimal(str(product_data.get('actual_available_stock', 0))),
-            'reorder_level': Decimal(str(product_data.get('reorder_level', 0))),
+            'stock_on_hand': safe_decimal(product_data.get('actual_available_stock')),
+            'available_stock': safe_decimal(product_data.get('available_stock')),
+            'actual_available_stock': safe_decimal(product_data.get('actual_available_stock')),
+            'reorder_level': safe_decimal(product_data.get('reorder_level')),
 
             # Attributes
             'is_taxable': product_data.get('is_taxable', False),
             'tax_id': product_data.get('tax_id'),
-            'tax_percentage': Decimal(str(product_data.get('tax_percentage', 0))),
+            'tax_percentage': safe_decimal(product_data.get('tax_percentage')),
             'is_returnable': product_data.get('is_returnable', True),
 
             # Status
