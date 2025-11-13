@@ -46,12 +46,13 @@ echo ""
 
 # Count total markdown files
 TOTAL_MD=$(find "$CLAUDE_DIR" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | xargs)
-if [ "$TOTAL_MD" -eq 23 ]; then
-    echo -e "${GREEN}📊 Total documentation files: $TOTAL_MD (expected: 23) ✓${NC}"
-elif [ "$TOTAL_MD" -gt 23 ]; then
-    echo -e "${YELLOW}📊 Total documentation files: $TOTAL_MD (expected: 23) - Extra files present${NC}"
+EXPECTED_MD=27
+if [ "$TOTAL_MD" -eq "$EXPECTED_MD" ]; then
+    echo -e "${GREEN}📊 Total documentation files: $TOTAL_MD (expected: $EXPECTED_MD) ✓${NC}"
+elif [ "$TOTAL_MD" -gt "$EXPECTED_MD" ]; then
+    echo -e "${YELLOW}📊 Total documentation files: $TOTAL_MD (expected: $EXPECTED_MD) - Extra files present${NC}"
 else
-    echo -e "${RED}📊 Total documentation files: $TOTAL_MD (expected: 23) - Some files missing!${NC}"
+    echo -e "${RED}📊 Total documentation files: $TOTAL_MD (expected: $EXPECTED_MD) - Some files missing!${NC}"
 fi
 echo ""
 
@@ -110,7 +111,7 @@ echo ""
 
 # Summary
 echo "================================"
-if [ "$MISSING_COUNT" -eq 0 ] && [ "$TOTAL_MD" -eq 23 ]; then
+if [ "$MISSING_COUNT" -eq 0 ] && [ "$TOTAL_MD" -eq "$EXPECTED_MD" ]; then
     echo -e "${GREEN}✅ Context verification PASSED${NC}"
     echo "   All critical documentation is present and accessible."
     echo ""
@@ -118,6 +119,9 @@ if [ "$MISSING_COUNT" -eq 0 ] && [ "$TOTAL_MD" -eq 23 ]; then
 else
     echo -e "${RED}⚠️  Context verification FAILED${NC}"
     echo "   $MISSING_COUNT critical file(s) missing"
+    if [ "$TOTAL_MD" -ne "$EXPECTED_MD" ]; then
+        echo "   File count: $TOTAL_MD (expected: $EXPECTED_MD)"
+    fi
     echo ""
     echo "⚠️  Please review missing files before proceeding."
 fi

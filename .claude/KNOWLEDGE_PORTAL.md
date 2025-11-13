@@ -169,9 +169,43 @@
       - Deployment checklist
 ```
 
-### Priority 5: ADMINISTRATIVE - Reference Only
+### Priority 5: SESSION CONTINUITY - Memory & Context
 ```yaml
-13. CHANGELOG_AI.md (~300 lines)
+13. SESSION_STATE.md (~200 lines)
+    Purpose: Track current work across sessions
+    When: Session start/end, context recovery
+    Key Content:
+      - Current task and progress
+      - Recent context (last session)
+      - Active branches and git status
+      - Pending questions
+      - Session continuity instructions
+
+14. DECISIONS.md (~800 lines)
+    Purpose: Record important decisions with reasoning
+    When: Making architectural/business decisions
+    Key Content:
+      - Architecture decisions (deploy all, TDS Core, working directory)
+      - Zoho migration decisions
+      - Technology stack decisions (non-negotiable)
+      - Development process decisions
+      - Business logic decisions
+
+15. COMMON_ISSUES.md (~1,000 lines)
+    Purpose: Recurring problems with proven solutions
+    When: Debugging, troubleshooting, problem-solving
+    Key Content:
+      - Critical issues (production impact)
+      - High/Medium/Low impact issues
+      - Root cause analysis
+      - Step-by-step solutions
+      - Prevention strategies
+      - Issue statistics
+```
+
+### Priority 6: ADMINISTRATIVE - Reference Only
+```yaml
+16. CHANGELOG_AI.md (~300 lines)
     Purpose: Track .claude/ system changes
     When: After major updates, phase transitions
     Key Content:
@@ -179,7 +213,7 @@
       - Context evolution over time
       - Update instructions
 
-14. KNOWLEDGE_LINKS.md (~200 lines)
+17. KNOWLEDGE_LINKS.md (~200 lines)
     Purpose: Operational resources (URLs, credentials)
     When: Need access to systems
     Key Content:
@@ -189,7 +223,7 @@
       - Zoho organization info
       - Domain management
 
-15. KNOWLEDGE_PORTAL.md (This file)
+18. KNOWLEDGE_PORTAL.md (This file)
     Purpose: Navigation index
     When: Session start or when lost
     Key Content:
@@ -212,6 +246,25 @@ Get oriented quickly:
 
 Navigate documentation:
   → KNOWLEDGE_PORTAL.md (this file - navigation index)
+
+Resume previous work:
+  → SESSION_STATE.md (current task, recent context)
+  → scripts/session_handoff.sh (save/load session state)
+```
+
+### 🧠 Memory & Context (NEW)
+```yaml
+Track current work:
+  → SESSION_STATE.md (what I'm working on now)
+
+Remember decisions:
+  → DECISIONS.md (why we made certain choices)
+
+Solve recurring problems:
+  → COMMON_ISSUES.md (known issues with solutions)
+
+Session recovery:
+  → scripts/session_handoff.sh (automated save/load)
 ```
 
 ### 🧠 Thinking & Learning
@@ -461,6 +514,16 @@ Total: ~11,800 lines (~600 KB)
 
 ...recover from confusion:
   → This file (KNOWLEDGE_PORTAL.md)
+
+...resume previous work:
+  → SESSION_STATE.md
+  → scripts/session_handoff.sh
+
+...understand past decisions:
+  → DECISIONS.md
+
+...solve a recurring problem:
+  → COMMON_ISSUES.md
 ```
 
 ---
@@ -468,8 +531,21 @@ Total: ~11,800 lines (~600 KB)
 ## 🆕 Recently Added/Updated Files
 
 ```yaml
+[2025-11-13] Session Continuity & Memory Enhancement:
+  ✅ SESSION_STATE.md (NEW - track current work across sessions)
+  ✅ DECISIONS.md (NEW - record important decisions with reasoning)
+  ✅ COMMON_ISSUES.md (NEW - recurring problems with solutions)
+  ✅ scripts/session_handoff.sh (NEW - save/load session state)
+  ✅ KNOWLEDGE_PORTAL.md (UPDATED - added Priority 5 Session Continuity)
+
 [2025-11-13] Session Start Enhancement:
   ✅ CLAUDE.md (MOVED - from home directory to .claude/)
+  ✅ QUICK_START.txt (NEW - ultra-fast reference card)
+  ✅ ENHANCEMENTS_2025-11-13.md (NEW - enhancement documentation)
+  ✅ .claude/verify_context.sh (NEW - automated verification script)
+  ✅ .claude/search_docs.sh (NEW - fast documentation search)
+  ✅ scripts/session_context.sh (NEW - session recovery helper)
+  ✅ AI_CONTEXT_RULES.md (UPDATED - Working Directory Protocol)
   ✅ KNOWLEDGE_PORTAL.md (UPDATED - added CLAUDE.md as Priority 0)
 
 [2025-11-12] Phase IV Implementation:
@@ -507,11 +583,14 @@ Total: ~11,800 lines (~600 KB)
 **Before starting work, verify:**
 
 ```yaml
-□ All 23 files present in .claude/ directory
+□ All 27 markdown files + 1 TXT file present in .claude/ directory
 □ CLAUDE.md read (session start instructions)
 □ AI_CONTEXT_RULES.md read (loading order understood)
 □ PROJECT_VISION.md internalized (business context clear)
 □ QUICK_REFERENCE.md read (quick facts)
+□ SESSION_STATE.md available (session continuity)
+□ DECISIONS.md available (decision reference)
+□ COMMON_ISSUES.md available (problem solving)
 □ Current phase confirmed (Zoho Migration Phase 1)
 □ Current environment known (Development, deploy anytime)
 □ "Last Updated" dates reviewed (context is current)
