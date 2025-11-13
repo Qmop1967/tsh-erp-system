@@ -1,0 +1,211 @@
+================================================================================
+TSH ERP ECOSYSTEM - QUICK START CARD
+================================================================================
+Last Updated: 2025-11-13
+Purpose: Ultra-fast reference for session start (< 60 seconds)
+
+================================================================================
+❌ NEVER DO THIS
+================================================================================
+❌ Access Zoho Books/Inventory APIs directly (MUST use TDS Core)
+❌ Write to Zoho in Phase 1 (read-only migration phase)
+❌ Deploy backend without frontend (deploy ALL components)
+❌ Deploy frontend without backend (deploy ALL components)
+❌ Push directly to main branch (push to develop first)
+❌ Skip staging verification
+❌ Forget Arabic fields (name_ar, description_ar mandatory)
+❌ Bypass authentication (require get_current_user)
+❌ Return > 100 records without pagination
+❌ Suggest changing tech stack (FastAPI/Flutter/PostgreSQL fixed)
+❌ Use Twilio (NOT used in this project)
+
+================================================================================
+✅ ALWAYS DO THIS
+================================================================================
+✅ Search existing code before creating new (grep, find, Task tool)
+✅ Include Arabic fields (name_ar, description_ar) on user-facing models
+✅ Paginate lists (max 100 per page, use offset/limit)
+✅ Add indexes on foreign keys and search fields
+✅ Use parameterized queries (prevent SQL injection)
+✅ Authenticate sensitive endpoints (Depends(get_current_user))
+✅ Authorize admin operations (require_role(["admin", "manager"]))
+✅ Validate input with Pydantic schemas
+✅ Add error handling (try/except blocks)
+✅ Deploy ALL components together (backend + frontend + TDS)
+✅ Test on staging before production
+✅ Go through TDS Core for ALL Zoho operations
+
+================================================================================
+📍 CRITICAL PROJECT CONTEXT
+================================================================================
+Project:    TSH ERP Ecosystem (Production system)
+Location:   /Users/khaleelal-mulla/TSH_ERP_Ecosystem
+Purpose:    Import-distribution-retail ERP for Iraq market
+Mode:       Development (deploy anytime to staging/production)
+Phase:      Zoho Migration Phase 1 (read-only via TDS Core)
+
+Scale:
+  • 500+ wholesale clients
+  • 2,218+ active products
+  • 30+ daily wholesale orders
+  • 30+ daily retail transactions
+  • 100+ partner salesmen
+  • 12 travel salespersons ($35K USD/week)
+  • Multi-million IQD daily transaction volume
+
+Tech Stack (NON-NEGOTIABLE):
+  • Backend:  FastAPI + Python 3.9+ + PostgreSQL 12+
+  • Frontend: React 18+ (ERP Admin) + Flutter Web (Consumer)
+  • Mobile:   Flutter 3.0+ (8 apps)
+  • Deploy:   GitHub Actions → VPS (167.71.39.50)
+  • Backup:   AWS S3 (tsh-erp-backups, eu-north-1)
+  • Sync:     TDS Core (controls ALL Zoho operations)
+
+================================================================================
+📂 CRITICAL FILE PATHS
+================================================================================
+Documentation:  /.claude/                       (23 markdown files)
+Backend API:    /app/                          (FastAPI)
+  ├─ Models:    /app/models/                   (SQLAlchemy)
+  ├─ Routers:   /app/routers/                  (API endpoints)
+  ├─ Services:  /app/services/                 (Business logic)
+  └─ Schemas:   /app/schemas/                  (Pydantic validation)
+
+Frontend Web:   /apps/consumer/                (Flutter Web)
+                /apps/tds_dashboard/           (TDS monitoring)
+
+Mobile Apps:    /mobile/                       (8 Flutter apps)
+Scripts:        /scripts/                      (82 utility scripts)
+Database:       /database/                     (Schema & migrations)
+CI/CD:          /.github/workflows/            (Deployment pipelines)
+
+================================================================================
+🔗 KEY URLS
+================================================================================
+Production:
+  ERP Admin:      https://erp.tsh.sale
+  Consumer:       https://consumer.tsh.sale
+  Shop:           https://shop.tsh.sale
+  TDS Dashboard:  https://tds.tsh.sale
+
+Staging:
+  ERP Admin:      https://staging.erp.tsh.sale
+  Consumer:       https://staging.consumer.tsh.sale
+  TDS Dashboard:  https://staging.tds.tsh.sale
+
+External:
+  GitHub:         https://github.com/Qmop1967/tsh-erp-system
+  Zoho Books:     https://books.zoho.com/app#/home/dashboard/748369814
+  Zoho Inventory: https://inventory.zoho.com/app#/home/748369814
+
+VPS:
+  IP:             167.71.39.50
+  User:           root
+  Access:         SSH key
+
+================================================================================
+⚡ QUICK COMMANDS (Copy-Paste Ready)
+================================================================================
+# Git operations
+git status
+git branch
+git log --oneline -5
+git push origin develop
+
+# Session context
+./scripts/session_context.sh
+
+# Verify documentation
+./.claude/verify_context.sh
+
+# Search documentation
+./.claude/search_docs.sh "search term"
+
+# Check deployments
+gh run list --limit 3
+gh run watch <run-id>
+
+# Health checks
+curl https://staging.erp.tsh.sale/health
+curl https://erp.tsh.sale/health
+
+# Database check
+PGPASSWORD='TSH@2025Secure!Production' psql -h localhost -U tsh_app_user -d tsh_erp_production -c "SELECT COUNT(*) as active_products FROM products WHERE is_active = true;"
+
+# VPS access
+ssh root@167.71.39.50
+
+================================================================================
+📚 DOCUMENTATION QUICK ACCESS
+================================================================================
+Session Start:          .claude/CLAUDE.md
+Quick Reference:        .claude/QUICK_REFERENCE.md
+Business Context:       .claude/PROJECT_VISION.md
+Technical Rules:        .claude/ARCHITECTURE_RULES.md
+Code Templates:         .claude/CODE_TEMPLATES.md
+Task Workflows:         .claude/TASK_PATTERNS.md
+Emergency Procedures:   .claude/FAILSAFE_PROTOCOL.md
+Performance Tips:       .claude/PERFORMANCE_OPTIMIZATION.md
+Navigation Index:       .claude/KNOWLEDGE_PORTAL.md
+
+================================================================================
+🎯 DEPLOYMENT WORKFLOW (Critical!)
+================================================================================
+1. Push to develop branch           → Auto-deploy to staging
+2. Test thoroughly on staging       → Verify all URLs work
+3. Get Khaleel approval             → Confirm ready for production
+4. Create PR (develop → main)       → Review changes
+5. Merge to main                    → Auto-deploy to production
+6. Monitor deployment               → Check GitHub Actions
+7. Verify production URLs           → Test all endpoints
+8. Monitor for issues               → Check logs, errors
+
+CRITICAL: ALWAYS deploy ALL components together:
+  ✅ Backend API (FastAPI)
+  ✅ ERP Admin Frontend (React)
+  ✅ Consumer App (Flutter Web)
+  ✅ TDS Core Worker
+  ✅ TDS Dashboard
+
+================================================================================
+🚨 EMERGENCY CONTACTS & ACTIONS
+================================================================================
+Production Down:
+  1. curl https://erp.tsh.sale/health
+  2. gh run list --limit 3
+  3. ssh root@167.71.39.50
+  4. systemctl status tsh-erp
+  5. Alert Khaleel immediately
+  6. Follow .claude/FAILSAFE_PROTOCOL.md
+
+Zoho Sync Failed:
+  1. Check https://tds.tsh.sale
+  2. Check TDS Core logs
+  3. Restart TDS Core: systemctl restart tds-core
+  4. Follow .claude/ZOHO_SYNC_RULES.md
+
+Database Issues:
+  1. Check connections: SELECT count(*) FROM pg_stat_activity;
+  2. Check locks: SELECT * FROM pg_locks WHERE NOT granted;
+  3. Restart if needed: systemctl restart postgresql
+  4. Alert Khaleel if data corruption suspected
+
+================================================================================
+✅ SESSION START CHECKLIST
+================================================================================
+□ Working directory: /Users/khaleelal-mulla/TSH_ERP_Ecosystem
+□ Read CLAUDE.md (session start instructions)
+□ Read AI_CONTEXT_RULES.md (meta-guide)
+□ Read PROJECT_VISION.md (business context)
+□ Read QUICK_REFERENCE.md (60-second overview)
+□ Understand: Production system with real revenue
+□ Understand: 500+ clients depend on this daily
+□ Understand: Tech stack non-negotiable
+□ Understand: Zoho Migration Phase 1 (read-only)
+□ Understand: NO TWILIO platform
+
+Status: READY TO WORK ✅
+
+================================================================================
+END OF QUICK START CARD
+================================================================================

@@ -833,6 +833,122 @@ Current State:
 
 ---
 
+## 📂 Working Directory Protocol
+
+### Default Working Directory
+
+**Standard Location:**
+```
+/Users/khaleelal-mulla/TSH_ERP_Ecosystem
+```
+
+**Why This Matters:**
+- All relative paths work immediately
+- Faster access to .claude/ files
+- Consistent file operations
+- Better git operations
+- Predictable tool execution
+
+### Session Start Directory Check
+
+At the start of EVERY session:
+
+1. **Verify Current Directory:**
+   ```bash
+   pwd
+   ```
+
+2. **If Not in Project Root:**
+   ```bash
+   cd /Users/khaleelal-mulla/TSH_ERP_Ecosystem
+   ```
+
+3. **Confirm Location:**
+   ```
+   "Working from project root: /Users/khaleelal-mulla/TSH_ERP_Ecosystem"
+   ```
+
+### Benefits of Working Directory Protocol
+
+```yaml
+Performance Benefits:
+  ✅ No need for absolute paths (use relative: ./scripts/, ./.claude/)
+  ✅ Faster file operations
+  ✅ Consistent tool execution
+  ✅ Better tab completion (for humans)
+
+Context Benefits:
+  ✅ All documentation in ./claude/ (relative)
+  ✅ All scripts in ./scripts/ (relative)
+  ✅ All code in ./app/, ./mobile/ (relative)
+  ✅ Git operations work correctly
+
+Error Prevention:
+  ✅ Avoid "file not found" errors
+  ✅ Avoid working in wrong directory
+  ✅ Avoid accidental modifications outside project
+```
+
+### Helper Scripts Usage
+
+Once in project root, all helper scripts work with relative paths:
+
+```bash
+# Session context (shows recent work)
+./scripts/session_context.sh
+
+# Verify documentation health
+./.claude/verify_context.sh
+
+# Search documentation
+./.claude/search_docs.sh "search term"
+
+# Quick reference (always visible)
+cat ./.claude/QUICK_START.txt
+```
+
+### Directory Structure Reference
+
+```
+TSH_ERP_Ecosystem/                      ← Working directory (pwd should show this)
+├── .claude/                            ← Documentation hub (23 MD files)
+│   ├── CLAUDE.md                       ← Session start instructions
+│   ├── PROJECT_VISION.md               ← Business context
+│   ├── QUICK_START.txt                 ← Ultra-fast reference
+│   ├── verify_context.sh               ← Verification script
+│   └── search_docs.sh                  ← Search helper
+├── app/                                ← Backend (FastAPI)
+├── mobile/                             ← Mobile apps (Flutter)
+├── scripts/                            ← Utility scripts
+│   └── session_context.sh              ← Session recovery helper
+├── database/                           ← Schema & migrations
+└── .github/workflows/                  ← CI/CD pipelines
+```
+
+### When to Confirm Directory
+
+**Always check working directory when:**
+- Starting new session
+- After session reset
+- Before file operations
+- Before git operations
+- Before running scripts
+- When encountering "file not found" errors
+
+**Quick Check Pattern:**
+```bash
+# Verify location
+pwd
+
+# Should output:
+# /Users/khaleelal-mulla/TSH_ERP_Ecosystem
+
+# If not, navigate to project root:
+cd /Users/khaleelal-mulla/TSH_ERP_Ecosystem
+```
+
+---
+
 ## 🔒 Security & Performance Auto-Monitoring
 
 ### Proactive Security Scanning

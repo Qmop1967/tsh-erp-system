@@ -22,11 +22,26 @@
 
 ## 📊 File Loading Priority (For AI Session Start)
 
+### Priority 0: SESSION START - Read Immediately
+```yaml
+0. CLAUDE.md (~130 lines)
+   Purpose: Session start instructions and global rules
+   When: At the very start of EVERY new session
+   Key Content:
+     - Session start routine
+     - File reading order
+     - Non-negotiable rules (NO TWILIO, tech stack)
+     - Project location and structure
+     - Verification checklist
+
+   Note: This file directs to read the Priority 1 files below
+```
+
 ### Priority 1: CRITICAL - Read First
 ```yaml
 1. AI_CONTEXT_RULES.md (~1,540 lines)
    Purpose: Meta-guide - HOW to read and interpret all other files
-   When: FIRST file to read in every session
+   When: FIRST file to read in every session (after CLAUDE.md)
    Key Content:
      - File loading order hierarchy
      - Conflict resolution rules
@@ -186,6 +201,18 @@
 ---
 
 ## 🗂️ Topic-Based Navigation
+
+### 🚀 Session Start & Orientation
+```yaml
+Start a new session:
+  → CLAUDE.md (session start instructions, global rules)
+
+Get oriented quickly:
+  → QUICK_REFERENCE.md (60-second context refresh)
+
+Navigate documentation:
+  → KNOWLEDGE_PORTAL.md (this file - navigation index)
+```
 
 ### 🧠 Thinking & Learning
 ```yaml
@@ -441,6 +468,10 @@ Total: ~11,800 lines (~600 KB)
 ## 🆕 Recently Added/Updated Files
 
 ```yaml
+[2025-11-13] Session Start Enhancement:
+  ✅ CLAUDE.md (MOVED - from home directory to .claude/)
+  ✅ KNOWLEDGE_PORTAL.md (UPDATED - added CLAUDE.md as Priority 0)
+
 [2025-11-12] Phase IV Implementation:
   ✅ CODE_TEMPLATES.md (NEW - 2,500 lines)
   ✅ PERFORMANCE_OPTIMIZATION.md (NEW - 1,000 lines)
@@ -476,13 +507,14 @@ Total: ~11,800 lines (~600 KB)
 **Before starting work, verify:**
 
 ```yaml
-□ All 15 files present in .claude/ directory
+□ All 23 files present in .claude/ directory
+□ CLAUDE.md read (session start instructions)
 □ AI_CONTEXT_RULES.md read (loading order understood)
 □ PROJECT_VISION.md internalized (business context clear)
+□ QUICK_REFERENCE.md read (quick facts)
 □ Current phase confirmed (Zoho Migration Phase 1)
 □ Current environment known (Development, deploy anytime)
 □ "Last Updated" dates reviewed (context is current)
-□ QUICK_REFERENCE.md bookmarked (fast access)
 □ No knowledge gaps or confusion
 
 Status: READY TO WORK
@@ -496,10 +528,11 @@ Status: READY TO WORK
 
 ```yaml
 If New AI Session:
-  1. Read AI_CONTEXT_RULES.md
-  2. Read QUICK_REFERENCE.md
-  3. Read PROJECT_VISION.md
-  4. Confirm with: "Hi Khaleel! Context loaded. Ready to work."
+  1. Read CLAUDE.md (session start instructions)
+  2. Read AI_CONTEXT_RULES.md (meta-guide)
+  3. Read PROJECT_VISION.md (business context)
+  4. Read QUICK_REFERENCE.md (quick facts)
+  5. Confirm with: "Context loaded. TSH ERP Ecosystem ready. How can I help?"
 
 If New Human Developer:
   1. Follow Day 1 onboarding path (above)
