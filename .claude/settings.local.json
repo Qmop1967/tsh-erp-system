@@ -29,7 +29,14 @@
       "Bash(curl:*)",
       "Bash(for id in 426864 2c07cd dc0211 b22fa8 3653bb)",
       "Bash(do pkill -f \"$id\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh repo sync:*)",
+      "Bash(git push:*)"
     ],
     "deny": [
       "Bash(rsync:*root@167.71.39.50:*)",

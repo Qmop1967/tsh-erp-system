@@ -39,6 +39,14 @@ At the start of EVERY new session, load files in this exact order:
 - "How" to implement the "what" from PROJECT_VISION.md
 - If conflicts with PROJECT_VISION.md, ask Khaleel for clarification
 
+### 4.5. **ZOHO_SYNC_RULES.md** - ZOHO SYNC AUTHORITY
+**Priority: CRITICAL**
+- MANDATORY Zoho sync procedures
+- ALL Zoho operations MUST go through TDS Core
+- Image download requirements
+- Stock data handling
+- NEVER bypass these rules
+
 ### 5. **WORKING_TOGETHER.md** - COLLABORATION GUIDE
 **Priority: MEDIUM**
 - How Khaleel and I work together
@@ -801,7 +809,9 @@ Current State:
 - Mode: Development
 - Deploy: Anytime
 - Data: Zoho Books + Zoho Inventory
-- Sync: TDS Core only
+- Sync: TDS Core only (see ZOHO_SYNC_RULES.md)
+- Images: Download ALL product images locally
+- Stock: Synced with products (embedded data)
 ```
 
 ---
