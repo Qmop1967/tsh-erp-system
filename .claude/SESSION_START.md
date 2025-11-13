@@ -125,10 +125,32 @@ Status: READY TO BEGIN
 ```
 
 #### If Health Check Fails:
-```
-Issue: Missing or corrupted .claude/ files
-Action: Request Khaleel to verify .claude/ directory integrity
 
+**Critical File Loading Errors:**
+```yaml
+If any .claude/ file is missing or unreadable:
+
+  🚨 CRITICAL ALERT:
+  "CONTEXT INTEGRITY FAILURE: Cannot load [filename].
+
+   Required files for operation:
+   - AI_CONTEXT_RULES.md (how to interpret context)
+   - PROJECT_VISION.md (business context)
+   - ARCHITECTURE_RULES.md (technical rules)
+   - TASK_PATTERNS.md (workflows)
+   - SESSION_CHECKLIST.md (validation)
+   - REASONING_PATTERNS.md (thinking patterns)
+   - FAILSAFE_PROTOCOL.md (error recovery)
+
+   Missing: [list missing files]
+
+   CANNOT PROCEED SAFELY. Please verify .claude/ directory integrity."
+
+  Action: STOP all work until files are restored or Khaleel provides guidance
+```
+
+**Other Common Issues:**
+```
 Issue: Git conflicts or unclean working directory
 Action: Report status and ask for guidance
 
@@ -137,6 +159,9 @@ Action: Report what's inaccessible and ask for help
 
 Issue: Outdated context (old "Last Updated" dates)
 Action: Ask Khaleel if context refresh is needed
+
+Issue: Partial context load (some files loaded, some failed)
+Action: Report which files loaded successfully, request missing ones
 ```
 
 ---
