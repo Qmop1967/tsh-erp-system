@@ -112,7 +112,15 @@ async def get_products(
     جلب المنتجات من قاعدة البيانات (متزامنة من Zoho)
     """
     try:
-        base_url = str(request.base_url).rstrip('/')
+        # Use the host from request headers to ensure correct domain
+        # This ensures images work from consumer app (consumer.tsh.sale)
+        scheme = request.url.scheme
+        host = request.headers.get('host', 'erp.tsh.sale')
+        # If host is localhost, use erp.tsh.sale instead
+        if 'localhost' in host or '127.0.0.1' in host:
+            host = 'erp.tsh.sale'
+            scheme = 'https'
+        base_url = f"{scheme}://{host}".rstrip('/')
 
         # Query products directly with Consumer pricelist
         query_params = {"limit": limit, "skip": skip}
