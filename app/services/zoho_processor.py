@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select, insert
 
 from app.models.zoho_sync import (
-    TDSInboxEvent, TDSSyncQueue, SourceType, EntityType, EventStatus
+    TDSInboxEvent, TDSSyncQueue, SourceType, EntityType, EventStatus, OperationType
 )
 from app.background.zoho_entity_handlers import EntityHandlerFactory
 
@@ -125,7 +125,7 @@ class ProcessorService:
                 inbox_event_id=inbox_event.id,
                 entity_type=EntityType(entity_type),
                 source_entity_id=str(entity_id),
-                operation_type="upsert",
+                operation_type=OperationType.UPSERT,
                 validated_payload=payload_data,
                 status=EventStatus.PENDING,
                 attempt_count=0
