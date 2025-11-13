@@ -68,6 +68,11 @@ class EntityType(str, Enum):
     CONTACTS = "contacts"
     SALESORDERS = "salesorders"
     PURCHASEORDERS = "purchaseorders"
+    PAYMENTS = "PAYMENT"  # Customer payments (singular uppercase to match webhook)
+    CUSTOMERPAYMENTS = "CUSTOMERPAYMENT"  # Alternate key
+    VENDORS = "VENDOR"  # Vendors/suppliers
+    SUPPLIERS = "SUPPLIER"  # Alternate key
+    USERS = "USER"  # Zoho users
 
 
 @dataclass
