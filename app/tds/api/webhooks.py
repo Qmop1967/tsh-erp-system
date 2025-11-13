@@ -30,10 +30,12 @@ router = APIRouter()
 
 class ZohoWebhookRequest(BaseModel):
     """Generic Zoho webhook request payload"""
+    model_config = {"extra": "allow"}  # Allow extra fields from Zoho
+    
     event_type: Optional[str] = None
-    entity_id: str
+    entity_id: Optional[str] = None  # Made optional - extract from nested data
     entity_type: Optional[str] = None
-    organization_id: str
+    organization_id: Optional[str] = None  # Made optional - extract from nested data
     data: Optional[Dict[str, Any]] = Field(default_factory=dict)
     item: Optional[Dict[str, Any]] = None  # For Zoho Items
     invoice: Optional[Dict[str, Any]] = None  # For Zoho Invoices
