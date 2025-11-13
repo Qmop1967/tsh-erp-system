@@ -167,15 +167,23 @@ jobs:
             if [ ${RESTART_SUCCESS} -eq 0 ] && [ -f "docker-compose.yml" ] && command -v docker >/dev/null 2>&1; then
               if docker compose version >/dev/null 2>&1; then
                 echo "Using docker compose with core profile"
-                docker compose --profile core down --remove-orphans || true
+                # Stop and remove specific containers if they exist
+                docker stop tsh_neurolink tsh_erp_app tsh_postgres tsh_redis 2>/dev/null || true
+                docker rm tsh_neurolink tsh_erp_app tsh_postgres tsh_redis 2>/dev/null || true
+                # Pull latest images
                 docker compose --profile core pull || true
+                # Start services
                 docker compose --profile core up -d --build
                 RESTART_SUCCESS=1
                 DEPLOYMENT_METHOD="docker compose (profile: core)"
               elif command -v docker-compose >/dev/null 2>&1; then
                 echo "Using docker-compose with core profile"
-                docker-compose --profile core down --remove-orphans || true
+                # Stop and remove specific containers if they exist
+                docker stop tsh_neurolink tsh_erp_app tsh_postgres tsh_redis 2>/dev/null || true
+                docker rm tsh_neurolink tsh_erp_app tsh_postgres tsh_redis 2>/dev/null || true
+                # Pull latest images
                 docker-compose --profile core pull || true
+                # Start services
                 docker-compose --profile core up -d --build
                 RESTART_SUCCESS=1
                 DEPLOYMENT_METHOD="docker-compose (profile: core)"
