@@ -106,7 +106,7 @@ class ProcessorService:
             # Store in inbox
             inbox_event = TDSInboxEvent(
                 source_type=SourceType(source_type),
-                entity_type=EntityType(entity_type.upper()),
+                entity_type=EntityType(entity_type),
                 source_entity_id=str(entity_id),
                 raw_payload=payload_data,
                 idempotency_key=idempotency_key,
@@ -124,7 +124,7 @@ class ProcessorService:
             queue_item = TDSSyncQueue(
                 inbox_event_id=inbox_event.id,
                 source_type=SourceType(source_type),
-                entity_type=EntityType(entity_type.upper()),
+                entity_type=EntityType(entity_type),
                 source_entity_id=str(entity_id),
                 event_type=event_type,
                 payload=payload_data,
