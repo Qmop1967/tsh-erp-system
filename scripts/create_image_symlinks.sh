@@ -21,7 +21,7 @@ echo "📁 Found $TOTAL_FILES image files"
 CREATED=0
 SKIPPED=0
 
-for file in *.jpg *.jpeg *.png *.webp 2>/dev/null; do
+for file in *.jpg *.jpeg *.png *.webp; do
     if [ -f "$file" ]; then
         # Extract zoho_item_id (everything before the first underscore with timestamp)
         ITEM_ID=$(echo "$file" | sed 's/_[0-9]\{8\}_.*$//')
