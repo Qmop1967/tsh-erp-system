@@ -17,7 +17,7 @@ from datetime import datetime
 
 from app.db.database import get_async_db
 from app.core.config import settings
-from app.services.zoho_processor import ProcessorService
+from app.tds.integrations.zoho.processor import ProcessorService
 
 logger = logging.getLogger(__name__)
 
@@ -345,6 +345,87 @@ async def receive_price_webhook(
     )
 
     logger.info(f"Price webhook received: {webhook.entity_id}")
+    return await process_webhook_helper(webhook, request, db, authenticated)
+
+
+@router.post(
+    "/payments",
+    response_model=WebhookResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Receive customer payment webhook from Zoho Books"
+)
+async def receive_payment_webhook(
+    payload: ZohoWebhookRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
+    authenticated: bool = Depends(verify_webhook_key)
+):
+    """Receive customer payment webhook from Zoho Books"""
+    payment_data = payload.data or {}
+    payment_id = payment_data.get('payment_id') or payload.entity_id or 'unknown'
+
+    webhook = SimpleWebhook(
+        event_type="update",
+        entity_type="payment",
+        entity_id=str(payment_id),
+        data=payment_data
+    )
+
+    logger.info(f"Payment webhook received: {webhook.entity_id}")
+    return await process_webhook_helper(webhook, request, db, authenticated)
+
+
+@router.post(
+    "/vendors",
+    response_model=WebhookResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Receive vendor/supplier webhook from Zoho Books"
+)
+async def receive_vendor_webhook(
+    payload: ZohoWebhookRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
+    authenticated: bool = Depends(verify_webhook_key)
+):
+    """Receive vendor/supplier webhook from Zoho Books"""
+    vendor_data = payload.data or {}
+    vendor_id = vendor_data.get('vendor_id') or vendor_data.get('contact_id') or payload.entity_id or 'unknown'
+
+    webhook = SimpleWebhook(
+        event_type="update",
+        entity_type="vendor",
+        entity_id=str(vendor_id),
+        data=vendor_data
+    )
+
+    logger.info(f"Vendor webhook received: {webhook.entity_id}")
+    return await process_webhook_helper(webhook, request, db, authenticated)
+
+
+@router.post(
+    "/users",
+    response_model=WebhookResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Receive user webhook from Zoho Books"
+)
+async def receive_user_webhook(
+    payload: ZohoWebhookRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
+    authenticated: bool = Depends(verify_webhook_key)
+):
+    """Receive user webhook from Zoho Books"""
+    user_data = payload.data or {}
+    user_id = user_data.get('user_id') or payload.entity_id or 'unknown'
+
+    webhook = SimpleWebhook(
+        event_type="update",
+        entity_type="user",
+        entity_id=str(user_id),
+        data=user_data
+    )
+
+    logger.info(f"User webhook received: {webhook.entity_id}")
     return await process_webhook_helper(webhook, request, db, authenticated)
 
 

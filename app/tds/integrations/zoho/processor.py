@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select, insert
 
 from app.models.zoho_sync import (
-    TDSInboxEvent, TDSSyncQueue, SourceType, EntityType, EventStatus
+    TDSInboxEvent, TDSSyncQueue, SourceType, EntityType, EventStatus, OperationType
 )
 from app.background.zoho_entity_handlers import EntityHandlerFactory
 
@@ -125,17 +125,25 @@ class ZohoProcessorService:
             self.db.add(inbox_event)
             await self.db.flush()
 
+            # Map event_type to operation_type
+            operation_map = {
+                "create": OperationType.CREATE,
+                "update": OperationType.UPDATE,
+                "delete": OperationType.DELETE,
+            }
+            operation_type = operation_map.get(event_type.lower(), OperationType.UPSERT)
+
             # Queue for processing
             queue_item = TDSSyncQueue(
                 inbox_event_id=inbox_event.id,
-                source_type=SourceType(source_type),
                 entity_type=EntityType(entity_type.upper()),
                 source_entity_id=str(entity_id),
-                event_type=event_type,
-                payload=payload_data,
+                operation_type=operation_type,
+                validated_payload=payload_data,
                 status=EventStatus.PENDING,
-                retry_count=0,
-                queued_at=datetime.utcnow()
+                priority=5,
+                attempt_count=0,
+                max_retry_attempts=3
             )
 
             self.db.add(queue_item)

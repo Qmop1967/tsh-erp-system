@@ -89,7 +89,27 @@ Integrations:
   - Zoho Inventory API - Currently in production (products, stock)
   - TDS Core - Sync orchestrator (controls ALL Zoho ↔ TSH ERP sync)
   - WhatsApp Business API - Customer communication
+
+Communication & Notifications:
+  - TSH NeuroLink - EXCLUSIVE notification and communication system
+  - WebSocket - Real-time connections
+  - Resend API - Email delivery
+  - Redis - Event bus for NeuroLink
+  - NO Twilio (removed - never use)
+  - NO Firebase (removed - never use)
 ```
+
+**TSH NeuroLink System (Unified Communications)**:
+- **Purpose**: Single system for ALL notifications and communications
+- **Team Chat**: Internal collaboration between employees
+- **Customer-Sales**: Wholesale clients ↔ Sales representatives
+- **Consumer Support**: Retail consumers ↔ Technical support
+- **System Notifications**: Order updates, inventory alerts, sync status
+- **Email Delivery**: Via Resend API integration
+- **Real-time**: WebSocket connections for instant messaging
+- **Event-Driven**: Redis-based event bus architecture
+
+**CRITICAL**: NEVER suggest Twilio or Firebase. TSH NeuroLink handles ALL notification needs.
 
 ---
 
@@ -163,7 +183,7 @@ TSH ERP Ecosystem (Slave - Read Only)
 ```
 
 **What happens:**
-- ✅ All Zoho Books data syncs TO TSH ERP automatically (invoices, payments, customers)
+- ✅ All Zoho Books data syncs TO TSH ERP automatically (invoices, payments, customers, vendors, users, credit notes, bills, sales orders)
 - ✅ All Zoho Inventory data syncs TO TSH ERP automatically (products, stock levels, warehouses)
 - ✅ TSH ERP reads and displays combined data from both Zoho products
 - ❌ TSH ERP does NOT push data back to Zoho yet
@@ -171,15 +191,33 @@ TSH ERP Ecosystem (Slave - Read Only)
 - ✅ Verify data accuracy and completeness
 - ✅ Ensure our database structure matches business needs
 
-**TDS Core Responsibilities:**
-- Poll Zoho Books API for financial data updates
+**TDS Core Responsibilities (via app/tds/):**
+- Poll Zoho Books API for ALL entity updates
 - Poll Zoho Inventory API for product/stock updates
 - Handle webhooks from both Zoho Books and Zoho Inventory
-- Transform Zoho format to TSH ERP database format
+- Transform Zoho format to TSH ERP database format via processors
+- Download and store product images locally
 - Maintain sync logs and statistics
 - Alert on sync failures
+- Automatic retry with circuit breaker
+
+**Phase 1 Required Entities (ALL via TDS Core):**
+✓ Products (2,218+) - WORKING
+✓ Stock levels - WORKING (embedded in products)
+⚠️ Customers (500+) - NEEDS VERIFICATION
+❌ Vendors/Suppliers - MISSING PROCESSOR
+❌ Sales Orders (ALL historical + real-time) - NOT RELIABLE
+❌ Invoices (ALL historical + real-time) - MISSING PROCESSOR
+❌ Payments Received (ALL historical + real-time) - MISSING PROCESSOR
+❌ Credit Notes - MISSING PROCESSOR
+❌ Purchase Bills - MISSING PROCESSOR
+❌ Users - MISSING PROCESSOR
+❌ Product Images (700+) - INCOMPLETE
 
 **Objective:** Build confidence that TSH ERP can accurately mirror ALL Zoho data from both products
+
+**Timeline:** 1 month to complete Phase 1
+**See:** `.claude/PHASE_1_REQUIREMENTS.md` for detailed plan
 
 ---
 
@@ -358,16 +396,25 @@ Zoho Inventory API ──┼──→ TDS Core Worker
 
 ### 🎯 SUCCESS CRITERIA FOR EACH PHASE
 
-#### Phase 1 Success:
-- [ ] All Zoho Inventory products synced (2,218+ products)
-- [ ] All Zoho Inventory stock levels synced (real-time)
+#### Phase 1 Success (ALL via TDS Core):
+- [ ] All Zoho Inventory products synced (2,218+ products) - ✅ DONE
+- [ ] All Zoho Inventory stock levels synced (real-time) - ✅ DONE
 - [ ] All Zoho Inventory warehouses synced
-- [ ] All Zoho Books customers synced (500+ wholesale clients)
-- [ ] All Zoho Books invoices synced
-- [ ] All Zoho Books payments synced
-- [ ] Product images from Zoho Inventory downloaded and stored
-- [ ] Zero sync failures for 1 week continuous
+- [ ] All Zoho Books customers synced (500+ wholesale clients) - ⚠️ VERIFY
+- [ ] All Zoho Books vendors synced - ❌ TODO
+- [ ] All Zoho Books sales orders synced (historical + real-time) - ❌ NOT RELIABLE
+- [ ] All Zoho Books invoices synced (historical + real-time) - ❌ TODO
+- [ ] All Zoho Books payments received synced (historical + real-time) - ❌ TODO
+- [ ] All Zoho Books credit notes synced - ❌ TODO
+- [ ] All Zoho Books purchase bills synced - ❌ TODO
+- [ ] All Zoho Books users synced - ❌ TODO
+- [ ] Product images downloaded and stored (700+) - ❌ INCOMPLETE
+- [ ] Zero sync failures for 7 consecutive days
+- [ ] 99%+ sync success rate
+- [ ] Real-time sync latency < 30 seconds
 - [ ] TDS Dashboard shows healthy status for BOTH APIs
+- [ ] Automated verification script passes daily
+- [ ] All data matches Zoho 100% (no discrepancies)
 
 #### Phase 2 Success:
 - [ ] 100 test transactions synced to both Zoho products successfully

@@ -91,22 +91,12 @@ class Settings(BaseSettings):
     smtp_user: Optional[str] = Field(default=None, env="SMTP_USER")
     smtp_password: Optional[str] = Field(default=None, env="SMTP_PASSWORD")
 
-    # SMS Configuration (for SMS notifications)
-    sms_enabled: bool = Field(default=False, env="SMS_ENABLED")
-    sms_provider: str = Field(default="twilio", env="SMS_PROVIDER")  # twilio, nexmo, etc.
-    sms_account_sid: Optional[str] = Field(default=None, env="SMS_ACCOUNT_SID")
-    sms_auth_token: Optional[str] = Field(default=None, env="SMS_AUTH_TOKEN")
-    sms_from_number: Optional[str] = Field(default=None, env="SMS_FROM_NUMBER")
-
-    # Firebase Cloud Messaging (Push Notifications)
-    firebase_credentials_path: Optional[str] = Field(
-        default=None,
-        env="FIREBASE_CREDENTIALS_PATH"
-    )
-    firebase_project_id: Optional[str] = Field(
-        default=None,
-        env="FIREBASE_PROJECT_ID"
-    )
+    # NOTE: Twilio and Firebase have been removed from TSH ERP
+    # TSH NeuroLink is the primary system for all notifications and communications:
+    # - Team chat and collaboration
+    # - Customer-sales rep communication
+    # - Consumer-technical support contact
+    # All notification delivery is handled through NeuroLink's unified system
 
     # Telegram Configuration
     telegram_enabled: bool = Field(default=False, env="TELEGRAM_ENABLED")

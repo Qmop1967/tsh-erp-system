@@ -152,15 +152,7 @@ services:
       EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-notifications@tsh.sale}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TSH ERP Notifications}
 
-      # Firebase Cloud Messaging
-      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-/app/firebase/service-account.json}
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
-
-      # SMS (Twilio)
-      SMS_ENABLED: ${SMS_ENABLED:-false}
-      SMS_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      SMS_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      SMS_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
+      # NOTE: Twilio and Firebase removed - TSH NeuroLink handles all notifications
 
       # Application
       ENVIRONMENT: ${ENVIRONMENT:-production}
@@ -182,7 +174,6 @@ services:
       - tsh_network
     volumes:
       - ./logs/neurolink:/app/logs
-      - ./firebase:/app/firebase:ro
     deploy:
       resources:
         limits:
@@ -236,7 +227,7 @@ services:
           cpus: '0.25'
           memory: 128M
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
