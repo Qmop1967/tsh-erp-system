@@ -123,14 +123,12 @@ class ProcessorService:
             # Queue for processing
             queue_item = TDSSyncQueue(
                 inbox_event_id=inbox_event.id,
-                source_type=SourceType(source_type),
                 entity_type=EntityType(entity_type),
                 source_entity_id=str(entity_id),
-                event_type=event_type,
-                payload=payload_data,
+                operation_type="upsert",
+                validated_payload=payload_data,
                 status=EventStatus.PENDING,
-                retry_count=0,
-                queued_at=datetime.utcnow()
+                attempt_count=0
             )
 
             self.db.add(queue_item)
