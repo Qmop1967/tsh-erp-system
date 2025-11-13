@@ -42,6 +42,7 @@
 ## 🤝 How We Work Together
 
 ### Start of Every Session
+
 **I will:**
 1. ✅ Read PROJECT_VISION.md to refresh context
 2. ✅ Ask what you want to work on today
@@ -50,10 +51,41 @@
 5. ✅ Keep you updated on progress
 
 **You should:**
-1. Tell me what you want to accomplish
-2. Provide any relevant context or constraints
-3. Let me know if it's urgent or experimental
-4. Review my understanding before I start coding
+1. State the task clearly and concisely
+2. Provide new updates ONLY if they differ from `.claude/` documentation
+3. Avoid repeating information already stored in `.claude/` files
+4. Let me know if it's urgent or experimental
+5. Review my understanding before I start coding
+
+**Efficient Session Start Protocol:**
+
+Instead of repeating context I already have:
+```yaml
+❌ DON'T: "We have 500 clients, use FastAPI, deploy to staging first, etc."
+         (I already know this from PROJECT_VISION.md and ARCHITECTURE_RULES.md)
+
+✅ DO: "Add commission tracking for travel salespeople"
+       (Clear task, I'll ask clarifying questions about business logic)
+
+✅ DO: "We've moved to Phase 2 of Zoho migration"
+       (New information, update to PROJECT_VISION.md needed)
+
+✅ DO: "Same as yesterday, continue the feature we were working on"
+       (If continuing from previous session, just say so)
+```
+
+**What I Already Know (No Need to Repeat):**
+- Business scale (500+ clients, 2,218+ products, 30+ daily orders)
+- Tech stack (FastAPI, Flutter, PostgreSQL)
+- Deployment rules (all components, staging first)
+- Zoho migration phase (Phase 1 read-only - unless you tell me it changed)
+- Critical constraints (Arabic RTL, mobile-first, never bypass TDS Core)
+
+**What You Should Tell Me:**
+- Today's specific task or goal
+- Any changes to context since last session
+- Urgency level
+- Special constraints for this specific task
 
 ### During Development
 **I will:**

@@ -92,6 +92,147 @@ MUST Implement Caching When:
 
 ---
 
+## 🤖 AI Performance Optimization (Claude Code)
+
+### Minimize Context Loading Overhead
+
+**Smart Loading Strategy:**
+```yaml
+Session Start:
+✅ Load only Priority 1 files (AI_CONTEXT_RULES, PROJECT_VISION, QUICK_REFERENCE)
+✅ Load additional files as needed for specific tasks
+✅ Don't reload files already in context
+✅ Reference .claude/ files instead of repeating content
+
+During Session:
+✅ Cache stable facts (tech stack, deployment rules, phase)
+✅ Reuse previous reasoning for similar problems
+✅ Build incrementally on previous work
+✅ Avoid regenerating full responses when partial updates suffice
+```
+
+**Incremental Reasoning Patterns:**
+```yaml
+Instead of Full Regeneration:
+❌ "Let me explain the entire Zoho migration strategy again..."
+✅ "As covered in PROJECT_VISION.md, we're in Phase 1. For this task..."
+
+Instead of Repeated Explanations:
+❌ Explain FastAPI basics every time
+✅ Reference ARCHITECTURE_RULES.md and focus on task-specific details
+
+Instead of Full Code Rewrites:
+❌ Rewrite entire file when only one function changed
+✅ Use Edit tool to modify specific sections
+```
+
+### Context Caching Strategy
+
+**Cache These Facts (Never Change):**
+```yaml
+Tech Stack:
+- Backend: FastAPI + Python 3.9+
+- Database: PostgreSQL 12+
+- Frontend: React 18+ / Flutter Web
+- Mobile: Flutter 3.0+
+- Deployment: GitHub Actions → VPS
+- Backup: AWS S3
+
+Architecture Rules:
+- All Zoho sync through TDS Core
+- Deploy all components together
+- Staging first, then production
+- Arabic RTL mandatory
+- Mobile-first design
+
+Current Infrastructure:
+- VPS IP: 167.71.39.50
+- Database: PostgreSQL (127 MB, 57 tables)
+- Products: 2,218+
+- Clients: 500+
+- Daily orders: 30+ wholesale, 30+ retail
+```
+
+**Re-verify Each Session (May Change):**
+```yaml
+- Current Zoho migration phase
+- Active tasks/priorities
+- Recent commits/changes
+- Known bugs/issues
+- New features added
+```
+
+### Efficient Communication
+
+**Concise Responses:**
+```yaml
+For Simple Confirmations:
+✅ "Done. Deployed to staging at staging.erp.tsh.sale"
+❌ "I have successfully completed the deployment process to the staging
+   environment. The application is now available at staging.erp.tsh.sale.
+   All components including backend, frontend, and TDS Core have been deployed
+   successfully. You can now proceed with testing..." (unnecessarily verbose)
+
+For Status Updates:
+✅ "Fixed bug in commission calculation. Testing now."
+❌ "I have identified the root cause of the issue in the commission calculation
+   logic and have implemented a fix. I am now proceeding to test the fix locally
+   before deploying to staging..." (too verbose)
+
+For Explanations:
+✅ Explain WHY and WHAT, skip obvious details
+❌ Explain every single step in exhaustive detail
+```
+
+### Structured Thinking Patterns
+
+**Use Established Patterns from REASONING_PATTERNS.md:**
+```yaml
+For Debugging:
+✅ Follow Root-Cause Analysis (5 Whys)
+✅ Don't random-walk through solutions
+
+For Trade-offs:
+✅ Use Trade-Off Decision Framework
+✅ Present pros/cons systematically
+
+For Performance:
+✅ Measure → Analyze → Optimize → Verify
+✅ Don't optimize prematurely
+```
+
+### Detect Repetition (Auto-Summarize)
+
+**When Same Task Repeats:**
+```yaml
+First Time:
+- Explain fully
+- Show code examples
+- Provide context
+
+Second Time (Same Session):
+- Brief reminder
+- Focus on differences
+- Skip repeated explanations
+
+Third+ Time:
+- Recognize pattern
+- Suggest abstraction/template
+- Minimal explanation
+```
+
+**Example:**
+```
+First Request: "Add pagination to products endpoint"
+Response: Full explanation of pagination, code example, testing steps
+
+Second Request: "Add pagination to clients endpoint"
+Response: "Same pagination pattern as products endpoint. Implementing..."
+(No need to re-explain pagination concept)
+```
+
+---
+
 ## 🗄️ Database Optimization
 
 ### 1. Index Strategy for TSH ERP

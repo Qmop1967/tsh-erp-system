@@ -516,6 +516,130 @@ For Claude (me):
 
 ---
 
+## 🔄 Automatic Session Recovery Protocol
+
+### When Sessions Split or Reset
+
+Claude Code sessions can reset or split automatically. When this happens:
+
+**Detection Signals:**
+```yaml
+I've lost context when:
+- Previous messages are not visible
+- I don't remember recent work
+- Conversation history appears truncated
+- New session without seeing /CLAUDE.md prompt
+```
+
+**Automatic Recovery Steps:**
+```yaml
+1. Detect Context Loss:
+   - Notice that previous conversation is missing
+   - Acknowledge: "I notice this is a new session or context was reset"
+
+2. Immediate Context Reload:
+   - Read .claude/AI_CONTEXT_RULES.md (this file)
+   - Read .claude/PROJECT_VISION.md
+   - Read .claude/QUICK_REFERENCE.md
+   - Read .claude/ARCHITECTURE_RULES.md
+
+3. Reconstruct Current State:
+   - Check git status (last commits)
+   - Check current branch
+   - Check for any uncommitted changes
+   - Review recent git log
+
+4. Ask for Minimal Recap:
+   - "I've reloaded context from .claude/ files. We're working on TSH ERP
+      (Phase 1 Zoho migration, FastAPI+Flutter+PostgreSQL).
+
+      I see recent commits show [summary from git log].
+
+      What were we working on, and should I continue or start something new?"
+
+5. Resume Work:
+   - Khaleel provides brief context
+   - No need to repeat information from .claude/ files
+   - Continue from where we left off
+```
+
+**What NOT to Do:**
+```yaml
+❌ Don't ask Khaleel to repeat entire project context
+❌ Don't ask for tech stack explanation (I have PROJECT_VISION.md)
+❌ Don't ask about deployment rules (I have ARCHITECTURE_RULES.md)
+❌ Don't pretend I remember what I don't
+❌ Don't ask for information already in .claude/ files
+
+✅ Do reload .claude/ files immediately
+✅ Do check git history for recent work
+✅ Do ask only for task-specific context
+✅ Do acknowledge the session reset transparently
+```
+
+**Example Recovery Dialogue:**
+
+```
+Me: "I notice this is a new session. I've reloaded context from .claude/ files.
+
+     Current state:
+     - TSH ERP Ecosystem (500+ clients, 2,218+ products)
+     - Phase 1 Zoho migration (read-only via TDS Core)
+     - Tech stack: FastAPI + Flutter + PostgreSQL
+     - Recent commit: 'Fix: Add g++ compiler to Dockerfile' (3 hours ago)
+
+     What should we work on?"
+
+Khaleel: "Continue the Zoho items sync we were debugging"
+
+Me: "Got it. Let me check the recent changes and TDS Core logs..."
+```
+
+### Incremental Reasoning (Performance Optimization)
+
+Instead of regenerating full responses:
+
+**Use Incremental Approach:**
+```yaml
+When continuing work from previous session:
+✅ Reference previous decisions (check git commits)
+✅ Build on existing code (don't recreate from scratch)
+✅ Reuse established patterns
+✅ Cache stable facts in memory:
+   - Tech stack (FastAPI, Flutter, PostgreSQL)
+   - Current phase (Zoho Migration Phase 1)
+   - Deployment rules (all components, staging first)
+   - Scale (500+ clients, 2,218+ products)
+
+When explaining concepts:
+✅ Concise explanations for concepts already in .claude/ files
+✅ Detailed explanations only for new or complex topics
+✅ Reference .claude/ files instead of repeating content
+```
+
+**Cache Stable Context:**
+
+These facts NEVER change (until Khaleel says otherwise):
+```yaml
+Cached (No Need to Re-verify):
+- Tech stack: FastAPI + Flutter + PostgreSQL
+- Database: PostgreSQL 12+
+- Hosting: VPS (167.71.39.50)
+- Backup: AWS S3
+- Sync: TDS Core only
+- Languages: Arabic (primary) + English
+- Deployment: All components together
+- Branch workflow: develop → staging, main → production
+
+May Change (Verify each session):
+- Current Zoho migration phase (ask if Phase 1 still accurate)
+- Recent features added
+- Current task/priorities
+- Active bugs or issues
+```
+
+---
+
 ## 📊 System Health Verification
 
 ### Pre-Work Checklist (Mental):
