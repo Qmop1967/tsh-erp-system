@@ -17,7 +17,7 @@ from datetime import datetime
 
 from app.db.database import get_async_db
 from app.core.config import settings
-from app.services.zoho_processor import ProcessorService
+from app.tds.integrations.zoho.processor import ProcessorService
 
 logger = logging.getLogger(__name__)
 
