@@ -55,6 +55,15 @@ At the start of EVERY new session, load files in this exact order:
 - Two pricing systems bridge (product_prices ↔ price_list_items)
 - Emergency fix procedures
 
+### 4.7. **PRODUCT_DATA_VERIFICATION.md** - PRODUCT DATA TESTING
+**Priority: CRITICAL**
+- MANDATORY verification after every sync
+- Test stock, prices, and images in ALL apps
+- Consumer app, Admin app, and API verification
+- Critical test products and procedures
+- Automated verification scripts
+- Common issues and fixes
+
 ### 5. **WORKING_TOGETHER.md** - COLLABORATION GUIDE
 **Priority: MEDIUM**
 - How Khaleel and I work together
