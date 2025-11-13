@@ -156,7 +156,7 @@ class ZohoImageDownloader:
             return None
 
     def update_product_image_in_db(self, zoho_item_id: str, image_url: str) -> bool:
-        """Update product image URL in database"""
+        """Update product image URL in database and create symlink"""
         query = text("""
             UPDATE products
             SET image_url = :image_url,
@@ -171,6 +171,21 @@ class ZohoImageDownloader:
                 
                 if result.rowcount > 0:
                     self.db_updates += 1
+                    
+                    # Create symlink for consumer app: {zoho_item_id}.jpg -> actual file
+                    try:
+                        filename = image_url.split('/')[-1]  # e.g., AKS-YB-BL-3M_20251113_011506_665236.jpg
+                        source_path = self.uploads_dir / filename
+                        ext = source_path.suffix or '.jpg'
+                        symlink_path = self.uploads_dir / f"{zoho_item_id}{ext}"
+                        
+                        # Only create if source exists and symlink doesn't
+                        if source_path.exists() and not symlink_path.exists():
+                            symlink_path.symlink_to(filename)
+                            logger.debug(f"  🔗 Created symlink: {zoho_item_id}{ext}")
+                    except Exception as symlink_error:
+                        logger.warning(f"  ⚠️  Symlink creation failed: {symlink_error}")
+                    
                     return True
                 else:
                     logger.warning(f"  ⚠️  Product not found in DB: {zoho_item_id}")
