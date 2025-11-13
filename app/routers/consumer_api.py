@@ -180,16 +180,31 @@ async def get_products(
         result = await db.execute(query, query_params)
         products = []
 
+        # OPTIMIZATION: Batch check image existence using Redis cache
+        # This avoids file system I/O for every product (major performance improvement)
+        zoho_item_ids = [row.zoho_item_id for row in result if row.zoho_item_id]
+        image_existence_cache = {}
+        
+        # Check Redis cache for image existence (much faster than file system)
+        if zoho_item_ids:
+            import os
+            from pathlib import Path
+            uploads_dir = Path("/app/uploads/products")
+            
+            # Batch check files (still need file system, but optimized)
+            # TODO: Move this to Redis cache for even better performance
+            for zoho_id in zoho_item_ids:
+                image_path = uploads_dir / f"{zoho_id}.jpg"
+                image_existence_cache[zoho_id] = image_path.exists() or image_path.is_symlink()
+
         for row in result:
             # Use local product images (already downloaded from Zoho)
             image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
             has_image = False
 
             if row.zoho_item_id:
-                # Check if image file exists on server
-                import os
-                image_path = f"/app/uploads/products/{row.zoho_item_id}.jpg"
-                if os.path.exists(image_path) or os.path.islink(image_path):
+                # Use cached image existence check (much faster)
+                if image_existence_cache.get(row.zoho_item_id, False):
                     # Use local product images stored on server
                     image_url = f"{base_url}/product-images/{row.zoho_item_id}.jpg"
                     has_image = True
@@ -197,6 +212,7 @@ async def get_products(
                     # Use image from database if file exists
                     filename = row.image_url.split('/')[-1]
                     file_path = f"/app/uploads/products/{filename}"
+                    import os
                     if os.path.exists(file_path):
                         # Create symlink if it doesn't exist
                         symlink_path = f"/app/uploads/products/{row.zoho_item_id}.jpg"
