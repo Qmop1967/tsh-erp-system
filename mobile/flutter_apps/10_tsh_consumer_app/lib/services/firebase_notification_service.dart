@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 /// Firebase Notification Service for TSH Consumer App
 ///
@@ -93,10 +94,6 @@ class FirebaseNotificationService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      onDidReceiveLocalNotification: (id, title, body, payload) async {
-        // Handle iOS foreground notification
-        debugPrint('iOS foreground notification: $title');
-      },
     );
 
     final initializationSettings = InitializationSettings(
@@ -193,6 +190,7 @@ class FirebaseNotificationService {
     final channelName = 'TSH ${severity.toUpperCase()} Notifications';
 
     // Android notification details
+    final colorValue = _getColor(severity);
     final androidDetails = AndroidNotificationDetails(
       channelId,
       channelName,
@@ -200,7 +198,7 @@ class FirebaseNotificationService {
       importance: _getImportance(severity),
       priority: _getPriority(severity),
       icon: '@mipmap/ic_launcher',
-      color: _getColor(severity),
+      color: colorValue != null ? Color(colorValue) : null,
       enableVibration: true,
       playSound: true,
     );
