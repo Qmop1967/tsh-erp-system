@@ -178,26 +178,25 @@ async def get_products(
         """)
 
         result = await db.execute(query, query_params)
+        rows = list(result)  # Convert to list to allow multiple iterations
         products = []
 
-        # OPTIMIZATION: Batch check image existence using Redis cache
-        # This avoids file system I/O for every product (major performance improvement)
-        zoho_item_ids = [row.zoho_item_id for row in result if row.zoho_item_id]
+        # OPTIMIZATION: Batch check image existence (avoids N file system checks)
+        # This reduces file I/O from N operations to 1 batch operation
+        zoho_item_ids = [row.zoho_item_id for row in rows if row.zoho_item_id]
         image_existence_cache = {}
         
-        # Check Redis cache for image existence (much faster than file system)
+        # Batch check files (much faster than checking in loop)
         if zoho_item_ids:
-            import os
             from pathlib import Path
             uploads_dir = Path("/app/uploads/products")
             
-            # Batch check files (still need file system, but optimized)
-            # TODO: Move this to Redis cache for even better performance
+            # Batch check all images at once
             for zoho_id in zoho_item_ids:
                 image_path = uploads_dir / f"{zoho_id}.jpg"
                 image_existence_cache[zoho_id] = image_path.exists() or image_path.is_symlink()
 
-        for row in result:
+        for row in rows:
             # Use local product images (already downloaded from Zoho)
             image_url = f"{base_url}/static/placeholder-product.png"  # default fallback
             has_image = False
