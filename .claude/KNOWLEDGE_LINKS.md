@@ -415,6 +415,76 @@ Access: Via TDS Core ONLY (never direct)
 📍 Settings:            https://erp.tsh.sale/tds-admin/settings
 ```
 
+### Zoho MCP (Model Context Protocol) - **NEW & AVAILABLE** ✅
+```yaml
+Status: ACTIVE and READY TO USE
+Purpose: Direct API access to Zoho Books & Inventory via Claude Code MCP
+
+What It Is:
+  - Claude Code AI assistant has DIRECT access to Zoho APIs
+  - Can query Zoho data in real-time during sessions
+  - Bypasses need for manual API calls or scripts
+  - Enables verification and validation of sync status
+
+Available Tools (24 functions):
+  # Zoho Books:
+  - list_items: Get products/items list with pagination
+  - get_item: Get detailed item information
+  - list_contacts: Get customers/vendors list
+  - get_contact: Get detailed contact information
+  - get_contact_address: Get contact addresses
+  - list_invoices: Get invoices with filters
+  - get_invoice: Get detailed invoice information
+  - list_sales_orders: Get sales orders list
+  - get_sales_order: Get detailed sales order
+  - list_credit_notes: Get credit notes list
+  - get_credit_note: Get detailed credit note
+  - list_customer_payments: Get customer payments
+  - get_customer_payment: Get payment details
+  - list_bill_payments: Get vendor bill payments
+  - get_vendor_payment: Get vendor payment details
+  - get_currency: Get currency information
+  - get_current_user: Get Zoho Books user info
+
+  # Zoho Inventory:
+  - list_items: Get inventory items
+  - get_item: Get item details with stock levels
+  - list_item_details: Batch item details by IDs
+  - list_item_groups: Get item groups
+  - list_pricebooks: Get price lists
+
+Organization ID: 748369814 (TSH ERP)
+
+How Claude Code Uses It:
+  ✅ Verify Zoho data sync status
+  ✅ Compare TSH ERP database vs Zoho source
+  ✅ Validate product counts, prices, stock levels
+  ✅ Check customer/vendor data accuracy
+  ✅ Debug sync issues by inspecting source data
+  ✅ Get real-time Zoho data during development
+
+Example Use Cases:
+  "Check if Zoho has more products than our database"
+  "Get latest stock level for product X from Zoho"
+  "Verify customer count matches between systems"
+  "Show me the actual Zoho data for item Y"
+  "Compare invoice totals: Zoho vs TSH ERP"
+
+Benefits:
+  - Real-time data verification
+  - No need for separate API testing tools
+  - Instant sync validation
+  - Debug issues faster
+  - Verify data accuracy on-demand
+
+Activation:
+  Command: /mcp
+  Status: Currently ENABLED ✅
+  Session: Persistent (stays enabled during session)
+```
+
+**Note:** ZOHOMCP is a powerful tool that enables Claude Code to directly inspect Zoho data. This makes development, debugging, and verification significantly faster and more accurate.
+
 ---
 
 ## 📱 Mobile Apps

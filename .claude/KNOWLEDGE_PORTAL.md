@@ -221,6 +221,10 @@ Detect security issues:
 
 Secure code patterns:
   → CODE_TEMPLATES.md (authentication, authorization, validation)
+
+Credentials & API keys:
+  → CREDENTIALS.md (Namecheap DNS, Database, Redis, Zoho, JWT, Email)
+  ⚠️  CONFIDENTIAL - Contains production credentials
 ```
 
 ### 🧾 Operations & Process

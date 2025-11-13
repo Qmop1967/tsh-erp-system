@@ -91,6 +91,40 @@ These decisions are **FINAL** and **NON-NEGOTIABLE**. Do NOT suggest changing th
 - Strong community
 - Already have 8 apps in Flutter
 
+### Notifications & Communication
+```yaml
+✅ MUST USE:
+  - TSH NeuroLink (Unified Notification & Communication System)
+  - WebSocket for real-time communication
+  - Resend API for email delivery
+  - Redis for event bus
+
+❌ NEVER USE:
+  - Twilio (SMS or any Twilio services)
+  - Firebase Cloud Messaging (FCM)
+  - Third-party push notification services
+  - Direct SMS APIs
+```
+
+**Why TSH NeuroLink:**
+- Unified system for ALL notifications and communications
+- Handles team collaboration and internal chat
+- Manages customer-sales rep communications
+- Provides consumer-technical support channels
+- Real-time WebSocket connections
+- Event-driven architecture with Redis
+- Integrated with TSH ERP authentication
+- Centralized notification rules and delivery
+
+**Communication Channels Handled by NeuroLink:**
+1. **Team Communication**: Internal chat between employees
+2. **Customer-Sales**: Wholesale clients ↔ Sales representatives
+3. **Consumer Support**: Retail consumers ↔ Technical support
+4. **System Notifications**: Order updates, inventory alerts, sync status
+5. **Email Delivery**: Via Resend API integration
+
+**IMPORTANT**: Do NOT implement Twilio, Firebase, or any external notification services. All notification needs are handled by TSH NeuroLink.
+
 ---
 
 ## 📁 Project Structure (MUST FOLLOW)

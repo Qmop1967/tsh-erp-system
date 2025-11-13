@@ -684,12 +684,13 @@ class ZohoSyncOrchestrator:
         """Publish event to event bus"""
         if self.event_bus:
             try:
-                await self.event_bus.publish({
-                    "event_type": event_type,
-                    "module": "tds.zoho",
-                    "data": data,
-                    "timestamp": datetime.utcnow().isoformat()
-                })
+                from ....core.events.base_event import BaseEvent
+                event = BaseEvent(
+                    event_type=event_type,
+                    module="tds.zoho",
+                    data=data
+                )
+                await self.event_bus.publish(event)
             except Exception as e:
                 logger.warning(f"Failed to publish event {event_type}: {e}")
 

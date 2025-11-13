@@ -13,9 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_async_db
 from app.tds.integrations.zoho import (
-    UnifiedZohoClient, ZohoAuthManager, ZohoSyncOrchestrator,
+    UnifiedZohoClient, ZohoAuthManager,
     ZohoCredentials, SyncConfig, SyncMode, EntityType
 )
+from app.tds.integrations.zoho.sync_with_caching import CachedZohoSyncOrchestrator
 from app.core.events.event_bus import EventBus
 import os
 
@@ -67,8 +68,8 @@ async def get_tds_services():
     )
     await zoho_client.start_session()
 
-    # Create sync orchestrator
-    orchestrator = ZohoSyncOrchestrator(
+    # Create sync orchestrator (with Redis caching)
+    orchestrator = CachedZohoSyncOrchestrator(
         zoho_client=zoho_client,
         event_bus=event_bus
     )

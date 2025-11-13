@@ -240,3 +240,6 @@ env/
 *.pyc
 *.pyo
 *.pyd
+
+# Credentials and sensitive data
+.claude/CREDENTIALS.md
