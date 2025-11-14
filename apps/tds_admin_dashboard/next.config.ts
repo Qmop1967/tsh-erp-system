@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
 
+  // Configure base path for proxy routing through /tds-admin
+  basePath: '/tds-admin',
+
   // Optimize for production
   reactStrictMode: true,
   poweredByHeader: false,
