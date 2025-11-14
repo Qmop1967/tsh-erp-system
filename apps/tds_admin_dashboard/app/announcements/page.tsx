@@ -88,7 +88,7 @@ export default function AnnouncementsPage() {
     title: string;
     content: string;
     severity: 'info' | 'warning' | 'error' | 'critical';
-    target_type: 'all' | 'roles';
+    target_type: 'all' | 'roles' | 'branches' | 'users';
     target_roles: string[];
     requires_acknowledgment: boolean;
     publish_at: string;
