@@ -492,22 +492,37 @@ async def get_profile(
     return current_user
 ```
 
-### Authorization (RBAC)
+### Authorization Framework: HYBRID ABAC + RBAC + RLS
+
+**⚠️ CRITICAL: TSH ERP uses a HYBRID authorization model combining:**
+1. **RBAC** (Role-Based Access Control) - Permission sets based on user roles
+2. **ABAC** (Attribute-Based Access Control) - Fine-grained access based on attributes
+3. **RLS** (Row-Level Security) - Database-level data isolation
+
+**This framework is IMMUTABLE. All authorization MUST follow this hybrid approach.**
+
+---
+
+#### 1. RBAC (Role-Based Access Control)
+**Purpose:** Define broad permission sets based on user roles
+
 ```python
-# Role-based access control
+# Role hierarchy and permissions
 from enum import Enum
 
 class UserRole(Enum):
-    OWNER = "owner"
-    ADMIN = "admin"
-    HR_MANAGER = "hr_manager"
-    RETAIL_STAFF = "retail_staff"
-    INVENTORY_MANAGER = "inventory_manager"
-    TRAVEL_SALES = "travel_sales"
-    WHOLESALE_CLIENT = "wholesale_client"
-    CONSUMER = "consumer"
-    PARTNER_SALESMAN = "partner_salesman"
+    """User roles with hierarchical permissions."""
+    OWNER = "owner"                          # Full system access
+    ADMIN = "admin"                          # Full operational access
+    HR_MANAGER = "hr_manager"                # HR module access
+    RETAIL_STAFF = "retail_staff"            # Retail operations
+    INVENTORY_MANAGER = "inventory_manager"  # Inventory control
+    TRAVEL_SALES = "travel_sales"            # Travel salesperson
+    WHOLESALE_CLIENT = "wholesale_client"    # B2B client
+    CONSUMER = "consumer"                    # B2C customer
+    PARTNER_SALESMAN = "partner_salesman"    # Partner/affiliate
 
+# RBAC Permission Checker
 def require_role(allowed_roles: list[UserRole]):
     """Decorator to require specific roles."""
     async def role_checker(
@@ -521,16 +536,375 @@ def require_role(allowed_roles: list[UserRole]):
         return current_user
     return role_checker
 
-# Use in routes
+# Example: Role-based route protection
 @router.get("/api/v1/financials")
 async def get_financials(
     current_user: User = Depends(
         require_role([UserRole.OWNER, UserRole.ADMIN])
     )
 ):
-    # Only owner and admin can access
+    """Only OWNER and ADMIN roles can access financial data."""
     return financial_data
 ```
+
+---
+
+#### 2. ABAC (Attribute-Based Access Control)
+**Purpose:** Fine-grained access control based on user, resource, and context attributes
+
+```python
+from typing import Dict, Any
+from datetime import datetime, time
+
+class AttributePolicy:
+    """ABAC policy engine for fine-grained access control."""
+
+    @staticmethod
+    async def check_access(
+        user: User,
+        resource: str,
+        action: str,
+        context: Dict[str, Any] = None
+    ) -> bool:
+        """
+        Check if user can perform action on resource based on attributes.
+
+        Attributes considered:
+        - User attributes: role, department, location, shift
+        - Resource attributes: sensitivity, owner, department
+        - Context attributes: time, location, device, IP
+        """
+        context = context or {}
+
+        # Example: Time-based access (retail staff only during work hours)
+        if user.role == UserRole.RETAIL_STAFF:
+            current_time = datetime.now().time()
+            work_start = time(8, 0)   # 8:00 AM
+            work_end = time(20, 0)    # 8:00 PM
+
+            if not (work_start <= current_time <= work_end):
+                return False
+
+        # Example: Location-based access (inventory manager for specific warehouse)
+        if action == "modify_inventory":
+            resource_location = context.get("warehouse_location")
+            if user.location and resource_location != user.location:
+                return False
+
+        # Example: Department-based access
+        if hasattr(user, 'department') and context.get('resource_department'):
+            if user.department != context['resource_department']:
+                return False
+
+        # Example: Data sensitivity level
+        if context.get('sensitivity_level', 0) > user.clearance_level:
+            return False
+
+        return True
+
+# ABAC Dependency
+async def check_abac_permission(
+    resource: str,
+    action: str,
+    context: Dict[str, Any] = None
+):
+    """ABAC permission checker for routes."""
+    async def abac_checker(
+        current_user: User = Depends(get_current_user)
+    ):
+        has_access = await AttributePolicy.check_access(
+            user=current_user,
+            resource=resource,
+            action=action,
+            context=context
+        )
+
+        if not has_access:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: attribute-based policy violation"
+            )
+
+        return current_user
+
+    return abac_checker
+
+# Example: ABAC-protected route
+@router.put("/api/v1/inventory/{item_id}")
+async def update_inventory(
+    item_id: int,
+    quantity: int,
+    warehouse_location: str,
+    current_user: User = Depends(
+        check_abac_permission(
+            resource="inventory",
+            action="modify_inventory",
+            context={"warehouse_location": warehouse_location}
+        )
+    )
+):
+    """Update inventory with ABAC checks for location, time, etc."""
+    return await inventory_service.update(item_id, quantity)
+```
+
+**Common ABAC Attributes:**
+- **User Attributes:** role, department, location, clearance_level, shift
+- **Resource Attributes:** owner_id, department, sensitivity_level, location
+- **Context Attributes:** timestamp, IP address, device_type, geo_location
+- **Action Attributes:** read, write, delete, approve, export
+
+---
+
+#### 3. RLS (Row-Level Security)
+**Purpose:** Database-level data isolation ensuring users only see their own data
+
+```python
+from sqlalchemy import event, select
+from sqlalchemy.orm import Session
+
+class RLSPolicy:
+    """Row-Level Security implementation at database layer."""
+
+    @staticmethod
+    def apply_rls_filter(query, model, user: User):
+        """
+        Apply row-level security filters to queries.
+
+        Ensures users only access data they're authorized to see.
+        """
+        # Example: Wholesale clients only see their own orders
+        if user.role == UserRole.WHOLESALE_CLIENT:
+            if model.__tablename__ == "orders":
+                query = query.filter(model.customer_id == user.customer_id)
+            elif model.__tablename__ == "invoices":
+                query = query.filter(model.customer_id == user.customer_id)
+
+        # Example: Travel salespersons only see their assigned clients
+        elif user.role == UserRole.TRAVEL_SALES:
+            if model.__tablename__ == "customers":
+                query = query.filter(model.assigned_salesperson_id == user.id)
+            elif model.__tablename__ == "orders":
+                query = query.filter(
+                    model.customer_id.in_(
+                        select([Customer.id]).where(
+                            Customer.assigned_salesperson_id == user.id
+                        )
+                    )
+                )
+
+        # Example: Inventory managers only see their warehouse
+        elif user.role == UserRole.INVENTORY_MANAGER:
+            if model.__tablename__ == "inventory":
+                query = query.filter(model.warehouse_id == user.warehouse_id)
+
+        # Example: Partner salesmen only see their own sales
+        elif user.role == UserRole.PARTNER_SALESMAN:
+            if model.__tablename__ in ["sales", "commissions"]:
+                query = query.filter(model.salesman_id == user.id)
+
+        # OWNER and ADMIN see everything (no filter)
+        elif user.role in [UserRole.OWNER, UserRole.ADMIN]:
+            pass  # No restrictions
+
+        return query
+
+# PostgreSQL RLS Policies (applied at DB level)
+"""
+-- Enable RLS on tables
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Wholesale clients see only their orders
+CREATE POLICY wholesale_client_orders ON orders
+    FOR SELECT
+    TO wholesale_client_role
+    USING (customer_id = current_setting('app.current_user_customer_id')::integer);
+
+-- Policy: Travel salespersons see assigned customers' data
+CREATE POLICY travel_sales_customers ON customers
+    FOR SELECT
+    TO travel_sales_role
+    USING (assigned_salesperson_id = current_setting('app.current_user_id')::integer);
+
+-- Policy: Inventory managers see only their warehouse
+CREATE POLICY inventory_manager_warehouse ON inventory
+    FOR ALL
+    TO inventory_manager_role
+    USING (warehouse_id = current_setting('app.current_user_warehouse_id')::integer);
+
+-- Policy: Admins and owners bypass RLS
+CREATE POLICY admin_all_access ON orders
+    FOR ALL
+    TO admin_role, owner_role
+    USING (true);
+"""
+
+# SQLAlchemy Integration
+@event.listens_for(Session, "after_attach")
+def apply_rls_on_load(session, instance):
+    """Automatically apply RLS when loading objects."""
+    current_user = get_current_user_from_context()
+    if current_user and hasattr(instance, '__table__'):
+        # RLS is enforced at query level, not object level
+        pass
+
+# Service Layer RLS Integration
+class BaseService:
+    """Base service with RLS support."""
+
+    def __init__(self, db: Session, current_user: User):
+        self.db = db
+        self.current_user = current_user
+
+    def query(self, model):
+        """Create query with RLS filters applied."""
+        query = self.db.query(model)
+        return RLSPolicy.apply_rls_filter(query, model, self.current_user)
+
+    async def get_all(self, model, skip: int = 0, limit: int = 100):
+        """Get all records with RLS filtering."""
+        query = self.query(model).offset(skip).limit(limit)
+        return query.all()
+
+# Example: RLS-aware service usage
+class OrderService(BaseService):
+    async def get_orders(self, skip: int = 0, limit: int = 100):
+        """
+        Get orders with automatic RLS filtering.
+
+        - Wholesale clients: only their orders
+        - Travel sales: orders from assigned customers
+        - Admin/Owner: all orders
+        """
+        return await self.get_all(Order, skip, limit)
+```
+
+---
+
+#### 4. HYBRID Framework Integration
+
+**⚠️ ALWAYS use all three layers together:**
+
+```python
+from fastapi import APIRouter, Depends
+from typing import List
+
+router = APIRouter(prefix="/api/v1/orders", tags=["orders"])
+
+@router.get("", response_model=List[OrderResponse])
+async def get_orders(
+    skip: int = 0,
+    limit: int = 100,
+    warehouse_id: int = None,
+    # Layer 1: RBAC - Role check
+    current_user: User = Depends(
+        require_role([
+            UserRole.OWNER,
+            UserRole.ADMIN,
+            UserRole.RETAIL_STAFF,
+            UserRole.TRAVEL_SALES,
+            UserRole.WHOLESALE_CLIENT
+        ])
+    ),
+    # Layer 2: ABAC - Attribute check
+    abac_check: User = Depends(
+        check_abac_permission(
+            resource="orders",
+            action="read",
+            context={"warehouse_id": warehouse_id}
+        )
+    ),
+    db: Session = Depends(get_db)
+):
+    """
+    Get orders with 3-layer security:
+    1. RBAC: User must have an authorized role
+    2. ABAC: Additional checks (time, location, etc.)
+    3. RLS: Results filtered based on user's data access
+    """
+    # Layer 3: RLS - Query filtering at service layer
+    service = OrderService(db, current_user)
+    orders = await service.get_orders(skip=skip, limit=limit)
+
+    return orders
+```
+
+---
+
+#### 5. Authorization Decision Flow
+
+```
+Incoming Request
+       ↓
+[1. Authentication]
+   JWT Token Validation
+       ↓
+[2. RBAC Check]
+   Does user role have permission?
+   YES → Continue | NO → 403 Forbidden
+       ↓
+[3. ABAC Check]
+   Do user attributes satisfy policy?
+   (time, location, department, etc.)
+   YES → Continue | NO → 403 Forbidden
+       ↓
+[4. RLS Filter]
+   Apply row-level filters to query
+   (user sees only authorized data)
+       ↓
+[5. Execute Request]
+   Return filtered results
+```
+
+---
+
+#### 6. Implementation Checklist
+
+When implementing ANY endpoint:
+
+- [ ] ✅ **Authentication** - JWT token required
+- [ ] ✅ **RBAC** - Role check via `require_role()`
+- [ ] ✅ **ABAC** - Attribute check via `check_abac_permission()`
+- [ ] ✅ **RLS** - Use service layer with RLS filtering
+- [ ] ✅ **Audit Log** - Log all authorization decisions
+- [ ] ✅ **Error Messages** - Never reveal unauthorized data exists
+
+---
+
+#### 7. Security Best Practices
+
+```python
+# ✅ GOOD: All three layers
+@router.get("/sensitive-data")
+async def get_data(
+    user: User = Depends(require_role([UserRole.ADMIN])),  # RBAC
+    abac: User = Depends(check_abac_permission(...)),      # ABAC
+    db: Session = Depends(get_db)
+):
+    service = DataService(db, user)  # RLS
+    return await service.get_data()
+
+# ❌ BAD: Missing ABAC and RLS
+@router.get("/sensitive-data")
+async def get_data(
+    user: User = Depends(require_role([UserRole.ADMIN])),
+    db: Session = Depends(get_db)
+):
+    return db.query(Data).all()  # No RLS! Exposes all data!
+
+# ❌ BAD: No authorization at all
+@router.get("/sensitive-data")
+async def get_data(db: Session = Depends(get_db)):
+    return db.query(Data).all()  # Completely insecure!
+```
+
+**Remember:**
+- RBAC = "Can this role perform this action?"
+- ABAC = "Can this user with these attributes perform this action in this context?"
+- RLS = "Which specific rows can this user see?"
+
+All three MUST work together for complete security.
 
 ### Input Validation
 ```python

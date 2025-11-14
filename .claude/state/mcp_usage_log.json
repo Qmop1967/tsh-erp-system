@@ -1,0 +1,48 @@
+{
+  "created": "2025-11-14T10:29:56.550349Z",
+  "sessions": [
+    {
+      "timestamp": "2025-11-14T10:34:34.314768Z",
+      "mcps_used": [
+        "zoho"
+      ],
+      "task_type": "development",
+      "token_usage": 15000
+    },
+    {
+      "timestamp": "2025-11-14T10:34:40.558717Z",
+      "mcps_used": [
+        "playwright",
+        "chrome-devtools"
+      ],
+      "task_type": "testing",
+      "token_usage": 48000
+    },
+    {
+      "timestamp": "2025-11-14T10:34:40.587479Z",
+      "mcps_used": [
+        "zoho"
+      ],
+      "task_type": "sync",
+      "token_usage": 12000
+    },
+    {
+      "timestamp": "2025-11-14T10:34:40.616046Z",
+      "mcps_used": [
+        "chrome-devtools"
+      ],
+      "task_type": "debugging",
+      "token_usage": 35000
+    },
+    {
+      "timestamp": "2025-11-14T10:34:40.644086Z",
+      "mcps_used": [
+        "zoho"
+      ],
+      "task_type": "development",
+      "token_usage": 18000
+    }
+  ],
+  "total_sessions": 5,
+  "total_token_usage": 128000
+}

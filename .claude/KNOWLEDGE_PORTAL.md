@@ -22,11 +22,24 @@
 
 ## 📊 File Loading Priority (For AI Session Start)
 
+### Priority 0: 🚨 ULTRA-CRITICAL - Read FIRST Before Any Server Operation
+```yaml
+0. SERVER_INFRASTRUCTURE.md (~300 lines) ⚠️ NEW - READ FIRST!
+   Purpose: Server IP addresses and SSH credentials (NEVER confuse staging/production)
+   When: FIRST before ANY deployment or server check
+   Key Content:
+     - Staging Server: 167.71.58.65 (user: khaleel, develop branch)
+     - Production Server: 167.71.39.50 (user: root, main branch)
+     - Quick commands, decision matrix, memory aids
+     - Pre-operation checklist
+   ⚠️ WARNING: Getting IPs wrong = deploying to wrong server = disaster!
+```
+
 ### Priority 1: CRITICAL - Read First
 ```yaml
 1. AI_CONTEXT_RULES.md (~1,540 lines)
    Purpose: Meta-guide - HOW to read and interpret all other files
-   When: FIRST file to read in every session
+   When: After SERVER_INFRASTRUCTURE.md
    Key Content:
      - File loading order hierarchy
      - Conflict resolution rules

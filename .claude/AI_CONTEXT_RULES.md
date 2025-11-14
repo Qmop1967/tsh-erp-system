@@ -98,7 +98,57 @@ Inferred Rules:
 - Never assume all data is in one place
 ```
 
-### Rule 3: Connect Related Context
+### Rule 3: CRITICAL - Authorization Framework (IMMUTABLE)
+
+**🔒 TSH ERP uses HYBRID AUTHORIZATION: ABAC + RBAC + RLS**
+
+This is NOT negotiable. Every single endpoint, service, and data access MUST follow this framework:
+
+```
+Authorization Framework (3 Layers):
+1. RBAC (Role-Based Access Control) - "Can this role perform this action?"
+2. ABAC (Attribute-Based Access Control) - "Do user attributes satisfy policy?"
+3. RLS (Row-Level Security) - "Which specific rows can this user see?"
+```
+
+**Inferred Rules for ALL Code:**
+- NEVER create an endpoint without all three layers
+- NEVER query database without RLS filtering
+- ALWAYS use the BaseService class with RLS support
+- NEVER expose data without attribute-based checks
+- ALL business logic MUST respect this framework
+
+**Example:**
+```python
+# ✅ CORRECT: All three layers present
+@router.get("/orders")
+async def get_orders(
+    user: User = Depends(require_role([...])),           # RBAC
+    abac: User = Depends(check_abac_permission(...)),    # ABAC
+    db: Session = Depends(get_db)
+):
+    service = OrderService(db, user)  # RLS filtering
+    return await service.get_orders()
+
+# ❌ WRONG: Missing layers
+@router.get("/orders")
+async def get_orders(db: Session = Depends(get_db)):
+    return db.query(Order).all()  # Security violation!
+```
+
+**Why this matters:**
+- Wholesale clients must ONLY see their own orders
+- Travel salespersons must ONLY see assigned customers
+- Inventory managers must ONLY see their warehouse
+- Partner salesmen must ONLY see their own sales
+- Time-based access (retail staff during work hours)
+- Location-based access (warehouse restrictions)
+
+**This framework is mentioned in:**
+- ARCHITECTURE_RULES.md § Security Patterns
+- See "Authorization Framework: HYBRID ABAC + RBAC + RLS"
+
+### Rule 4: Connect Related Context
 **DON'T:**
 - Treat each file as isolated
 - Apply rules in silos

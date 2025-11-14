@@ -1,0 +1,88 @@
+{
+  "last_updated": "2025-11-14",
+  "business_metrics": {
+    "wholesale_clients": "500+",
+    "partner_salesmen": "100+",
+    "travel_salespersons": 12,
+    "daily_wholesale_orders": 30,
+    "daily_retail_transactions": 30,
+    "weekly_field_sales_volume_usd": 35000,
+    "active_products": "2,218+",
+    "warehouse_locations": "multiple"
+  },
+  "technical_metrics": {
+    "database_tables": 57,
+    "database_size_mb": 127,
+    "mobile_apps": 8,
+    "web_applications": 3,
+    "bff_api_endpoints": "198+",
+    "utility_scripts": 82,
+    "lines_of_code": "~50,000+"
+  },
+  "integrations": {
+    "zoho_books": {
+      "status": "active",
+      "organization_id": "748369814",
+      "api_endpoint": "https://www.zohoapis.com/books/v3/",
+      "rate_limit": "100 requests/minute"
+    },
+    "zoho_inventory": {
+      "status": "active",
+      "organization_id": "748369814",
+      "api_endpoint": "https://www.zohoapis.com/inventory/v1/",
+      "rate_limit": "100 requests/minute"
+    },
+    "tds_core": {
+      "status": "active",
+      "purpose": "Zoho sync orchestration",
+      "dashboard": "https://tds.tsh.sale"
+    },
+    "tsh_neurolink": {
+      "status": "active",
+      "purpose": "Unified communications (team chat, customer-sales, consumer support, notifications)"
+    },
+    "whatsapp_business": {
+      "status": "active",
+      "purpose": "Customer communication"
+    },
+    "aws_s3": {
+      "status": "active",
+      "purpose": "Database backup and restore",
+      "bucket": "tsh-erp-backups",
+      "region": "eu-north-1"
+    }
+  },
+  "servers": {
+    "production": {
+      "ip": "167.71.39.50",
+      "user": "root",
+      "branch": "main",
+      "urls": [
+        "https://erp.tsh.sale",
+        "https://consumer.tsh.sale",
+        "https://shop.tsh.sale",
+        "https://tds.tsh.sale"
+      ]
+    },
+    "staging": {
+      "ip": "167.71.58.65",
+      "user": "khaleel",
+      "branch": "develop",
+      "urls": [
+        "https://staging.erp.tsh.sale",
+        "https://staging.consumer.tsh.sale",
+        "https://staging.tds.tsh.sale"
+      ]
+    }
+  },
+  "technology_stack": {
+    "backend": "FastAPI + Python 3.9+ + PostgreSQL 12+",
+    "frontend_web": "React 18 (ERP Admin) + Flutter Web (Consumer)",
+    "mobile": "Flutter 3.0+ (8 apps)",
+    "infrastructure": "Docker + Nginx + GitHub Actions",
+    "database": "PostgreSQL 12+",
+    "orm": "SQLAlchemy",
+    "communication": "TSH NeuroLink + WebSocket + Redis",
+    "email": "Resend API"
+  }
+}

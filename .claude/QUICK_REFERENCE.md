@@ -22,9 +22,14 @@ Tech Stack:
   Backend: FastAPI + Python 3.9+ + PostgreSQL 12+
   Frontend: React 18 (ERP Admin) + Flutter Web (Consumer)
   Mobile: Flutter 3.0+ (8 apps)
-  Deployment: GitHub Actions → VPS (167.71.39.50)
+  Deployment: GitHub Actions → TWO SERVERS (see below)
   Backup: AWS S3 (tsh-erp-backups, eu-north-1)
   Sync: TDS Core orchestrates ALL Zoho operations
+
+🚨 CRITICAL SERVERS (DON'T MIX THEM UP!):
+  Staging:    167.71.58.65 (user: khaleel, develop branch)
+  Production: 167.71.39.50 (user: root, main branch)
+  📖 Full Details: SERVER_INFRASTRUCTURE.md
 
 Critical Rules:
   ❌ NEVER: Bypass TDS Core, forget Arabic, deploy partial, skip staging

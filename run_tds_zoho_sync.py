@@ -51,11 +51,14 @@ async def main():
         print("❌ DATABASE_URL not found")
         return
 
-    # Convert to async URL
+    # Convert to async URL and use localhost for local execution
     if db_url.startswith("postgresql://"):
         async_db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
+        # Replace Docker hostname with localhost for local script execution
+        async_db_url = async_db_url.replace("tsh_postgres:", "localhost:")
     else:
         async_db_url = db_url
+        async_db_url = async_db_url.replace("tsh_postgres:", "localhost:")
 
     # Create Zoho credentials
     credentials = ZohoCredentials(
@@ -108,10 +111,10 @@ async def main():
             products_result = await zoho.sync.sync_entity(config=sync_config)
 
             print(f"\n✅ Products Sync Results:")
-            print(f"   Total Fetched: {products_result.total_fetched}")
-            print(f"   Successful: {products_result.successful}")
-            print(f"   Failed: {products_result.failed}")
-            print(f"   Skipped: {products_result.skipped}")
+            print(f"   Total Processed: {products_result.total_processed}")
+            print(f"   Successful: {products_result.total_success}")
+            print(f"   Failed: {products_result.total_failed}")
+            print(f"   Duration: {products_result.duration}")
             print()
 
             # Step 2: Sync Stock Levels
@@ -122,9 +125,10 @@ async def main():
             stock_result = await zoho.stock_sync.sync_all_stock()
 
             print(f"\n✅ Stock Sync Results:")
-            print(f"   Total: {stock_result.get('total', 0)}")
-            print(f"   Updated: {stock_result.get('updated', 0)}")
-            print(f"   Errors: {stock_result.get('errors', 0)}")
+            print(f"   Total Processed: {stock_result.total_processed}")
+            print(f"   Successful: {stock_result.total_success}")
+            print(f"   Failed: {stock_result.total_failed}")
+            print(f"   Duration: {stock_result.duration}")
             print()
 
             # Step 3: Sync Price Lists
@@ -202,8 +206,8 @@ async def main():
             print("="*70)
             print("📊 SYNCHRONIZATION SUMMARY")
             print("="*70)
-            print(f"✅ Products synced: {products_result.successful}")
-            print(f"✅ Stock levels updated: {stock_result.get('updated', 0)}")
+            print(f"✅ Products synced: {products_result.total_success}")
+            print(f"✅ Stock levels updated: {stock_result.total_success}")
             print(f"✅ Images downloaded: {image_count}")
             print("="*70)
             print()

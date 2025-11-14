@@ -27,6 +27,25 @@ class ProductProcessor:
     """
 
     @staticmethod
+    def _safe_decimal(value: Any) -> Decimal:
+        """
+        Safely convert value to Decimal, handling empty strings and None
+
+        Args:
+            value: Value to convert
+
+        Returns:
+            Decimal: Converted value or Decimal('0') if invalid
+        """
+        if value is None or value == '' or value == 'None':
+            return Decimal('0')
+        try:
+            return Decimal(str(value))
+        except (ValueError, TypeError, Exception):
+            logger.warning(f"Invalid decimal value: {value}, using 0")
+            return Decimal('0')
+
+    @staticmethod
     def validate(product_data: Dict[str, Any]) -> bool:
         """
         Validate product data
@@ -76,21 +95,21 @@ class ProductProcessor:
             'unit': product_data.get('unit'),
 
             # Pricing
-            'rate': Decimal(str(product_data.get('rate', 0))),
-            'purchase_rate': Decimal(str(product_data.get('purchase_rate', 0))),
-            'cost_price': Decimal(str(product_data.get('purchase_rate', 0))),
-            'selling_price': Decimal(str(product_data.get('rate', 0))),
+            'rate': ProductProcessor._safe_decimal(product_data.get('rate', 0)),
+            'purchase_rate': ProductProcessor._safe_decimal(product_data.get('purchase_rate', 0)),
+            'cost_price': ProductProcessor._safe_decimal(product_data.get('purchase_rate', 0)),
+            'selling_price': ProductProcessor._safe_decimal(product_data.get('rate', 0)),
 
             # Stock - Zoho returns 'actual_available_stock' and 'available_stock'
-            'stock_on_hand': Decimal(str(product_data.get('actual_available_stock', 0))),
-            'available_stock': Decimal(str(product_data.get('available_stock', 0))),
-            'actual_available_stock': Decimal(str(product_data.get('actual_available_stock', 0))),
-            'reorder_level': Decimal(str(product_data.get('reorder_level', 0))),
+            'stock_on_hand': ProductProcessor._safe_decimal(product_data.get('actual_available_stock', 0)),
+            'available_stock': ProductProcessor._safe_decimal(product_data.get('available_stock', 0)),
+            'actual_available_stock': ProductProcessor._safe_decimal(product_data.get('actual_available_stock', 0)),
+            'reorder_level': ProductProcessor._safe_decimal(product_data.get('reorder_level', 0)),
 
             # Attributes
             'is_taxable': product_data.get('is_taxable', False),
             'tax_id': product_data.get('tax_id'),
-            'tax_percentage': Decimal(str(product_data.get('tax_percentage', 0))),
+            'tax_percentage': ProductProcessor._safe_decimal(product_data.get('tax_percentage', 0)),
             'is_returnable': product_data.get('is_returnable', True),
 
             # Status

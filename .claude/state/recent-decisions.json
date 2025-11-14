@@ -1,0 +1,56 @@
+{
+  "decisions": [
+    {
+      "date": "2025-11-14",
+      "decision": "Optimize Claude Code configuration - Create CLAUDE.md and consolidate documentation",
+      "rationale": "Improve session initialization speed, reduce context size, enhance prompt caching effectiveness",
+      "alternatives_considered": ["Keep existing structure", "Complete rewrite", "Incremental optimization"],
+      "files_updated": ["CLAUDE.md", "core/project-context.md", "core/architecture.md", "core/workflows.md"],
+      "outcome": "In progress",
+      "expected_impact": "80% faster sessions, 90% cost reduction, better consistency"
+    },
+    {
+      "date": "2025-11-13",
+      "decision": "Use TSH NeuroLink exclusively for ALL notifications and communications",
+      "rationale": "Unified system for team chat, customer-sales, consumer support, and system notifications. Eliminates need for Twilio and Firebase.",
+      "alternatives_considered": ["Twilio", "Firebase Cloud Messaging", "Multiple third-party services"],
+      "files_updated": ["PROJECT_VISION.md", "ARCHITECTURE_RULES.md", "NEUROLINK_SYSTEM.md"],
+      "outcome": "Implemented successfully",
+      "would_repeat": true
+    },
+    {
+      "date": "2025-11-12",
+      "decision": "Hybrid Authorization Framework (RBAC + ABAC + RLS)",
+      "rationale": "Comprehensive security for multi-role system with complex access patterns. Ensures wholesale clients only see their data, salespeople only see assigned customers.",
+      "alternatives_considered": ["RBAC only", "Custom permission system", "Simple role checks"],
+      "files_updated": ["AUTHORIZATION_FRAMEWORK.md", "ARCHITECTURE_RULES.md"],
+      "outcome": "Mandatory for all new code",
+      "would_repeat": true
+    },
+    {
+      "date": "2025-10-15",
+      "decision": "TDS Core orchestrates ALL Zoho operations",
+      "rationale": "Centralized sync control, rate limit management, error handling, monitoring. Prevents direct API access chaos.",
+      "alternatives_considered": ["Direct Zoho API calls from services", "Multiple sync workers", "Event-driven sync"],
+      "files_updated": ["TDS_MASTER_ARCHITECTURE.md", "PROJECT_VISION.md"],
+      "outcome": "Working well, prevents sync issues",
+      "would_repeat": true
+    },
+    {
+      "date": "2025-10-01",
+      "decision": "Phase 1: Read-only sync from Zoho Books + Zoho Inventory",
+      "rationale": "Build confidence in TSH ERP data accuracy before allowing writes. Parallel operation reduces risk.",
+      "alternatives_considered": ["Immediate full migration", "Manual data entry", "Partial migration"],
+      "files_updated": ["PROJECT_VISION.md", "PHASE_1_REQUIREMENTS.md"],
+      "outcome": "In progress - products and stock synced successfully",
+      "would_repeat": true
+    }
+  ],
+  "decision_patterns": {
+    "total_decisions": 5,
+    "successful": 4,
+    "in_progress": 1,
+    "failed": 0,
+    "most_common_rationale": "Risk reduction and incremental improvement"
+  }
+}
