@@ -52,14 +52,39 @@ class BaseEntityHandler(ABC):
         Returns:
             Result of upsert operation
         """
-        stmt = pg_insert(table).values(**values)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[conflict_column],
-            set_=values
-        )
-        result = await self.db.execute(stmt)
-        await self.db.commit()
-        return result
+        async with self.db.begin():  # ✅ FIX: Explicit async transaction context
+            stmt = pg_insert(table).values(**values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[conflict_column],
+                set_=values
+            )
+            result = await self.db.execute(stmt)
+            return result  # Auto-commits on context exit
+
+    async def execute_with_context(self, query, params: Dict = None):
+        """
+        Execute query with proper async transaction context
+
+        This helper method ensures all database operations are wrapped
+        in an explicit async transaction, which is required for proper
+        SQLAlchemy async session handling.
+
+        Args:
+            query: SQL query (text() or ORM query)
+            params: Query parameters dictionary
+
+        Returns:
+            Query result
+
+        Usage:
+            result = await self.execute_with_context(
+                text("INSERT INTO ... VALUES (...)"),
+                {"field": "value"}
+            )
+        """
+        async with self.db.begin():  # ✅ Explicit async transaction context
+            result = await self.db.execute(query, params or {})
+            return result  # Auto-commits on context exit
 
 
 # ============================================================================
@@ -104,9 +129,8 @@ class ProductHandler(BaseEntityHandler):
             # Note: This is a simplified example - real implementation would use actual SQLAlchemy models
             from sqlalchemy import text
 
-            # Perform upsert using raw SQL for now
-            # TODO: Replace with proper SQLAlchemy model when available
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO products (zoho_item_id, name, sku, description, price, stock_quantity, is_active, updated_at)
                     VALUES (:zoho_item_id, :name, :sku, :description, :price, :stock_quantity, :is_active, NOW())
@@ -121,18 +145,9 @@ class ProductHandler(BaseEntityHandler):
                         updated_at = NOW()
                     RETURNING id
                 """),
-                {
-                    "zoho_item_id": product_data["zoho_item_id"],
-                    "name": product_data["name"],
-                    "sku": product_data["sku"],
-                    "description": product_data["description"],
-                    "price": product_data["price"],
-                    "stock_quantity": product_data["stock_quantity"],
-                    "is_active": product_data["is_active"],
-                }
+                product_data
             )
-
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             # Get the product ID
             row = result.fetchone()
@@ -148,7 +163,7 @@ class ProductHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Product sync failed: {e}", exc_info=True)
             raise
 
@@ -184,7 +199,8 @@ class CustomerHandler(BaseEntityHandler):
             from sqlalchemy import text
             import json
 
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO customers (zoho_contact_id, contact_name, company_name, email, phone, billing_address, shipping_address, updated_at)
                     VALUES (:zoho_contact_id, :contact_name, :company_name, :email, :phone, :billing_address, :shipping_address, NOW())
@@ -209,8 +225,7 @@ class CustomerHandler(BaseEntityHandler):
                     "shipping_address": json.dumps(shipping_address) if shipping_address else None,
                 }
             )
-
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             row = result.fetchone()
             customer_id = row[0] if row else None
@@ -225,7 +240,7 @@ class CustomerHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Customer sync failed: {e}", exc_info=True)
             raise
 
@@ -282,7 +297,8 @@ class InvoiceHandler(BaseEntityHandler):
             invoice_date = parse_date(payload.get("date"))
             due_date = parse_date(payload.get("due_date"))
 
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO invoices (zoho_invoice_id, invoice_number, customer_id, invoice_date, due_date, total, status, zoho_data, updated_at)
                     VALUES (:zoho_invoice_id, :invoice_number, :customer_id, :invoice_date, :due_date, :total, :status, :zoho_data, NOW())
@@ -309,8 +325,7 @@ class InvoiceHandler(BaseEntityHandler):
                     "zoho_data": json.dumps(payload)
                 }
             )
-
-            await self.db.commit()
+            # ✅ No manual commit needed
 
             row = result.fetchone()
             invoice_id = row[0] if row else None
@@ -325,7 +340,7 @@ class InvoiceHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Invoice sync failed: {e}", exc_info=True)
             raise
 
@@ -391,7 +406,8 @@ class SalesOrderHandler(BaseEntityHandler):
             zoho_customer_id = payload.get("customer_id", "")
 
             # Get local customer ID from zoho_contact_id
-            customer_result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            customer_result = await self.execute_with_context(
                 text("SELECT id FROM customers WHERE zoho_contact_id = :zoho_contact_id LIMIT 1"),
                 {"zoho_contact_id": str(zoho_customer_id)}
             )
@@ -401,7 +417,8 @@ class SalesOrderHandler(BaseEntityHandler):
             if not local_customer_id:
                 logger.warning(f"Customer not found for zoho_contact_id: {zoho_customer_id}, creating placeholder")
                 # Create placeholder customer (you may want to sync customer first)
-                placeholder_result = await self.db.execute(
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                placeholder_result = await self.execute_with_context(
                     text("""
                         INSERT INTO customers (zoho_contact_id, contact_name, created_at, updated_at)
                         VALUES (:zoho_contact_id, :contact_name, NOW(), NOW())
@@ -412,13 +429,14 @@ class SalesOrderHandler(BaseEntityHandler):
                         "contact_name": payload.get("customer_name", f"Customer {zoho_customer_id}")
                     }
                 )
-                await self.db.commit()
+                # ✅ No manual commit needed - auto-commits on context exit
                 placeholder_row = placeholder_result.fetchone()
                 local_customer_id = placeholder_row[0] if placeholder_row else None
 
             # Step 1: Upsert sales order header
             # Note: Assuming zoho_salesorder_id column exists or using order_number as unique
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO sales_orders (
                         order_number,
@@ -518,7 +536,8 @@ class SalesOrderHandler(BaseEntityHandler):
             line_items = payload.get("line_items", [])
             if line_items and sales_order_id:
                 # First, delete existing items for this order (to handle updates)
-                await self.db.execute(
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                await self.execute_with_context(
                     text("DELETE FROM sales_items WHERE sales_order_id = :sales_order_id"),
                     {"sales_order_id": sales_order_id}
                 )
@@ -530,7 +549,8 @@ class SalesOrderHandler(BaseEntityHandler):
                         continue
 
                     # Get local product ID from zoho_item_id
-                    product_result = await self.db.execute(
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    product_result = await self.execute_with_context(
                         text("SELECT id FROM products WHERE zoho_item_id = :zoho_item_id LIMIT 1"),
                         {"zoho_item_id": str(zoho_item_id)}
                     )
@@ -547,7 +567,8 @@ class SalesOrderHandler(BaseEntityHandler):
                     line_total = float(item.get("item_total", quantity * unit_price - discount_amount))
 
                     # Insert sales item
-                    await self.db.execute(
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    await self.execute_with_context(
                         text("""
                             INSERT INTO sales_items (
                                 sales_order_id,
@@ -587,7 +608,7 @@ class SalesOrderHandler(BaseEntityHandler):
 
                     records_affected += 1
 
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             logger.info(
                 f"Sales order synced successfully: {zoho_salesorder_id} -> local ID {sales_order_id} "
@@ -602,7 +623,7 @@ class SalesOrderHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Sales order sync failed: {e}", exc_info=True)
             raise
 
@@ -676,7 +697,8 @@ class PaymentHandler(BaseEntityHandler):
                 # Get local invoice ID if specified
                 local_invoice_id = None
                 if zoho_invoice_id:
-                    invoice_result = await self.db.execute(
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    invoice_result = await self.execute_with_context(
                         text("SELECT id FROM invoices WHERE zoho_invoice_id = :zoho_invoice_id LIMIT 1"),
                         {"zoho_invoice_id": str(zoho_invoice_id)}
                     )
@@ -687,7 +709,8 @@ class PaymentHandler(BaseEntityHandler):
                         logger.warning(f"Invoice not found for zoho_invoice_id: {zoho_invoice_id}, payment will be unlinked")
 
                 # Upsert payment record
-                result = await self.db.execute(
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                result = await self.execute_with_context(
                     text("""
                         INSERT INTO invoice_payments (
                             payment_number,
@@ -763,7 +786,7 @@ class PaymentHandler(BaseEntityHandler):
 
                 logger.info(f"Payment synced: {zoho_payment_id} -> invoice: {zoho_invoice_id or 'N/A'}, local ID {payment_id}")
 
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             logger.info(
                 f"Payment synced successfully: {zoho_payment_id} "
@@ -778,7 +801,7 @@ class PaymentHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Payment sync failed: {e}", exc_info=True)
             raise
 
@@ -820,7 +843,8 @@ class VendorHandler(BaseEntityHandler):
             # Try to create vendors table if it doesn't exist
             # This is a temporary solution until proper migration is run
             try:
-                await self.db.execute(text("""
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                await self.execute_with_context(text("""
                     CREATE TABLE IF NOT EXISTS vendors (
                         id SERIAL PRIMARY KEY,
                         zoho_vendor_id VARCHAR NOT NULL UNIQUE,
@@ -837,14 +861,15 @@ class VendorHandler(BaseEntityHandler):
                         updated_at TIMESTAMP DEFAULT NOW()
                     )
                 """))
-                await self.db.commit()
+                # ✅ No manual commit needed - auto-commits on context exit
                 logger.info("Vendors table created or already exists")
             except Exception as e:
                 logger.warning(f"Could not create vendors table: {e}")
-                await self.db.rollback()
+                # ✅ No manual rollback needed - context manager handles it
 
             # Upsert vendor
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO vendors (
                         zoho_vendor_id,
@@ -900,7 +925,7 @@ class VendorHandler(BaseEntityHandler):
                 }
             )
 
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             row = result.fetchone()
             vendor_id = row[0] if row else None
@@ -915,7 +940,7 @@ class VendorHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Vendor sync failed: {e}", exc_info=True)
             raise
 
@@ -948,7 +973,8 @@ class UserHandler(BaseEntityHandler):
 
             # Try to create zoho_users table if it doesn't exist
             try:
-                await self.db.execute(text("""
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                await self.execute_with_context(text("""
                     CREATE TABLE IF NOT EXISTS zoho_users (
                         id SERIAL PRIMARY KEY,
                         zoho_user_id VARCHAR NOT NULL UNIQUE,
@@ -961,14 +987,15 @@ class UserHandler(BaseEntityHandler):
                         updated_at TIMESTAMP DEFAULT NOW()
                     )
                 """))
-                await self.db.commit()
+                # ✅ No manual commit needed - auto-commits on context exit
                 logger.info("Zoho users table created or already exists")
             except Exception as e:
                 logger.warning(f"Could not create zoho_users table: {e}")
-                await self.db.rollback()
+                # ✅ No manual rollback needed - context manager handles it
 
             # Upsert user
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO zoho_users (
                         zoho_user_id,
@@ -1008,7 +1035,7 @@ class UserHandler(BaseEntityHandler):
                 }
             )
 
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             row = result.fetchone()
             user_id = row[0] if row else None
@@ -1023,7 +1050,7 @@ class UserHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Zoho user sync failed: {e}", exc_info=True)
             raise
 
@@ -1096,7 +1123,8 @@ class PriceListHandler(BaseEntityHandler):
             from sqlalchemy import text
 
             # Step 1: Sync pricelist header
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO pricelists (zoho_pricelist_id, name, currency, is_active, updated_at)
                     VALUES (:zoho_pricelist_id, :name, :currency, :is_active, NOW())
@@ -1130,7 +1158,8 @@ class PriceListHandler(BaseEntityHandler):
                         continue
 
                     # Get local product ID from zoho_item_id
-                    product_result = await self.db.execute(
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    product_result = await self.execute_with_context(
                         text("SELECT id FROM products WHERE zoho_item_id = :zoho_item_id"),
                         {"zoho_item_id": zoho_item_id}
                     )
@@ -1143,7 +1172,8 @@ class PriceListHandler(BaseEntityHandler):
                     product_id = product_row[0]
 
                     # Upsert product price
-                    await self.db.execute(
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    await self.execute_with_context(
                         text("""
                             INSERT INTO product_prices (product_id, pricelist_id, price, discount_percentage, currency, updated_at)
                             VALUES (:product_id, :pricelist_id, :price, :discount_percentage, :currency, NOW())
@@ -1164,7 +1194,7 @@ class PriceListHandler(BaseEntityHandler):
 
                     records_affected += 1
 
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             logger.info(
                 f"Price list synced successfully: {zoho_pricelist_id} -> local ID {pricelist_id} "
@@ -1179,7 +1209,7 @@ class PriceListHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Price list sync failed: {e}", exc_info=True)
             raise
 
