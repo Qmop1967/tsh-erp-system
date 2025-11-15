@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 env:
-  DEPLOY_USER: root
-  DEPLOY_HOST: 167.71.39.50
-  DEPLOY_PATH: /opt/tsh-erp
+  DEPLOY_USER: khaleel
+  DEPLOY_HOST: 167.71.58.65
+  DEPLOY_PATH: /home/khaleel/tsh-erp
 
 jobs:
   # ============================================================================
@@ -114,7 +114,7 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 

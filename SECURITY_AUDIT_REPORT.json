@@ -1,0 +1,4065 @@
+{
+  "summary": {
+    "total_files_scanned": 871,
+    "authentication_coverage": "0.0%",
+    "total_vulnerabilities": 668,
+    "severity_breakdown": {
+      "critical": 603,
+      "high": 45,
+      "medium": 20,
+      "low": 0
+    }
+  },
+  "detailed_results": {
+    "authentication": {
+      "total_endpoints": 559,
+      "authenticated_endpoints": 0,
+      "public_endpoints": [],
+      "missing_auth": [
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/check-access",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/devices/register",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/devices",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/devices/pending",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/devices/{device_id}/approve",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "DELETE",
+          "path": "/devices/{device_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/mfa/setup",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/mfa/verify-setup",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/mfa/challenge",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/mfa/verify",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/mfa/methods",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/mfa/requests",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/mfa/respond",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/sessions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/sessions/terminate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/sessions/terminate-all",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/policies",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/policies",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/audit-logs",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/security-events",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/passless/create-token",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "POST",
+          "path": "/passless/verify-token",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/advanced_security.py",
+          "method": "GET",
+          "path": "/dashboard/stats",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant.py",
+          "method": "POST",
+          "path": "/ai/message/process",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant.py",
+          "method": "GET",
+          "path": "/ai/products/search",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant.py",
+          "method": "POST",
+          "path": "/ai/support/ticket",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/terminals",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/terminals",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/terminals/{terminal_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "PUT",
+          "path": "/terminals/{terminal_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/sessions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/sessions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/sessions/{session_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/sessions/{session_id}/close",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/sessions/active/{terminal_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/transactions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/transactions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/transactions/{transaction_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/transactions/{transaction_id}/complete",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/transactions/{transaction_id}/void",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/transactions/{transaction_id}/refund",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/payments",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/payments",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/discounts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/discounts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/discounts/{discount_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "PUT",
+          "path": "/discounts/{discount_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/discounts/{discount_id}/validate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/promotions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "POST",
+          "path": "/promotions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/promotions/{promotion_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "PUT",
+          "path": "/promotions/{promotion_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/inventory/check/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/inventory/stock/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/reports/sales",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/reports/sessions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos.py",
+          "method": "GET",
+          "path": "/reports/product-sales",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "GET",
+          "path": "/{product_id}/images",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "POST",
+          "path": "/{product_id}/images/upload",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "DELETE",
+          "path": "/{product_id}/images/{image_index}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "PUT",
+          "path": "/{product_id}/images/{image_index}/set-primary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "POST",
+          "path": "/{product_id}/images/import-from-zoho",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "POST",
+          "path": "/images/import-all-from-zoho",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "GET",
+          "path": "/images/import-status",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/product_images.py",
+          "method": "GET",
+          "path": "/images/{product_sku}/{filename}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/customer-support/chat",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/sales-assistant/chat",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/business-analyst/chat",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/business-analyst/analyze-sales",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/inventory-assistant/chat",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/invoice-assistant/chat",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "GET",
+          "path": "/conversations",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "GET",
+          "path": "/conversations/{conversation_id}/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "DELETE",
+          "path": "/conversations/{conversation_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/conversations/export",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/ai_assistant_with_memory.py",
+          "method": "POST",
+          "path": "/chat",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors.py",
+          "method": "GET",
+          "path": "/{vendor_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors.py",
+          "method": "PUT",
+          "path": "/{vendor_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors.py",
+          "method": "DELETE",
+          "path": "/{vendor_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors_refactored.py",
+          "method": "GET",
+          "path": "/{vendor_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors_refactored.py",
+          "method": "PUT",
+          "path": "/{vendor_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/vendors_refactored.py",
+          "method": "DELETE",
+          "path": "/{vendor_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos_enhanced.py",
+          "method": "POST",
+          "path": "/google-lens/search",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos_enhanced.py",
+          "method": "POST",
+          "path": "/transactions/enhanced",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos_enhanced.py",
+          "method": "POST",
+          "path": "/receipt/print",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos_enhanced.py",
+          "method": "GET",
+          "path": "/reports/daily",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos_enhanced.py",
+          "method": "GET",
+          "path": "/inventory/real-time/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/pos_enhanced.py",
+          "method": "POST",
+          "path": "/admin/dashboard/sync",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/consumer_api.py",
+          "method": "GET",
+          "path": "/products",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/consumer_api.py",
+          "method": "GET",
+          "path": "/products/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/consumer_api.py",
+          "method": "GET",
+          "path": "/categories",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/consumer_api.py",
+          "method": "POST",
+          "path": "/orders",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/consumer_api.py",
+          "method": "POST",
+          "path": "/sync/inventory",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/consumer_api.py",
+          "method": "GET",
+          "path": "/sync/status",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales_refactored.py",
+          "method": "GET",
+          "path": "/{order_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales_refactored.py",
+          "method": "PUT",
+          "path": "/{order_id}/confirm",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales_refactored.py",
+          "method": "PUT",
+          "path": "/{order_id}/ship",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales_refactored.py",
+          "method": "PUT",
+          "path": "/{order_id}/cancel",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses.py",
+          "method": "GET",
+          "path": "/{expense_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses.py",
+          "method": "GET",
+          "path": "/categories/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses.py",
+          "method": "GET",
+          "path": "/status/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses.py",
+          "method": "GET",
+          "path": "/payment-methods/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/currencies",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/currencies",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/currencies/{currency_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "PUT",
+          "path": "/currencies/{currency_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/exchange-rates",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/exchange-rates",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/exchange-rates/latest/{from_currency}/{to_currency}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/chart-of-accounts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/chart-of-accounts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/chart-of-accounts/{chart_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/accounts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/accounts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/accounts/{account_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "PUT",
+          "path": "/accounts/{account_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/journals",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/journals",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/journals/{journal_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/journal-entries",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/journal-entries",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/journal-entries/{entry_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/journal-entries/{entry_id}/post",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/journal-entries/{entry_id}/reverse",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/fiscal-years",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/fiscal-years",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/accounting-periods",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/accounting-periods",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "POST",
+          "path": "/accounting-periods/{period_id}/close",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/reports/trial-balance",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/reports/balance-sheet",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/accounting.py",
+          "method": "GET",
+          "path": "/reports/income-statement",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items_refactored.py",
+          "method": "GET",
+          "path": "/{item_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items_refactored.py",
+          "method": "PUT",
+          "path": "/{item_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items_refactored.py",
+          "method": "DELETE",
+          "path": "/{item_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches.py",
+          "method": "GET",
+          "path": "/{branch_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "GET",
+          "path": "/roles",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "GET",
+          "path": "/branches",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "GET",
+          "path": "/by-type/{user_type}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "GET",
+          "path": "/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "PUT",
+          "path": "/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users_refactored.py",
+          "method": "DELETE",
+          "path": "/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/models.py",
+          "method": "GET",
+          "path": "/models",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/models.py",
+          "method": "GET",
+          "path": "/models/{model_name}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "GET",
+          "path": "/fraud-alerts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "GET",
+          "path": "/salesperson/{salesperson_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "GET",
+          "path": "/my-transfers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "GET",
+          "path": "/{transfer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "PUT",
+          "path": "/{transfer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "GET",
+          "path": "/reports/weekly-commission/{salesperson_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "POST",
+          "path": "/{transfer_id}/verify-receipt",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "POST",
+          "path": "/{transfer_id}/confirm-received",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "method": "GET",
+          "path": "/summary/all",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches_refactored.py",
+          "method": "GET",
+          "path": "/{branch_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches_refactored.py",
+          "method": "PUT",
+          "path": "/{branch_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches_refactored.py",
+          "method": "DELETE",
+          "path": "/{branch_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches_refactored.py",
+          "method": "POST",
+          "path": "/{branch_id}/deactivate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/branches_refactored.py",
+          "method": "POST",
+          "path": "/{branch_id}/activate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "GET",
+          "path": "/roles",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "GET",
+          "path": "/branches",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "GET",
+          "path": "/by-type/{user_type}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "GET",
+          "path": "/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "PUT",
+          "path": "/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/users.py",
+          "method": "DELETE",
+          "path": "/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "GET",
+          "path": "/fraud-alerts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "GET",
+          "path": "/salesperson/{salesperson_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "GET",
+          "path": "/my-transfers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "GET",
+          "path": "/{transfer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "PUT",
+          "path": "/{transfer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "POST",
+          "path": "/{transfer_id}/verify-receipt",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "POST",
+          "path": "/{transfer_id}/confirm-received",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "GET",
+          "path": "/reports/weekly-commission/{salesperson_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "method": "GET",
+          "path": "/summary/all",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions_refactored.py",
+          "method": "GET",
+          "path": "/categories",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions_refactored.py",
+          "method": "GET",
+          "path": "/roles",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions_refactored.py",
+          "method": "POST",
+          "path": "/roles",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions_refactored.py",
+          "method": "PUT",
+          "path": "/roles/{role_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions_refactored.py",
+          "method": "DELETE",
+          "path": "/roles/{role_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales.py",
+          "method": "POST",
+          "path": "/orders",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales.py",
+          "method": "GET",
+          "path": "/orders",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales.py",
+          "method": "GET",
+          "path": "/orders/{order_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales.py",
+          "method": "PUT",
+          "path": "/orders/{order_id}/confirm",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales.py",
+          "method": "PUT",
+          "path": "/orders/{order_id}/ship",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/sales.py",
+          "method": "PUT",
+          "path": "/orders/{order_id}/cancel",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_investigation.py",
+          "method": "GET",
+          "path": "/reports",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_investigation.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_investigation.py",
+          "method": "GET",
+          "path": "/latest",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_investigation.py",
+          "method": "GET",
+          "path": "/critical",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_investigation.py",
+          "method": "GET",
+          "path": "/entity/{entity_type}/history",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard_refactored.py",
+          "method": "GET",
+          "path": "/stats",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard_refactored.py",
+          "method": "GET",
+          "path": "/users/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard_refactored.py",
+          "method": "GET",
+          "path": "/sessions/active/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard_refactored.py",
+          "method": "GET",
+          "path": "/security/alerts/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard_refactored.py",
+          "method": "GET",
+          "path": "/auth/failed-logins/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "POST",
+          "path": "/returns/create",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "GET",
+          "path": "/returns",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "POST",
+          "path": "/returns/{return_id}/approve",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "POST",
+          "path": "/returns/{return_id}/exchange",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "GET",
+          "path": "/returns/reports/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "GET",
+          "path": "/returns/{return_id}/photos",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "POST",
+          "path": "/returns/{return_id}/photos",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/returns_exchange.py",
+          "method": "GET",
+          "path": "/returns/dashboard/stats",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "GET",
+          "path": "/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "PUT",
+          "path": "/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "DELETE",
+          "path": "/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "POST",
+          "path": "/translate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "POST",
+          "path": "/{product_id}/media",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "DELETE",
+          "path": "/{product_id}/media",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "GET",
+          "path": "/categories/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "POST",
+          "path": "/categories/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products.py",
+          "method": "GET",
+          "path": "/statistics",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/multi_price_system_refactored.py",
+          "method": "GET",
+          "path": "/price-lists",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/multi_price_system_refactored.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "GET",
+          "path": "/employees",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "POST",
+          "path": "/employees",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "GET",
+          "path": "/employees/{employee_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "POST",
+          "path": "/attendance/check-in",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "POST",
+          "path": "/attendance/check-out",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "GET",
+          "path": "/attendance/report",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "POST",
+          "path": "/leave/request",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "PUT",
+          "path": "/leave/approve/{leave_request_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "POST",
+          "path": "/payroll/generate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "GET",
+          "path": "/payroll/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "POST",
+          "path": "/performance/review",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "GET",
+          "path": "/analytics/department/{department_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/hr.py",
+          "method": "GET",
+          "path": "/mock-data/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/partner_salesmen_simple.py",
+          "method": "GET",
+          "path": "/performance",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "POST",
+          "path": "/backups/create",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "POST",
+          "path": "/backups/schedule",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "POST",
+          "path": "/backups/restore/{backup_name}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "GET",
+          "path": "/security/audit-logs",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "GET",
+          "path": "/security/suspicious-activity",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "GET",
+          "path": "/permissions/user/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "POST",
+          "path": "/permissions/grant",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "POST",
+          "path": "/permissions/revoke",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "GET",
+          "path": "/tenant/info",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "GET",
+          "path": "/tenant/usage",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "GET",
+          "path": "/system/health",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/enhanced_settings.py",
+          "method": "GET",
+          "path": "/system/performance",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard.py",
+          "method": "GET",
+          "path": "/stats",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard.py",
+          "method": "GET",
+          "path": "/users/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard.py",
+          "method": "GET",
+          "path": "/sessions/active/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard.py",
+          "method": "GET",
+          "path": "/security/alerts/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/dashboard.py",
+          "method": "GET",
+          "path": "/auth/failed-logins/count",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/admin.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/admin.py",
+          "method": "GET",
+          "path": "/gps-tracking",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/admin.py",
+          "method": "GET",
+          "path": "/partner-salesmen/performance",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/admin.py",
+          "method": "GET",
+          "path": "/alerts",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/admin.py",
+          "method": "POST",
+          "path": "/alerts/{alert_id}/mark-read",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/admin.py",
+          "method": "GET",
+          "path": "/system-health",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses.py",
+          "method": "GET",
+          "path": "/{warehouse_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses.py",
+          "method": "PUT",
+          "path": "/{warehouse_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses.py",
+          "method": "DELETE",
+          "path": "/{warehouse_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices.py",
+          "method": "POST",
+          "path": "/trust",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices.py",
+          "method": "POST",
+          "path": "/check",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices.py",
+          "method": "DELETE",
+          "path": "/{device_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices.py",
+          "method": "POST",
+          "path": "/auto-login",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices_refactored.py",
+          "method": "POST",
+          "path": "/trust",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices_refactored.py",
+          "method": "POST",
+          "path": "/check",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices_refactored.py",
+          "method": "DELETE",
+          "path": "/{device_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/trusted_devices_refactored.py",
+          "method": "POST",
+          "path": "/auto-login",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "GET",
+          "path": "/backups/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "GET",
+          "path": "/backups/latest",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "POST",
+          "path": "/backup/create",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "POST",
+          "path": "/backup/restore",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "GET",
+          "path": "/backup/download/{backup_type}/{filename}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "DELETE",
+          "path": "/backup/delete/{backup_type}/{filename}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "GET",
+          "path": "/backup/status",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/backup_restore.py",
+          "method": "POST",
+          "path": "/backup/schedule",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "POST",
+          "path": "/chat",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "POST",
+          "path": "/analyze-intent",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "POST",
+          "path": "/generate-email",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "POST",
+          "path": "/generate-report-summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "POST",
+          "path": "/translate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "POST",
+          "path": "/product-recommendations",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "GET",
+          "path": "/conversation/{conversation_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "DELETE",
+          "path": "/conversation/{conversation_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/chatgpt.py",
+          "method": "GET",
+          "path": "/health",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/translations",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/translations",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/translations/reset",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/translations/refresh",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/backup/create",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/backups/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/backup/restore",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/backup/download/{filename}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "DELETE",
+          "path": "/backup/delete/{filename}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/system/info",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho/modules",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/modules/{module_name}/sync",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/test",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho/sync/mappings",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho/sync/mappings/{entity_type}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/sync/mappings/{entity_type}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "PUT",
+          "path": "/integrations/zoho/sync/mappings/{entity_type}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/sync/mappings/{entity_type}/reset",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho/sync/control",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/sync/control",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho/sync/logs",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "DELETE",
+          "path": "/integrations/zoho/sync/logs",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/sync/{entity_type}/analyze",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/sync/{entity_type}/execute",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho/sync/{entity_type}/status",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "POST",
+          "path": "/integrations/zoho/sync/{entity_type}/toggle",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "method": "GET",
+          "path": "/integrations/zoho/sync/statistics",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions.py",
+          "method": "GET",
+          "path": "/roles",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions.py",
+          "method": "POST",
+          "path": "/roles",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions.py",
+          "method": "PUT",
+          "path": "/roles/{role_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions.py",
+          "method": "DELETE",
+          "path": "/roles/{role_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions.py",
+          "method": "GET",
+          "path": "/categories",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "POST",
+          "path": "/bulk",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "POST",
+          "path": "/template",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "GET",
+          "path": "/{notification_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "PUT",
+          "path": "/{notification_id}/read",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "PUT",
+          "path": "/read-all",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "DELETE",
+          "path": "/{notification_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "PUT",
+          "path": "/{notification_id}/archive",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "POST",
+          "path": "/bulk/mark-read",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "POST",
+          "path": "/bulk/delete",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "POST",
+          "path": "/bulk/archive",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "GET",
+          "path": "/stats",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "GET",
+          "path": "/preferences",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "PUT",
+          "path": "/preferences",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "POST",
+          "path": "/device-token",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "DELETE",
+          "path": "/device-token/{token}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "method": "GET",
+          "path": "/settings",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "GET",
+          "path": "/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "PUT",
+          "path": "/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "DELETE",
+          "path": "/{product_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "POST",
+          "path": "/translate",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "POST",
+          "path": "/{product_id}/media",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "DELETE",
+          "path": "/{product_id}/media",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "GET",
+          "path": "/categories/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "POST",
+          "path": "/categories/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "PUT",
+          "path": "/categories/{category_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/products_refactored.py",
+          "method": "GET",
+          "path": "/statistics/overview",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses_refactored.py",
+          "method": "GET",
+          "path": "/{warehouse_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses_refactored.py",
+          "method": "PUT",
+          "path": "/{warehouse_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses_refactored.py",
+          "method": "DELETE",
+          "path": "/{warehouse_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/warehouses_refactored.py",
+          "method": "GET",
+          "path": "/branch/{branch_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "POST",
+          "path": "/login",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "POST",
+          "path": "/login/mobile",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "POST",
+          "path": "/logout",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "GET",
+          "path": "/me",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "POST",
+          "path": "/mfa/setup",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "POST",
+          "path": "/mfa/verify-setup",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "POST",
+          "path": "/mfa/verify-login",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "GET",
+          "path": "/mfa/backup-codes",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "GET",
+          "path": "/sessions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "DELETE",
+          "path": "/sessions/{session_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "POST",
+          "path": "/sessions/terminate-all",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/auth_enhanced.py",
+          "method": "GET",
+          "path": "/audit-log",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/sales",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/sales",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/sales/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "PUT",
+          "path": "/sales/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "DELETE",
+          "path": "/sales/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/purchase",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/purchase",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/purchase/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "PUT",
+          "path": "/purchase/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "DELETE",
+          "path": "/purchase/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/payments",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/payments/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/payments",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/sales/{invoice_id}/send",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/purchase/{invoice_id}/send",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/sales/{invoice_id}/cancel",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/purchase/{invoice_id}/cancel",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "GET",
+          "path": "/overdue",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices.py",
+          "method": "POST",
+          "path": "/generate-from-order",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/cash-boxes",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/cash-boxes",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/cash-boxes/{cash_box_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "PUT",
+          "path": "/cash-boxes/{cash_box_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/salesperson-regions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/salesperson-regions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "PUT",
+          "path": "/salesperson-regions/{assignment_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/cash-transactions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/cash-transactions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/cash-transactions/{transaction_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/cash-transfers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/cash-transfers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/cash-transfers/{transfer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "PUT",
+          "path": "/cash-transfers/{transfer_id}/approve",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "PUT",
+          "path": "/cash-transfers/{transfer_id}/receive",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "PUT",
+          "path": "/cash-transfers/{transfer_id}/update",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/cash-transfers/{transfer_id}/upload-receipt",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/cash-transfers/{transfer_id}/upload-paper",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/dashboard/branch/{branch_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/dashboard/salesperson/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/dashboard/system",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/regions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/payment-methods",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/cash-box-types",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/transfer-statuses",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/reports/daily-cash-flow",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "GET",
+          "path": "/reports/transfer-receipt/{transfer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/quick-actions/receipt",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/cashflow.py",
+          "method": "POST",
+          "path": "/quick-actions/payment",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "method": "POST",
+          "path": "/gps/location/update",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "method": "GET",
+          "path": "/gps/tracking/live",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "method": "POST",
+          "path": "/gps/money-transfer/create",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "method": "GET",
+          "path": "/gps/alerts/active",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "method": "POST",
+          "path": "/gps/geofence/create",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "method": "GET",
+          "path": "/gps/reports/daily/{salesperson_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "method": "POST",
+          "path": "/gps/emergency/trigger",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/models_refactored.py",
+          "method": "GET",
+          "path": "/models",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/models_refactored.py",
+          "method": "GET",
+          "path": "/models/{model_name}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses_refactored.py",
+          "method": "GET",
+          "path": "/{expense_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses_refactored.py",
+          "method": "GET",
+          "path": "/categories/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses_refactored.py",
+          "method": "GET",
+          "path": "/status/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/expenses_refactored.py",
+          "method": "GET",
+          "path": "/payment-methods/list",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_tracking.py",
+          "method": "GET",
+          "path": "/tracking",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_tracking.py",
+          "method": "POST",
+          "path": "/transfers/create",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_tracking.py",
+          "method": "GET",
+          "path": "/salespersons/{salesperson_id}/location",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_tracking.py",
+          "method": "GET",
+          "path": "/analytics/fraud-detection",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/generate-code",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/salespersons",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/{customer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/all/combined",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "PUT",
+          "path": "/{customer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "DELETE",
+          "path": "/{customer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "POST",
+          "path": "/suppliers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/suppliers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/suppliers/{supplier_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "PUT",
+          "path": "/suppliers/{supplier_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "DELETE",
+          "path": "/suppliers/{supplier_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers.py",
+          "method": "GET",
+          "path": "/branches",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/partner_salesmen_refactored.py",
+          "method": "GET",
+          "path": "/performance",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items.py",
+          "method": "GET",
+          "path": "/{item_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items.py",
+          "method": "PUT",
+          "path": "/{item_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/items.py",
+          "method": "DELETE",
+          "path": "/{item_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/configure",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "GET",
+          "path": "/user/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "GET",
+          "path": "/my-scope",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/assign-customers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/assign-warehouses",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/assign-branches",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/check-access",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "GET",
+          "path": "/my-customers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "GET",
+          "path": "/my-warehouses",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "GET",
+          "path": "/my-branches",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/quick-setup/field-sales/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/quick-setup/finance/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/data_scope.py",
+          "method": "POST",
+          "path": "/quick-setup/admin/{user_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/whatsapp_integration.py",
+          "method": "GET",
+          "path": "/whatsapp/webhook",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/whatsapp_integration.py",
+          "method": "POST",
+          "path": "/whatsapp/webhook",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/whatsapp_integration.py",
+          "method": "POST",
+          "path": "/whatsapp/send/text",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/whatsapp_integration.py",
+          "method": "POST",
+          "path": "/whatsapp/send/template",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/whatsapp_integration.py",
+          "method": "POST",
+          "path": "/whatsapp/broadcast",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/whatsapp_integration.py",
+          "method": "GET",
+          "path": "/whatsapp/analytics",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "POST",
+          "path": "/sales",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/sales",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/sales/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "PUT",
+          "path": "/sales/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "DELETE",
+          "path": "/sales/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "POST",
+          "path": "/purchase",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/purchase",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/purchase/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "PUT",
+          "path": "/purchase/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "DELETE",
+          "path": "/purchase/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "POST",
+          "path": "/payments",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/payments",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/payments/{invoice_type}/{invoice_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "POST",
+          "path": "/{invoice_type}/{invoice_id}/send",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "POST",
+          "path": "/{invoice_type}/{invoice_id}/cancel",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/invoices_refactored.py",
+          "method": "GET",
+          "path": "/overdue",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/generate-code",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "POST",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/{customer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "PUT",
+          "path": "/{customer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "DELETE",
+          "path": "/{customer_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/all/combined",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/salespersons",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/branches",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "POST",
+          "path": "/suppliers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/suppliers",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "GET",
+          "path": "/suppliers/{supplier_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "PUT",
+          "path": "/suppliers/{supplier_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/customers_refactored.py",
+          "method": "DELETE",
+          "path": "/suppliers/{supplier_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/multi_price_system_simple.py",
+          "method": "GET",
+          "path": "/price-lists",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/multi_price_system_simple.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/dashboard",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/policies",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "POST",
+          "path": "/policies",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "PUT",
+          "path": "/policies/{policy_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "DELETE",
+          "path": "/policies/{policy_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "POST",
+          "path": "/policies/{policy_id}/test",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/restriction-groups",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "POST",
+          "path": "/restriction-groups",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/rls-rules",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "POST",
+          "path": "/rls-rules",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/fls-rules",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "POST",
+          "path": "/fls-rules",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/audit-logs",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/audit-logs/export",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/incidents",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "PUT",
+          "path": "/incidents/{incident_id}/status",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/sessions",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "DELETE",
+          "path": "/sessions/{session_id}",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/risk-assessment",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/security_admin.py",
+          "method": "GET",
+          "path": "/health",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/inventory.py",
+          "method": "GET",
+          "path": "/items",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/inventory.py",
+          "method": "GET",
+          "path": "/report",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/inventory.py",
+          "method": "POST",
+          "path": "/movements",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/inventory.py",
+          "method": "GET",
+          "path": "/movements",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/inventory.py",
+          "method": "GET",
+          "path": "/summary",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/inventory.py",
+          "method": "POST",
+          "path": "/adjust",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/inventory.py",
+          "method": "POST",
+          "path": "/items/add",
+          "severity": "critical"
+        }
+      ]
+    },
+    "authorization": {
+      "rbac_coverage": {
+        "total_protected": 2,
+        "missing_rbac": [
+          {
+            "file": "app/routers/advanced_security.py",
+            "method": "DELETE",
+            "path": "/devices/{device_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/advanced_security.py",
+            "method": "POST",
+            "path": "/passless/create-token",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/product_images.py",
+            "method": "DELETE",
+            "path": "/{product_id}/images/{image_index}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/ai_assistant_with_memory.py",
+            "method": "DELETE",
+            "path": "/conversations/{conversation_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/vendors.py",
+            "method": "DELETE",
+            "path": "/{vendor_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/vendors_refactored.py",
+            "method": "DELETE",
+            "path": "/{vendor_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/pos_enhanced.py",
+            "method": "POST",
+            "path": "/admin/dashboard/sync",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/items_refactored.py",
+            "method": "DELETE",
+            "path": "/{item_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/users_refactored.py",
+            "method": "DELETE",
+            "path": "/{user_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/branches_refactored.py",
+            "method": "DELETE",
+            "path": "/{branch_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/users.py",
+            "method": "DELETE",
+            "path": "/{user_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/permissions_refactored.py",
+            "method": "DELETE",
+            "path": "/roles/{role_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/returns_exchange.py",
+            "method": "POST",
+            "path": "/returns/create",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/products.py",
+            "method": "DELETE",
+            "path": "/{product_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/products.py",
+            "method": "DELETE",
+            "path": "/{product_id}/media",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/enhanced_settings.py",
+            "method": "POST",
+            "path": "/backups/create",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/warehouses.py",
+            "method": "DELETE",
+            "path": "/{warehouse_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/trusted_devices.py",
+            "method": "DELETE",
+            "path": "/{device_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/trusted_devices_refactored.py",
+            "method": "DELETE",
+            "path": "/{device_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/chatgpt.py",
+            "method": "DELETE",
+            "path": "/conversation/{conversation_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/permissions.py",
+            "method": "DELETE",
+            "path": "/roles/{role_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/notifications.py",
+            "method": "DELETE",
+            "path": "/{notification_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/notifications.py",
+            "method": "POST",
+            "path": "/bulk/delete",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/notifications.py",
+            "method": "DELETE",
+            "path": "/device-token/{token}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/products_refactored.py",
+            "method": "DELETE",
+            "path": "/{product_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/products_refactored.py",
+            "method": "DELETE",
+            "path": "/{product_id}/media",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/warehouses_refactored.py",
+            "method": "DELETE",
+            "path": "/{warehouse_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/auth_enhanced.py",
+            "method": "DELETE",
+            "path": "/sessions/{session_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/invoices.py",
+            "method": "DELETE",
+            "path": "/sales/{invoice_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/invoices.py",
+            "method": "DELETE",
+            "path": "/purchase/{invoice_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/cashflow.py",
+            "method": "PUT",
+            "path": "/cash-transfers/{transfer_id}/update",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/gps_money_transfer.py",
+            "method": "POST",
+            "path": "/gps/location/update",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/gps_money_transfer.py",
+            "method": "POST",
+            "path": "/gps/money-transfer/create",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/gps_money_transfer.py",
+            "method": "POST",
+            "path": "/gps/geofence/create",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/gps_tracking.py",
+            "method": "POST",
+            "path": "/transfers/create",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/customers.py",
+            "method": "DELETE",
+            "path": "/{customer_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/customers.py",
+            "method": "DELETE",
+            "path": "/suppliers/{supplier_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/items.py",
+            "method": "DELETE",
+            "path": "/{item_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/data_scope.py",
+            "method": "POST",
+            "path": "/quick-setup/admin/{user_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/invoices_refactored.py",
+            "method": "DELETE",
+            "path": "/sales/{invoice_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/invoices_refactored.py",
+            "method": "DELETE",
+            "path": "/purchase/{invoice_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/customers_refactored.py",
+            "method": "DELETE",
+            "path": "/{customer_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/customers_refactored.py",
+            "method": "DELETE",
+            "path": "/suppliers/{supplier_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/security_admin.py",
+            "method": "DELETE",
+            "path": "/policies/{policy_id}",
+            "severity": "high"
+          },
+          {
+            "file": "app/routers/security_admin.py",
+            "method": "DELETE",
+            "path": "/sessions/{session_id}",
+            "severity": "high"
+          }
+        ]
+      },
+      "abac_patterns": [],
+      "rls_coverage": {
+        "total_using_rls": 0,
+        "missing_rls": [
+          {
+            "file": "app/routers/advanced_security.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/product_images.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/vendors.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/branches.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/branches_refactored.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/users.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/hr.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/dashboard.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/warehouses.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/trusted_devices.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/chatgpt.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/permissions.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/notifications.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/warehouses_refactored.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/auth_enhanced.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/customers.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/items.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/data_scope.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/customers_refactored.py",
+            "severity": "medium"
+          },
+          {
+            "file": "app/routers/inventory.py",
+            "severity": "medium"
+          }
+        ]
+      }
+    },
+    "sql_injection": {
+      "f_string_queries": [],
+      "raw_sql": [],
+      "vulnerable_files": [
+        {
+          "file": "app/routers/consumer_api.py",
+          "line": 471,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Updated inventory for {item.product_name}: reduced by {item.quantity}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/consumer_api.py",
+          "line": 473,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Could not update inventory for {item.product_name}: insufficient stock or not found\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/models.py",
+          "line": 59,
+          "pattern": "f-string with SELECT statement",
+          "code": "f\"SELECT COUNT(*) FROM {table.name}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/models.py",
+          "line": 143,
+          "pattern": "f-string with SELECT statement",
+          "code": "f\"SELECT * FROM {table.name} LIMIT 5\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer.py",
+          "line": 183,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update transfer: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/money_transfer_refactored.py",
+          "line": 258,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update transfer: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "line": 689,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update Zoho config: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "line": 1382,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Sync mapping updated for {entity_type}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "line": 1391,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update mapping: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "line": 1413,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Sync mapping updated for {entity_type}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "line": 1422,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update mapping: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "line": 1481,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update sync control: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/settings.py",
+          "line": 550,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Failed to delete backup: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/permissions.py",
+          "line": 216,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Cannot delete role. {users_with_role} users are assigned to this role.\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/notifications.py",
+          "line": 267,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Deleted {count} notifications\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/routers/gps_money_transfer.py",
+          "line": 150,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update GPS location: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/core/cache.py",
+          "line": 208,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Cache DELETE error for key '{full_key}': {e}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/core/cache.py",
+          "line": 257,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Cache DELETE_PATTERN error for pattern '{pattern}': {e}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/websocket/events.py",
+          "line": 112,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Emitted queue_updated: {pending} pending, {processing} processing\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/integrations/zoho/sync.py",
+          "line": 652,
+          "pattern": "f-string with INSERT statement",
+          "code": "f\"Inserted new product: {product_data['zoho_item_id']}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/integrations/zoho/sync.py",
+          "line": 617,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Updated product: {product_data['zoho_item_id']}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/integrations/zoho/stock_sync.py",
+          "line": 151,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"   Updated: {result.total_success}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/integrations/zoho/stock_sync.py",
+          "line": 256,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"\u2705 Warehouse sync completed: {results['updated']}/{results['total_items']}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/integrations/zoho/image_sync.py",
+          "line": 270,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Failed to update image path for {item.get('item_id')}: {str(e)}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/integrations/zoho/image_sync.py",
+          "line": 274,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"\u2705 Updated {updated} product records with image paths\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/handlers/sync_handlers.py",
+          "line": 162,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"Entity updated: {data['entity_type']} {data['entity_id']}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/tds/handlers/sync_handlers.py",
+          "line": 187,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Entity deleted: {data['entity_type']} {data['entity_id']}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/scripts/seed_permissions.py",
+          "line": 730,
+          "pattern": "f-string with UPDATE statement",
+          "code": "f\"   - Updated: {updated_count}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/bff/services/cache_service.py",
+          "line": 139,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"\u26a0\ufe0f  Cache delete error: {e}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/bff/services/cache_service.py",
+          "line": 161,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"\u26a0\ufe0f  Cache delete pattern error: {e}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/bff/services/cache_service.py",
+          "line": 337,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"\ud83d\uddd1\ufe0f  Invalidated {deleted} cache keys for salesperson {salesperson_id}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/bff/services/cache_service.py",
+          "line": 344,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"\ud83d\uddd1\ufe0f  Invalidated {deleted} cache keys for customer {customer_id}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/bff/services/cache_service.py",
+          "line": 351,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"\ud83d\uddd1\ufe0f  Invalidated {deleted} cache keys for product {product_id}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/bff/services/cache_service.py",
+          "line": 358,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"\ud83d\uddd1\ufe0f  Invalidated {deleted} cache keys for order {order_id}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/permission_service.py",
+          "line": 436,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Cannot delete role. {users_with_role} users are assigned to this role.\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/model_service.py",
+          "line": 84,
+          "pattern": "f-string with SELECT statement",
+          "code": "f\"SELECT COUNT(*) FROM {table.name}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/model_service.py",
+          "line": 177,
+          "pattern": "f-string with SELECT statement",
+          "code": "f\"SELECT * FROM {table.name} LIMIT 5\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/image_service.py",
+          "line": 232,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Deleted local image: {filename}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/image_service.py",
+          "line": 236,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Failed to delete image {filename}: {e}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/rls_service.py",
+          "line": 33,
+          "pattern": "f-string with SELECT statement",
+          "code": "f\"SELECT customer_id FROM user_customers WHERE user_id = {user.id}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/rls_service.py",
+          "line": 41,
+          "pattern": "f-string with SELECT statement",
+          "code": "f\"SELECT warehouse_id FROM user_warehouses WHERE user_id = {user.id}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/rls_service.py",
+          "line": 49,
+          "pattern": "f-string with SELECT statement",
+          "code": "f\"SELECT branch_id FROM user_branches WHERE user_id = {user.id}\"",
+          "severity": "critical"
+        },
+        {
+          "file": "app/services/config_service.py",
+          "line": 121,
+          "pattern": "f-string with DELETE statement",
+          "code": "f\"Failed to delete Zoho credentials: {str(e)}\"",
+          "severity": "critical"
+        }
+      ]
+    },
+    "sensitive_data": {
+      "hardcoded_secrets": [
+        {
+          "file": "app/models/advanced_security.py",
+          "line": 69,
+          "type": "Hardcoded password",
+          "severity": "critical"
+        }
+      ],
+      "credentials_in_code": [],
+      "api_keys": []
+    },
+    "files_scanned": 871,
+    "severity_counts": {
+      "critical": 603,
+      "high": 45,
+      "medium": 20,
+      "low": 0
+    }
+  }
+}

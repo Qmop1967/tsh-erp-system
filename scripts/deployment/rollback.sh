@@ -80,13 +80,17 @@ main() {
     log "Current active slot: ${CURRENT_SLOT}"
     log "Rolling back to slot: ${PREVIOUS_SLOT}"
 
-    # Confirm rollback
-    echo ""
-    read -p "Are you sure you want to rollback? (yes/no): " -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
-        warning "Rollback cancelled"
-        exit 0
+    # Confirm rollback (skip in non-interactive/CI mode)
+    if [ -z "${CI:-}" ]; then
+        echo ""
+        read -p "Are you sure you want to rollback? (yes/no): " -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+            warning "Rollback cancelled"
+            exit 0
+        fi
+    else
+        warning "Running in CI mode - automatic rollback confirmed"
     fi
 
     # Set ports
