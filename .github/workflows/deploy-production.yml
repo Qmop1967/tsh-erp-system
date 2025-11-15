@@ -415,6 +415,7 @@ jobs:
           echo "🔄 Rolling back deployment..."
 
           ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            export CI=true
             cd ${{ env.DEPLOY_PATH }}
 
             # Get previous version
