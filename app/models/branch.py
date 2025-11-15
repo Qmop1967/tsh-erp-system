@@ -8,30 +8,19 @@ class Branch(Base):
     __tablename__ = "branches"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(200), nullable=False, index=True)  # Matches unified schema
-    code = Column(String(50), unique=True, nullable=False, index=True)  # Matches unified schema
-    address = Column(Text, nullable=True)  # Matches unified schema
-    city = Column(String(100), nullable=True)  # Matches unified schema
-    phone = Column(String(50), nullable=True)  # Matches unified schema
-    email = Column(String(200), nullable=True)  # Matches unified schema
+    name = Column(String(200), nullable=False, index=True)
+    name_ar = Column(String(200), nullable=False, index=True)  # Arabic name (MANDATORY for user-facing data)
+    code = Column(String(50), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    description_ar = Column(Text, nullable=True)  # Arabic description (MANDATORY for user-facing data)
+    address = Column(Text, nullable=True)
+    city = Column(String(100), nullable=True)
+    phone = Column(String(50), nullable=True)
+    email = Column(String(200), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    currency_id = Column(Integer, ForeignKey("currencies.id"), nullable=True)  # Matches unified schema
+    currency_id = Column(Integer, ForeignKey("currencies.id"), nullable=True, index=True)
 
-    # Multi-tenancy support (not used in unified database)
-    # tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
-
-    # Legacy fields (not in unified database)
-    # location = Column(String(255), nullable=True)
-    # name_ar = Column(String(100), nullable=True)
-    # name_en = Column(String(100), nullable=True)
-    # branch_code = Column(String(20), unique=True, nullable=True, index=True)
-    # branch_type = Column(String(50), nullable=True)
-    # description_ar = Column(Text)
-    # description_en = Column(Text)
-    # address_ar = Column(Text)
-    # address_en = Column(Text)
-    
-    # Audit fields
+    # Audit fields (MANDATORY)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
