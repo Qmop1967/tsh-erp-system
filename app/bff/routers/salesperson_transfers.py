@@ -821,7 +821,7 @@ async def reconcile_transfers(
     }
 
 
-@router.get("/../customers", response_model=List[dict])
+@router.get("/customers", response_model=List[dict])
 async def get_customers(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
