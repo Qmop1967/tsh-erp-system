@@ -27,10 +27,14 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    // Schedule the data load after the first frame to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDashboardData();
+    });
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       await context.read<DashboardProvider>().fetchDashboardData();

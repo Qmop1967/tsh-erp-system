@@ -28,6 +28,11 @@ from fastapi import APIRouter
 from app.bff.mobile.router import router as mobile_base_router
 from app.bff.routers.tds import router as tds_bff_router
 
+# Import salesperson app routers (App 06)
+from app.bff.routers.salesperson_gps import router as salesperson_gps_router
+from app.bff.routers.salesperson_transfers import router as salesperson_transfers_router
+from app.bff.routers.salesperson_commissions import router as salesperson_commissions_router
+
 # Create main BFF router
 bff_router = APIRouter()
 
@@ -42,6 +47,26 @@ bff_router.include_router(
 bff_router.include_router(
     tds_bff_router,
     tags=["TDS BFF"]
+)
+
+# Include Salesperson App routers (App 06 - TSH Field Sales Rep)
+# 33 endpoints: GPS tracking (8) + Money transfers (12) + Commissions (13)
+bff_router.include_router(
+    salesperson_gps_router,
+    prefix="/salesperson",
+    tags=["Salesperson GPS - 8 Endpoints"]
+)
+
+bff_router.include_router(
+    salesperson_transfers_router,
+    prefix="/salesperson",
+    tags=["Salesperson Transfers - 12 Endpoints"]
+)
+
+bff_router.include_router(
+    salesperson_commissions_router,
+    prefix="/salesperson",
+    tags=["Salesperson Commissions - 13 Endpoints"]
 )
 
 __all__ = ["bff_router"]
