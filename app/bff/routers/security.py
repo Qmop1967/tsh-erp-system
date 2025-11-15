@@ -161,7 +161,8 @@ async def resolve_threat(
     - Filter by IP
     - Filter by date range
     - Pagination
-    """
+    """,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_login_attempts(
     success: Optional[bool] = Query(None),
@@ -194,12 +195,14 @@ async def get_login_attempts(
 @router.get(
     "/login-attempts/failed",
     summary="Get failed login attempts",
-    description="Get recent failed login attempts (potential threats)"
+    description="Get recent failed login attempts (potential threats)",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_failed_logins(
     time_period: str = Query("1h", description="1h, 24h, 7d"),
     limit: int = Query(100, ge=1, le=500),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get failed login attempts"""
     # TODO: Implement failed logins
@@ -217,13 +220,15 @@ async def get_failed_logins(
 @router.post(
     "/ip-addresses/{ip}/block",
     summary="Block IP address",
-    description="Block suspicious IP address"
+    description="Block suspicious IP address",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def block_ip_address(
     ip: str,
     reason: str = Query(...),
     duration_hours: Optional[int] = Query(None, description="Null for permanent"),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Block IP address"""
     # TODO: Implement IP blocking
@@ -252,14 +257,16 @@ async def block_ip_address(
     - Filter by device type
     - Filter by location
     - Real-time data
-    """
+    """,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_active_sessions(
     user_id: Optional[int] = Query(None),
     device_type: Optional[str] = Query(None, description="mobile, desktop, tablet"),
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get active sessions"""
     # TODO: Implement sessions listing
@@ -279,12 +286,14 @@ async def get_active_sessions(
 @router.post(
     "/sessions/{session_id}/terminate",
     summary="Terminate session",
-    description="Forcefully terminate user session"
+    description="Forcefully terminate user session",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def terminate_session(
     session_id: str,
     reason: str = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Terminate session"""
     # TODO: Implement session termination
@@ -301,12 +310,14 @@ async def terminate_session(
 @router.post(
     "/users/{user_id}/terminate-all-sessions",
     summary="Terminate all user sessions",
-    description="Terminate all sessions for a user (security lockout)"
+    description="Terminate all sessions for a user (security lockout)",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def terminate_all_user_sessions(
     user_id: int,
     reason: str = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Terminate all user sessions"""
     # TODO: Implement terminate all sessions
@@ -337,7 +348,8 @@ async def terminate_all_user_sessions(
     - Filter by date range
     - Search
     - Pagination
-    """
+    """,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_audit_log(
     event_type: Optional[str] = Query(None),
@@ -348,7 +360,8 @@ async def get_audit_log(
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get security audit log"""
     # TODO: Implement audit log
@@ -376,10 +389,12 @@ async def get_audit_log(
     Shows all roles and their permissions in a matrix view.
 
     **Caching:** 10 minutes TTL
-    """
+    """,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_permissions_matrix(
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get permissions matrix"""
     # TODO: Implement permissions matrix
@@ -396,11 +411,13 @@ async def get_permissions_matrix(
 @router.get(
     "/permissions/user/{user_id}",
     summary="Get user permissions",
-    description="Get effective permissions for a user"
+    description="Get effective permissions for a user",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_user_permissions(
     user_id: int,
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get user permissions"""
     # TODO: Implement user permissions
@@ -430,7 +447,8 @@ async def get_user_permissions(
     - Without proper permissions
     - Outside allowed hours
     - From blacklisted IPs
-    """
+    """,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_access_violations(
     user_id: Optional[int] = Query(None),
@@ -439,7 +457,8 @@ async def get_access_violations(
     date_to: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get access violations"""
     # TODO: Implement violations listing
@@ -463,12 +482,14 @@ async def get_access_violations(
 @router.get(
     "/reports/security-summary",
     summary="Get security summary report",
-    description="Comprehensive security summary for a period"
+    description="Comprehensive security summary for a period",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_security_summary_report(
     date_from: str = Query(...),
     date_to: str = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get security summary report"""
     # TODO: Implement security summary report
@@ -501,13 +522,15 @@ async def get_security_summary_report(
 @router.get(
     "/reports/user-activity",
     summary="Get user activity report",
-    description="Detailed user activity for security analysis"
+    description="Detailed user activity for security analysis",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_user_activity_report(
     user_id: int = Query(...),
     date_from: str = Query(...),
     date_to: str = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get user activity report"""
     # TODO: Implement user activity report
@@ -534,10 +557,12 @@ async def get_user_activity_report(
 @router.get(
     "/settings/policies",
     summary="Get security policies",
-    description="Get current security policies and settings"
+    description="Get current security policies and settings",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_security_policies(
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get security policies"""
     # TODO: Implement security policies
@@ -575,7 +600,8 @@ async def get_security_policies(
 @router.get(
     "/health",
     summary="Health check",
-    description="Check if Security BFF is healthy"
+    description="Check if Security BFF is healthy",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def health_check():
     """Health check endpoint"""

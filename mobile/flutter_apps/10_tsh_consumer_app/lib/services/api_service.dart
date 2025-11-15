@@ -279,21 +279,37 @@ class ApiService {
 
   // Image URL helper
   static String getProductImageUrl(Product product) {
-    // CDN image has priority
-    if (product.cdnImageUrl != null && product.cdnImageUrl!.isNotEmpty) {
+    // CDN image has priority (if it's a valid URL)
+    if (product.cdnImageUrl != null &&
+        product.cdnImageUrl!.isNotEmpty &&
+        product.cdnImageUrl!.startsWith('http')) {
       return product.cdnImageUrl!;
     }
 
-    // Then image_url - prepend baseUrl if it's a relative path
-    if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
-      // If imageUrl starts with /, prepend the base URL
-      if (product.imageUrl!.startsWith('/')) {
-        return '$baseUrl${product.imageUrl}';
-      }
+    // Then image_url (if it's a valid URL)
+    if (product.imageUrl != null &&
+        product.imageUrl!.isNotEmpty &&
+        product.imageUrl!.startsWith('http')) {
       return product.imageUrl!;
     }
 
-    // Fallback to placeholder based on category
+    // For relative paths from backend, construct full URL
+    // NOTE: Backend returns paths like "/product-images/{zoho_item_id}.jpg"
+    // But these images don't exist yet on the server
+    // So we fallback to placeholder for now
+    if (product.imageUrl != null &&
+        product.imageUrl!.isNotEmpty &&
+        product.imageUrl!.startsWith('/')) {
+      // Check if it's a known placeholder path
+      if (product.imageUrl!.contains('placeholder')) {
+        return _getPlaceholderImage(product.category);
+      }
+      // Construct full URL for relative paths (remove '/api' prefix)
+      final String serverUrl = 'https://erp.tsh.sale';
+      return '$serverUrl${product.imageUrl}';
+    }
+
+    // Fallback to category-based placeholder
     return _getPlaceholderImage(product.category);
   }
 
