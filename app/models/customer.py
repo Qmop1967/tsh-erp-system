@@ -28,6 +28,12 @@ class Customer(Base):
     salesperson_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # مندوب المبيعات
     is_active = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
+
+    # Zoho sync fields
+    zoho_contact_id = Column(String(100), unique=True, nullable=True, index=True)  # Zoho Books contact ID
+    zoho_owner_id = Column(String(100), nullable=True, index=True)  # Zoho user ID (owner/salesperson)
+    zoho_last_sync = Column(DateTime(timezone=True), nullable=True)  # Last sync timestamp
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

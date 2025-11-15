@@ -27,7 +27,11 @@ class User(Base):
     is_salesperson = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False)  # Email verification status
-    
+
+    # Zoho sync fields
+    zoho_user_id = Column(String(100), unique=True, nullable=True, index=True)  # Zoho Books/Inventory user ID
+    zoho_last_sync = Column(DateTime, nullable=True)  # Last sync timestamp with Zoho
+
     # Audit fields
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
