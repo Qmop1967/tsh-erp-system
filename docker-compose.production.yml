@@ -1,0 +1,340 @@
+version: "3.9"
+
+# ============================================================================
+# TSH ERP Ecosystem - Production Environment
+# ============================================================================
+# Purpose: Live production system serving 500+ clients
+# URL: erp.tsh.sale, consumer.tsh.sale, tds.tsh.sale
+# Auto-deploy: On merge to 'main' branch (blue-green deployment)
+# ============================================================================
+
+x-logging-default: &logging-default
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "10"
+
+x-app-env-files: &app-env-files
+  - .env.production
+
+services:
+  # ============================================================================
+  # Database - PostgreSQL 15 (Persistent - Not replaced during deployment)
+  # ============================================================================
+  tsh_postgres:
+    image: postgres:15-alpine
+    container_name: tsh_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tsh_erp_production}
+      POSTGRES_USER: ${POSTGRES_USER:-tsh_app_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_MAX_CONNECTIONS: ${POSTGRES_MAX_CONNECTIONS:-200}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "5432:5432"
+    networks:
+      - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tsh_app_user} -d ${POSTGRES_DB:-tsh_erp_production}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *logging-default
+
+  # ============================================================================
+  # Cache - Redis 7 (Persistent - Not replaced during deployment)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: tsh_redis
+    restart: always
+    command:
+      - redis-server
+      - --appendonly yes
+      - --maxmemory 512mb
+      - --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging: *logging-default
+
+  # ============================================================================
+  # Backend API - FastAPI (BLUE deployment slot)
+  # ============================================================================
+  app_blue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - "tsh-erp:${VERSION:-latest}"
+        - "ghcr.io/qmop1967/tsh-erp:${VERSION:-latest}"
+    image: tsh-erp:${VERSION:-latest}
+    container_name: tsh_erp_app_blue
+    restart: always
+    env_file: *app-env-files
+    environment:
+      REDIS_URL: redis://tsh_redis:6379/0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tsh_app_user}:${POSTGRES_PASSWORD}@tsh_postgres:5432/${POSTGRES_DB:-tsh_erp_production}
+      ENVIRONMENT: production
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-4}
+      DEPLOYMENT_SLOT: blue
+    ports:
+      - "8001:8000"
+    depends_on:
+      tsh_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - tsh_network
+    volumes:
+      - ./logs/production:/var/log/tsh_erp
+      - ./uploads:/app/uploads
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *logging-default
+    labels:
+      - "com.tsh.deployment.slot=blue"
+      - "com.tsh.service=backend"
+      - "com.tsh.environment=production"
+
+  # ============================================================================
+  # Backend API - FastAPI (GREEN deployment slot)
+  # ============================================================================
+  app_green:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - "tsh-erp:${VERSION:-latest}"
+        - "ghcr.io/qmop1967/tsh-erp:${VERSION:-latest}"
+    image: tsh-erp:${VERSION:-latest}
+    container_name: tsh_erp_app_green
+    restart: always
+    env_file: *app-env-files
+    environment:
+      REDIS_URL: redis://tsh_redis:6379/0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tsh_app_user}:${POSTGRES_PASSWORD}@tsh_postgres:5432/${POSTGRES_DB:-tsh_erp_production}
+      ENVIRONMENT: production
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-4}
+      DEPLOYMENT_SLOT: green
+    ports:
+      - "8011:8000"
+    depends_on:
+      tsh_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - tsh_network
+    volumes:
+      - ./logs/production:/var/log/tsh_erp
+      - ./uploads:/app/uploads
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *logging-default
+    labels:
+      - "com.tsh.deployment.slot=green"
+      - "com.tsh.service=backend"
+      - "com.tsh.environment=production"
+    profiles:
+      - green
+
+  # ============================================================================
+  # NeuroLink - Notification Service
+  # ============================================================================
+  neurolink:
+    build:
+      context: ./app/neurolink
+      dockerfile: Dockerfile
+      tags:
+        - "tsh-neurolink:${VERSION:-latest}"
+        - "ghcr.io/qmop1967/tsh-neurolink:${VERSION:-latest}"
+    image: tsh-neurolink:${VERSION:-latest}
+    container_name: tsh_neurolink
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tsh_app_user}:${POSTGRES_PASSWORD}@tsh_postgres:5432/${POSTGRES_DB:-tsh_erp_production}
+      DB_POOL_SIZE: ${NEUROLINK_DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${NEUROLINK_DB_MAX_OVERFLOW:-10}
+      REDIS_URL: redis://tsh_redis:6379/2
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-notifications@tsh.sale}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TSH ERP}
+      ENVIRONMENT: production
+      APP_BASE_URL: https://erp.tsh.sale
+      LOG_LEVEL: ${NEUROLINK_LOG_LEVEL:-INFO}
+      WORKERS: ${NEUROLINK_WORKERS:-4}
+      EVENT_BATCH_SIZE: ${EVENT_BATCH_SIZE:-100}
+    ports:
+      - "8002:8002"
+    depends_on:
+      tsh_postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - tsh_network
+    volumes:
+      - ./logs/production/neurolink:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *logging-default
+
+  # ============================================================================
+  # TDS Dashboard - Next.js
+  # ============================================================================
+  tds_admin_dashboard:
+    build:
+      context: ./apps/tds_admin_dashboard
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://app_blue:8000}
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-ws://app_blue:8000}
+      tags:
+        - "tds-admin-dashboard:${VERSION:-latest}"
+        - "ghcr.io/qmop1967/tds-admin-dashboard:${VERSION:-latest}"
+    image: tds-admin-dashboard:${VERSION:-latest}
+    container_name: tds_admin_dashboard
+    restart: always
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://app_blue:8000}
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-ws://app_blue:8000}
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"
+    depends_on:
+      app_blue:
+        condition: service_healthy
+    networks:
+      - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging: *logging-default
+
+  # ============================================================================
+  # Nginx - Reverse Proxy (Optional - for local docker deployment)
+  # ============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: tsh_nginx
+    restart: always
+    depends_on:
+      - app_blue
+      - tds_admin_dashboard
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/production/nginx:/var/log/nginx
+      - ./uploads:/app/uploads:ro
+      - ./static:/app/static:ro
+    networks:
+      - tsh_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *logging-default
+    profiles:
+      - proxy
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  tsh_network:
+    driver: bridge
