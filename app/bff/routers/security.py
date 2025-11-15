@@ -4,12 +4,21 @@ Mobile-optimized endpoints for TSH Admin Security mobile app
 
 App: 02_tsh_admin_security
 Purpose: Security monitoring, threat detection, access control, audit logs
+
+Security:
+- ALL endpoints require admin authentication (CRITICAL SECURITY FUNCTIONS)
+- Uses HYBRID AUTHORIZATION: RBAC + ABAC + RLS
+- RLS context automatically set for database queries
 """
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
+from app.db.rls_dependency import get_db_with_rls
+from app.dependencies.auth import get_current_user
+from app.dependencies.rbac import RoleChecker
+from app.models.user import User
 
 router = APIRouter(prefix="/security", tags=["Security BFF"])
 
@@ -36,13 +45,24 @@ router = APIRouter(prefix="/security", tags=["Security BFF"])
     - Access violations
     - System security score
 
+    **Security:** Admin only (critical security monitoring)
+
     **Caching:** 1 minute TTL (real-time monitoring)
-    """
+    """,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_dashboard(
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
-    """Get security dashboard"""
+    """
+    Get security dashboard
+
+    Authorization:
+    - RBAC: Admin role required
+    - ABAC: Valid JWT token required
+    - RLS: Database queries scoped to admin context
+    """
     # TODO: Implement security dashboard
     return {
         "success": True,
@@ -98,7 +118,10 @@ async def get_dashboard(
     - Filter by type
     - Filter by status
     - Pagination
-    """
+
+    **Security:** Admin only
+    """,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def get_threats(
     severity: Optional[str] = Query(None, description="critical, high, medium, low"),
@@ -106,9 +129,10 @@ async def get_threats(
     status: Optional[str] = Query(None, description="active, investigating, resolved"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
-    """Get security threats"""
+    """Get security threats - Admin only"""
     # TODO: Implement threats listing
     return {
         "success": True,
@@ -124,15 +148,17 @@ async def get_threats(
 @router.post(
     "/threats/{threat_id}/resolve",
     summary="Resolve security threat",
-    description="Mark threat as resolved with action taken"
+    description="Mark threat as resolved with action taken. **Security:** Admin only",
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 async def resolve_threat(
     threat_id: int,
     action_taken: str = Query(...),
     notes: Optional[str] = Query(None),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
-    """Resolve threat"""
+    """Resolve threat - Admin only"""
     # TODO: Implement threat resolution
     return {
         "success": True,
