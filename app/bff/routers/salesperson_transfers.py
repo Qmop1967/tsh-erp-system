@@ -23,6 +23,7 @@ from app.db.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.models.money_transfer import MoneyTransfer
+from app.models.customer import Customer
 from app.schemas.money_transfer import (
     MoneyTransferCreate,
     MoneyTransferUpdate,
@@ -817,6 +818,94 @@ async def reconcile_transfers(
         "salesperson_id": salesperson_id,
         "total_transfers": len(transfers),
         "reconciled_count": reconciled_count
+    }
+
+
+@router.get("/../customers", response_model=List[dict])
+async def get_customers(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    limit: int = Query(100, le=500, description="Maximum customers to return"),
+    search: Optional[str] = Query(None, description="Search by name or phone")
+):
+    """
+    Get list of customers assigned to the current salesperson
+
+    Business Logic:
+    - Only returns customers assigned to the logged-in salesperson
+    - Filters by salesperson_id from customers table
+    - Supports search by name or phone number
+    - Returns customer details needed for POS sales
+
+    Authorization:
+    - Only salespersons can access their assigned customers
+    - Returns empty list if no customers assigned
+    """
+    # Build query for customers assigned to this salesperson
+    query = db.query(Customer).filter(
+        and_(
+            Customer.salesperson_id == current_user.id,
+            Customer.is_active == True
+        )
+    )
+
+    # Apply search filter if provided
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Customer.name.ilike(search_term),
+                Customer.name_ar.ilike(search_term),
+                Customer.phone.ilike(search_term),
+                Customer.company_name.ilike(search_term)
+            )
+        )
+
+    # Execute query with limit
+    customers = query.order_by(Customer.name).limit(limit).all()
+
+    # Format response for mobile app
+    customer_list = []
+    for customer in customers:
+        customer_list.append({
+            "id": str(customer.id),
+            "name": customer.name_ar or customer.name,  # Prefer Arabic name
+            "phone": customer.phone or "لا يوجد رقم",
+            "email": customer.email or f"customer{customer.id}@tsh.sale",
+            "company_name": customer.company_name_ar or customer.company_name,
+            "credit_limit": float(customer.credit_limit) if customer.credit_limit else 0.0,
+            "payment_terms": customer.payment_terms,
+            "currency": customer.currency,
+            "city": customer.city,
+            "is_active": customer.is_active
+        })
+
+    return customer_list
+
+
+@router.get("/exchange-rate")
+async def get_exchange_rate(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current IQD/USD exchange rate
+
+    Business Logic:
+    - Returns current exchange rate for currency conversion
+    - Used for money transfer calculations
+    - Default: 1 USD = 1,310 IQD (as of Nov 2025)
+
+    TODO: Integrate with real-time exchange rate API
+    """
+    # TODO: Query from exchange_rates table or external API
+    # For now, return static rate
+    return {
+        "base_currency": "USD",
+        "target_currency": "IQD",
+        "rate": 1310.0,
+        "last_updated": datetime.utcnow().isoformat(),
+        "source": "static"  # TODO: Change to "database" or "api"
     }
 
 
