@@ -1,0 +1,211 @@
+{
+  "description": "MCP (Model Context Protocol) server configuration for selective loading",
+  "version": "2.0.0",
+  "last_updated": "2025-11-14",
+  "schema_version": "2.0.0",
+
+  "mcpServers": {
+    "playwright": {
+      "enabled": false,
+      "auto_enable_for_agents": ["orixoon", "e2e-tester"],
+      "auto_enable_for_tasks": [
+        "test",
+        "testing",
+        "e2e",
+        "visual regression",
+        "screenshot",
+        "browser automation"
+      ],
+      "description": "Visual testing and browser automation - Enable only for testing workflows",
+      "token_cost": "~11,700 tokens",
+      "priority": "medium",
+      "use_cases": [
+        "E2E testing",
+        "Visual regression testing",
+        "Browser automation",
+        "Screenshot capture",
+        "Form testing",
+        "Navigation testing"
+      ],
+      "auto_disable_after": "task_complete",
+      "requires_user_approval": false
+    },
+    "chrome-devtools": {
+      "enabled": false,
+      "auto_enable_for_agents": ["orixoon", "debugger"],
+      "auto_enable_for_tasks": [
+        "debug",
+        "debugging",
+        "inspect",
+        "network monitoring",
+        "console errors",
+        "performance profiling"
+      ],
+      "description": "Browser debugging and inspection - Enable only for testing and debugging",
+      "token_cost": "~12,000+ tokens",
+      "priority": "medium",
+      "use_cases": [
+        "DOM inspection",
+        "Network monitoring",
+        "Console debugging",
+        "Performance profiling",
+        "Memory leak detection",
+        "API call inspection"
+      ],
+      "auto_disable_after": "task_complete",
+      "requires_user_approval": false
+    },
+    "zoho": {
+      "enabled": true,
+      "auto_enable_for_agents": ["zoho-sync-manager", "tds-core-manager"],
+      "auto_enable_for_tasks": [
+        "zoho sync",
+        "zoho integration",
+        "tds",
+        "product sync",
+        "inventory sync",
+        "customer sync"
+      ],
+      "description": "Zoho Books & Inventory integration - Always enabled for TSH ERP",
+      "token_cost": "~8,000 tokens",
+      "priority": "high",
+      "use_cases": [
+        "Zoho Books API access",
+        "Zoho Inventory API access",
+        "Product synchronization",
+        "Customer data sync",
+        "Invoice management",
+        "Stock level monitoring"
+      ],
+      "auto_disable_after": "never",
+      "requires_user_approval": false
+    }
+  },
+
+  "agent_mcp_requirements": {
+    "orixoon": {
+      "required_mcps": ["playwright", "chrome-devtools"],
+      "optional_mcps": ["zoho"],
+      "reason": "Auto-healing and testing require browser automation",
+      "auto_load_on_start": false
+    },
+    "zoho-sync-manager": {
+      "required_mcps": ["zoho"],
+      "optional_mcps": [],
+      "reason": "Monitoring and sync management require Zoho API access",
+      "auto_load_on_start": true
+    },
+    "tds-core-manager": {
+      "required_mcps": ["zoho"],
+      "optional_mcps": [],
+      "reason": "TDS Core orchestration requires Zoho API access",
+      "auto_load_on_start": true
+    },
+    "e2e-tester": {
+      "required_mcps": ["playwright", "chrome-devtools"],
+      "optional_mcps": [],
+      "reason": "End-to-end testing requires browser automation tools",
+      "auto_load_on_start": false
+    },
+    "debugger": {
+      "required_mcps": ["chrome-devtools"],
+      "optional_mcps": ["playwright"],
+      "reason": "Debugging requires browser inspection capabilities",
+      "auto_load_on_start": false
+    }
+  },
+
+  "task_detection_rules": {
+    "testing_workflow": {
+      "keywords": ["test", "testing", "e2e", "integration test", "unit test"],
+      "enable_mcps": ["playwright", "chrome-devtools"],
+      "confidence_threshold": 0.7
+    },
+    "debugging_workflow": {
+      "keywords": ["debug", "error", "bug", "console", "network"],
+      "enable_mcps": ["chrome-devtools"],
+      "confidence_threshold": 0.6
+    },
+    "zoho_workflow": {
+      "keywords": ["zoho", "sync", "tds", "product", "inventory", "customer"],
+      "enable_mcps": ["zoho"],
+      "confidence_threshold": 0.5
+    },
+    "general_development": {
+      "keywords": ["implement", "create", "add", "update", "refactor"],
+      "enable_mcps": [],
+      "confidence_threshold": 0.8
+    }
+  },
+
+  "enablement_rules": {
+    "default": "disabled",
+    "enable_when": [
+      "Agent requires it (auto_enable_for_agents)",
+      "User explicitly enables via settings",
+      "Task keywords match (auto_enable_for_tasks)",
+      "Task detection confidence > threshold",
+      "Project phase requires it (feature_flags)"
+    ],
+    "disable_when": [
+      "Agent task complete (auto_disable_after: task_complete)",
+      "General development work (no matching keywords)",
+      "Non-testing workflows",
+      "Token budget exceeded (> 180k tokens used)",
+      "User manually disables"
+    ],
+    "priority_order": [
+      "high: Always enabled for critical workflows",
+      "medium: Enabled on-demand for specific tasks",
+      "low: Rarely enabled, only on explicit request"
+    ]
+  },
+
+  "token_budget": {
+    "session_limit": 200000,
+    "mcp_allocation_percentage": 15,
+    "warning_threshold": 180000,
+    "hard_limit": 195000,
+    "auto_disable_mcps_at_limit": true,
+    "priority_preservation": ["zoho"]
+  },
+
+  "benefits": {
+    "token_savings": "~11,700-24,000 tokens per session (without browser tools)",
+    "cost_reduction": "~60-70% when not testing",
+    "faster_sessions": "Reduced context loading time",
+    "selective_loading": "Load only what's needed for current task",
+    "intelligent_detection": "Auto-enable based on task keywords",
+    "budget_aware": "Respect token limits and priorities"
+  },
+
+  "monitoring": {
+    "track_mcp_usage": true,
+    "log_enablement_events": true,
+    "report_token_usage": true,
+    "alert_on_budget_exceeded": true
+  },
+
+  "change_log": [
+    {
+      "version": "2.0.0",
+      "date": "2025-11-14",
+      "changes": [
+        "Added granular task detection rules",
+        "Added token budget management",
+        "Added auto-enable-for-tasks keywords",
+        "Added more agent configurations",
+        "Added priority system",
+        "Added monitoring capabilities"
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2025-11-10",
+      "changes": [
+        "Initial MCP configuration",
+        "Basic enablement rules"
+      ]
+    }
+  ]
+}

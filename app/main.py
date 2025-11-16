@@ -231,7 +231,7 @@ from app.routers.permissions_refactored import router as permissions_router  # �
 from app.routers.trusted_devices_refactored import router as trusted_devices_router  # ✅ Phase 5 P3 Batch 3: Refactored
 from app.routers.data_scope import router as data_scope_router  # Row-Level Security (RLS) and data scope management
 from app.routers.chatgpt import router as chatgpt_router  # ChatGPT Integration
-from app.routers.backup_restore import router as backup_restore_router  # Backup & Restore System
+# from app.routers.backup_restore import router as backup_restore_router  # Backup & Restore System (module not yet created)
 from app.routers.consumer_api import router as consumer_api_router  # Consumer App with Zoho Integration
 from app.routers.dashboard_refactored import router as dashboard_router  # ✅ Phase 5 P3 Batch 1: Refactored
 from app.routers.notifications import router as notifications_router  # Unified Notification System
@@ -261,7 +261,7 @@ from app.routers.notifications import router as notifications_router  # Unified 
 # ============================================================================
 # TDS API Routers - Consolidated Zoho Integration Layer
 from app.tds.api import webhooks_router as tds_webhooks_router  # TDS webhook receiver (NEW - Consolidated)
-from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync
+# from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync (missing sync_with_caching dependency)
 from app.routers.data_investigation import router as data_investigation_router  # Daily data investigation reports
 # DEPRECATED: from app.routers.zoho_webhooks import router as zoho_webhooks_router  # Old router - replaced by TDS API
 
@@ -411,7 +411,7 @@ app.include_router(warehouses_router, prefix="/api")  # Enable warehouses router
 app.include_router(items_router, prefix="/api")
 app.include_router(vendors_router, prefix="/api")  # Enable vendors router
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
-app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])
+# app.include_router(backup_restore_router, prefix="/api/backup", tags=["Backup & Restore - System Protection"])  # Module not yet created
 # 🛒 CONSUMER APP: Modern E-commerce with Zoho Integration
 app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer App - E-commerce with Zoho Sync"])
 # ============================================================================
@@ -426,7 +426,7 @@ app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer 
 # ============================================================================
 # ✅ TDS Webhooks - Consolidated in TDS module per architecture
 app.include_router(tds_webhooks_router, prefix="/api/tds/webhooks", tags=["TDS Core - Webhooks"])
-app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])
+# app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])  # Missing dependency
 app.include_router(data_investigation_router, tags=["Data Investigation - Daily Monitoring"])
 
 # Legacy Zoho routers REMOVED:

@@ -45,6 +45,10 @@ class CustomerProcessor:
             'outstanding_receivable_amount': customer_data.get('outstanding_receivable_amount', 0),
             'credit_limit': customer_data.get('credit_limit', 0),
 
+            # Owner/Salesperson Assignment
+            # Zoho Books uses 'owner_id' to assign a user as the contact owner
+            'zoho_owner_id': customer_data.get('owner_id'),  # Will be mapped to local salesperson_id
+
             # Status
             'status': customer_data.get('status', 'active'),
             'is_active': customer_data.get('status') == 'active',

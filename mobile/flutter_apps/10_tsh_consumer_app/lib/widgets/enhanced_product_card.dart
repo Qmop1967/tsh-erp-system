@@ -205,6 +205,10 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
   }
 
   Widget _buildProductImage(String imageUrl) {
+    // Check if this is a placeholder URL
+    final bool isPlaceholder = imageUrl.contains('placeholder') ||
+        imageUrl.contains('via.placeholder.com');
+
     return Hero(
       tag: 'product-${widget.product.id}',
       child: Stack(
@@ -223,99 +227,18 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
                 end: Alignment.bottomRight,
               ),
             ),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.contain,
-              httpHeaders: const {
-                'Access-Control-Allow-Origin': '*',
-              },
-              placeholder: (context, url) => Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.grey[100]!,
-                      Colors.grey[200]!,
-                    ],
+            child: isPlaceholder
+                ? _buildPlaceholderImage()
+                : CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    httpHeaders: const {
+                      'Access-Control-Allow-Origin': '*',
+                    },
+                    placeholder: (context, url) => _buildLoadingPlaceholder(),
+                    errorWidget: (context, url, error) =>
+                        _buildPlaceholderImage(),
                   ),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 48,
-                        color: TSHTheme.primary.withOpacity(0.3),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            TSHTheme.primary.withOpacity(0.5),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      TSHTheme.primary.withOpacity(0.08),
-                      TSHTheme.accent.withOpacity(0.08),
-                      Colors.white.withOpacity(0.95),
-                    ],
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: TSHTheme.primary.withOpacity(0.15),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.inventory_2_outlined,
-                        size: 48,
-                        color: TSHTheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        widget.product.name,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: TSHTheme.textPrimary.withOpacity(0.7),
-                          height: 1.3,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ),
 
           // Stock Badge - Top Right
@@ -585,6 +508,149 @@ class _EnhancedProductCardState extends ConsumerState<EnhancedProductCard>
         ),
       ),
     );
+  }
+
+  /// Loading placeholder widget with shimmer effect
+  Widget _buildLoadingPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.grey[100]!,
+            Colors.grey[200]!,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.shopping_bag_outlined,
+              size: 48,
+              color: TSHTheme.primary.withOpacity(0.3),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  TSHTheme.primary.withOpacity(0.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Beautiful placeholder for missing images
+  Widget _buildPlaceholderImage() {
+    // Get category-based icon
+    IconData categoryIcon = _getCategoryIcon(widget.product.category);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            TSHTheme.primary.withOpacity(0.08),
+            TSHTheme.accent.withOpacity(0.08),
+            Colors.white.withOpacity(0.95),
+          ],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Icon with circular background
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: TSHTheme.primary.withOpacity(0.15),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Icon(
+              categoryIcon,
+              size: 48,
+              color: TSHTheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Product name
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              widget.product.name,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: TSHTheme.textPrimary.withOpacity(0.7),
+                height: 1.3,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Get icon based on product category
+  IconData _getCategoryIcon(String? category) {
+    if (category == null) return Icons.inventory_2_outlined;
+
+    final categoryLower = category.toLowerCase();
+
+    if (categoryLower.contains('laptop') || categoryLower.contains('computer')) {
+      return Icons.laptop_outlined;
+    } else if (categoryLower.contains('mobile') ||
+        categoryLower.contains('phone') ||
+        categoryLower.contains('هاتف')) {
+      return Icons.phone_android_outlined;
+    } else if (categoryLower.contains('printer') ||
+        categoryLower.contains('طابعة')) {
+      return Icons.print_outlined;
+    } else if (categoryLower.contains('network') ||
+        categoryLower.contains('router') ||
+        categoryLower.contains('شبكة')) {
+      return Icons.router_outlined;
+    } else if (categoryLower.contains('keyboard') ||
+        categoryLower.contains('mouse') ||
+        categoryLower.contains('لوحة')) {
+      return Icons.keyboard_outlined;
+    } else if (categoryLower.contains('monitor') ||
+        categoryLower.contains('screen') ||
+        categoryLower.contains('شاشة')) {
+      return Icons.monitor_outlined;
+    } else if (categoryLower.contains('storage') ||
+        categoryLower.contains('disk') ||
+        categoryLower.contains('تخزين')) {
+      return Icons.storage_outlined;
+    } else if (categoryLower.contains('cable') ||
+        categoryLower.contains('wire') ||
+        categoryLower.contains('كابل')) {
+      return Icons.cable_outlined;
+    } else if (categoryLower.contains('accessory') ||
+        categoryLower.contains('إكسسوار')) {
+      return Icons.devices_other_outlined;
+    }
+
+    // Default icon for uncategorized products
+    return Icons.inventory_2_outlined;
   }
 }
 

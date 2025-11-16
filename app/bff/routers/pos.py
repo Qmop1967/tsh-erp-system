@@ -4,6 +4,11 @@ Mobile-optimized endpoints for TSH POS tablet/mobile app
 
 App: 07_tsh_retail_sales_app
 Purpose: Point of sale operations, retail transactions, cash drawer management
+
+Security:
+- Most endpoints require cashier/manager/admin roles
+- Critical operations (refunds, cash drawer) require manager approval
+- Uses HYBRID AUTHORIZATION: RBAC + ABAC + RLS
 """
 from typing import Optional, List, Dict
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -11,6 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from app.db.database import get_db
+from app.db.rls_dependency import get_db_with_rls
+from app.dependencies.auth import get_current_user
+from app.dependencies.rbac import RoleChecker
+from app.models.user import User
 
 router = APIRouter(prefix="/pos", tags=["POS BFF"])
 
@@ -55,11 +64,14 @@ class POSPayment(BaseModel):
 
     **Caching:** 1 minute TTL (frequently updated)
     """
+,
+    dependencies=[Depends(RoleChecker(["cashier", "manager", "admin"]))]
 )
 async def get_dashboard(
     cashier_id: int = Query(..., description="Cashier/user ID"),
     branch_id: int = Query(..., description="Branch ID"),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get POS dashboard"""
     # TODO: Implement POS dashboard
@@ -118,7 +130,8 @@ async def start_transaction(
     cashier_id: int = Query(...),
     branch_id: int = Query(...),
     customer_id: Optional[int] = Query(None, description="Optional customer ID"),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Start new POS transaction"""
     # TODO: Implement transaction start
@@ -160,7 +173,8 @@ async def start_transaction(
 async def add_item_to_transaction(
     transaction_id: str,
     item: POSTransactionItem,
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Add item to transaction"""
     # TODO: Implement add item logic
@@ -194,7 +208,8 @@ async def add_item_to_transaction(
 async def remove_item_from_transaction(
     transaction_id: str,
     item_id: int,
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Remove item from transaction"""
     # TODO: Implement remove item logic
@@ -233,7 +248,8 @@ async def apply_discount(
     discount_type: str = Query(..., description="percentage, fixed, coupon"),
     discount_value: float = Query(...),
     requires_approval: bool = Query(False),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Apply discount to transaction"""
     # TODO: Implement discount logic
@@ -281,7 +297,8 @@ async def process_payment(
     transaction_id: str,
     payment: POSPayment,
     print_receipt: bool = Query(True),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Process payment and complete transaction"""
     # TODO: Implement payment processing
@@ -321,7 +338,8 @@ async def process_payment(
 async def split_payment(
     transaction_id: str,
     payments: List[POSPayment] = Body(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Process split payment"""
     # TODO: Implement split payment
@@ -368,7 +386,8 @@ async def split_payment(
 async def get_cash_drawer(
     cashier_id: int = Query(...),
     branch_id: int = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get cash drawer status"""
     # TODO: Implement cash drawer tracking
@@ -412,7 +431,8 @@ async def open_cash_drawer(
     cashier_id: int = Query(...),
     branch_id: int = Query(...),
     opening_cash: float = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Open cash drawer"""
     # TODO: Implement open drawer
@@ -444,7 +464,8 @@ async def open_cash_drawer(
 async def close_cash_drawer(
     cashier_id: int = Query(...),
     closing_cash: float = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Close cash drawer"""
     # TODO: Implement close drawer
@@ -480,7 +501,8 @@ async def close_cash_drawer(
 )
 async def get_current_shift(
     cashier_id: int = Query(...),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get current shift"""
     # TODO: Implement shift tracking
@@ -517,7 +539,8 @@ async def get_current_shift(
 async def get_shift_summary(
     shift_id: Optional[int] = Query(None, description="Shift ID, defaults to current"),
     cashier_id: Optional[int] = Query(None),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get shift summary"""
     # TODO: Implement shift summary
@@ -569,7 +592,8 @@ async def process_return(
     quantity: int = Query(...),
     reason: str = Query(...),
     manager_approval: bool = Query(False),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Process return/refund"""
     # TODO: Implement return processing
@@ -604,7 +628,8 @@ async def process_return(
 async def get_quick_sale_products(
     branch_id: int = Query(...),
     limit: int = Query(20, ge=1, le=50),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get quick-sale products"""
     # TODO: Implement quick-sale products
@@ -640,7 +665,8 @@ async def get_transactions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     payment_method: Optional[str] = Query(None),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_with_rls)
 ):
     """Get transaction history"""
     # TODO: Implement transaction history

@@ -1,155 +1,458 @@
-# TSH ERP Ecosystem - Claude Code Instructions
+# TSH ERP Ecosystem - Claude Code Context
 
-**Last Updated:** 2025-11-13
-**Purpose:** Global instructions for Claude Code across all sessions
-
----
-
-## 🎯 WHO I AM (REMEMBER THIS ALWAYS)
-
-**I am Claude Code - a SENIOR SOFTWARE ENGINEER**
-
-**NOT junior, NOT mid-level - SENIOR.**
-
-I work as a senior member of the TSH ERP development team, reporting to Khaleel (Project Owner). I bring senior-level expertise in:
-- Full-stack development (FastAPI + Flutter + PostgreSQL)
-- System architecture and production deployment
-- Code quality and performance optimization
-- Strategic thinking and technical leadership
-
-**I ALWAYS work with a senior engineer mindset:**
-- ✅ Production-ready code (not POC code)
-- ✅ Strategic thinking about business impact
-- ✅ Proactive problem identification
-- ✅ Thorough testing and error handling
-- ✅ Clear documentation and communication
-- ✅ Long-term maintainability focus
-- ✅ Taking ownership of quality
-
-**See AI_CONTEXT_RULES.md "WHO I AM" section for complete role definition.**
+**Version:** 3.0.0
+**Last Updated:** 2025-11-14
+**Schema Version:** 2.0.0
+**Auto-loaded every session - Keep this file under 500 lines**
 
 ---
 
-## 🚨 CRITICAL: Read Project Documentation First
+## 📌 Version History
 
-Before starting ANY work, you MUST read these files in this order:
+```yaml
+v3.0.0 (2025-11-14):
+  - Added version tracking system
+  - Enhanced dynamic state integration
+  - Improved MCP configuration references
+  - Added change log tracking
 
-### Phase 1: Orientation (5 minutes)
-1. **KNOWLEDGE_PORTAL.md** - Navigation guide to all documentation
-   ```
-   /Users/khaleelal-mulla/TSH_ERP_Ecosystem/.claude/KNOWLEDGE_PORTAL.md
-   ```
+v2.1.0 (2025-11-13):
+  - Updated deployment workflows
+  - Enhanced authorization framework documentation
+  - Improved performance thresholds
 
-2. **AI_CONTEXT_RULES.md** - Meta-guide on HOW to read and interpret files
-   ```
-   /Users/khaleelal-mulla/TSH_ERP_Ecosystem/.claude/AI_CONTEXT_RULES.md
-   ```
+v2.0.0 (2025-11-12):
+  - Restructured to core/reference architecture
+  - Optimized for prompt caching (under 500 lines)
+  - Added lazy loading with @docs/ references
 
-3. **PROJECT_VISION.md** - Business context, scale, constraints, critical rules
-   ```
-   /Users/khaleelal-mulla/TSH_ERP_Ecosystem/.claude/PROJECT_VISION.md
-   ```
-
-4. **QUICK_REFERENCE.md** - 60-second context refresh
-   ```
-   /Users/khaleelal-mulla/TSH_ERP_Ecosystem/.claude/QUICK_REFERENCE.md
-   ```
-
-### Phase 2: Deep Context (as needed)
-After orientation, read these based on task type:
-- **ARCHITECTURE_RULES.md** - Before writing any code
-- **TASK_PATTERNS.md** - Before starting any task
-- **CODE_TEMPLATES.md** - When implementing features
-- **FAILSAFE_PROTOCOL.md** - When handling errors or emergencies
+v1.0.0 (2025-11-01):
+  - Initial comprehensive context file
+```
 
 ---
 
-## 📍 Project Context
+## 🎯 Core Facts (Cache-Friendly - Never Change)
 
-### What This Is
-- **Production ERP System** for TSH company (Iraq)
-- **Real business** with 500+ wholesale clients, 100+ partner salesmen
-- **30 wholesale orders daily** + 30 retail transactions daily
-- **Multi-million IQD** daily transaction volume
-- **2,218+ active products** in inventory
-- **8 Flutter mobile apps** + 3 web applications
+```yaml
+Project: TSH ERP Ecosystem
+Purpose: Import-distribution-retail ERP for Iraq market
+Company: TSH (Single tenant, not SaaS)
+Status: Production system running real business
 
-### What This Is NOT
-- ❌ A generic multi-tenant SaaS product
-- ❌ An open-source demo or template
-- ❌ A startup MVP or proof-of-concept
-- ❌ A simple CRUD application
+Tech Stack (IMMUTABLE):
+  Backend: FastAPI + Python 3.9+ + PostgreSQL 12+ + SQLAlchemy
+  Frontend: React 18 (ERP Admin) + Flutter Web (Consumer)
+  Mobile: Flutter 3.0+ (8 specialized apps)
+  Infrastructure: Docker + Nginx + GitHub Actions
+  Backup: AWS S3 (tsh-erp-backups, eu-north-1)
 
----
+Servers (DON'T MIX THEM):
+  Production: 167.71.39.50 (user: root, branch: main)
+  Staging: 167.71.58.65 (user: khaleel, branch: develop)
 
-## 🔒 Non-Negotiable Rules
+Current Phase: Zoho Migration Phase 1
+  Status: Read-only sync from Zoho Books + Zoho Inventory
+  Sync: TDS Core orchestrates ALL Zoho operations
+  Write to Zoho: NO (Phase 1 restriction)
 
-### Third-Party Services
-- **NO TWILIO**: This project does NOT use the Twilio platform. Do not suggest, implement, or configure any Twilio-related features.
+Scale (Remember Always):
+  Clients: 500+ wholesale clients (30 orders/day)
+  Products: 2,218+ active products
+  Salesmen: 100+ partner salesmen, 12 travel sales ($35K USD/week)
+  Database: 57 tables, 127 MB production data
+  Mobile Apps: 8 Flutter applications
 
-### Technology Stack (NEVER Change)
-- **Backend**: Python 3.9+ with FastAPI (NO Django, NO Flask)
-- **Database**: PostgreSQL 12+ (single source of truth)
-- **Frontend Web**: React 18+ with TypeScript (ERP Admin)
-- **Mobile**: Flutter 3.0+ (ALL 8 apps - NO hybrid WebView)
-- **Hosting**: VPS (167.71.39.50) with Docker + Nginx
-
-### Critical Operations
-- **Zoho Integration**: Currently in parallel operation (phased migration)
-- **TDS Core**: Controls ALL Zoho ↔ TSH ERP sync operations
-- **Production Data**: Handle with extreme care - real business transactions
-
----
-
-## 🎯 Session Start Routine
-
-At the beginning of EVERY session:
-
-1. **Announce**: "Reading TSH ERP project documentation..."
-2. **Read**: The 4 files listed in Phase 1 above (in order)
-3. **Confirm**: "Context loaded. TSH ERP Ecosystem ready. How can I help?"
-
-Do NOT skip this routine. The comprehensive documentation contains:
-- Business context you need to understand
-- Technical constraints you must follow
-- Patterns and templates to use
-- Emergency procedures for production issues
+Languages: Arabic (PRIMARY) + English (secondary)
+Currency: IQD (Iraqi Dinar)
+RTL: Required for all UI
+```
 
 ---
 
-## 📂 Project Location
+## 🚨 Authorization Framework (CRITICAL - NON-NEGOTIABLE)
 
-**Working Directory**: `/Users/khaleelal-mulla/TSH_ERP_Ecosystem`
+**TSH ERP uses HYBRID AUTHORIZATION: RBAC + ABAC + RLS**
 
-**Documentation Hub**: `/Users/khaleelal-mulla/TSH_ERP_Ecosystem/.claude/`
-- 22 comprehensive markdown files (~490 KB)
-- Custom agents (Orixoon, Zoho Sync Manager)
-- Code templates, patterns, and protocols
+Every endpoint, service, and database query MUST implement ALL THREE layers:
+
+```python
+# ✅ CORRECT: All three layers present
+@router.get("/orders")
+async def get_orders(
+    user: User = Depends(require_role([...])),           # RBAC Layer
+    abac: User = Depends(check_abac_permission(...)),    # ABAC Layer
+    db: Session = Depends(get_db)
+):
+    service = OrderService(db, user)  # RLS Layer
+    return await service.get_orders()
+
+# ❌ WRONG: Missing layers (Security Violation!)
+@router.get("/orders")
+async def get_orders(db: Session = Depends(get_db)):
+    return db.query(Order).all()  # Missing all 3 layers!
+```
+
+**Why This Matters:**
+- Wholesale clients must ONLY see their own orders
+- Travel salespersons must ONLY see assigned customers
+- Inventory managers must ONLY see their warehouse
+- Time-based access (retail staff during work hours only)
+- Location-based access (warehouse restrictions)
+
+**For Full Details:** @docs/AUTHORIZATION_FRAMEWORK.md
 
 ---
 
-## 💡 Quick Tips
+## ❌ NEVER Do This (Architecture Violations)
 
-- **Lost/Confused?** → Read QUICK_REFERENCE.md
-- **Need code examples?** → Read CODE_TEMPLATES.md
-- **Production issue?** → Read FAILSAFE_PROTOCOL.md
-- **Starting a task?** → Read TASK_PATTERNS.md
-- **Complex problem?** → Read REASONING_PATTERNS.md
+```yaml
+Critical Violations (STOP IMMEDIATELY):
+❌ Violate engineering standards (@docs/core/engineering-standards.md)
+❌ Access Zoho Books/Inventory APIs directly (MUST use TDS Core)
+❌ Write to Zoho in Phase 1 (read-only restriction)
+❌ Deploy backend without frontend (ALL components together)
+❌ Push directly to main branch (develop → staging first)
+❌ Change tech stack (FastAPI/Flutter/PostgreSQL fixed)
+❌ Bypass authentication (require get_current_user)
+❌ Hardcode credentials (use environment variables)
+❌ Skip Arabic fields (name_ar, description_ar mandatory)
+
+Data Integrity Violations:
+❌ Forget Arabic RTL support
+❌ Skip input validation (always use Pydantic schemas)
+❌ Ignore RBAC (check roles for sensitive operations)
+❌ Return > 100 records without pagination
+❌ Create N+1 query patterns (use joinedload)
+❌ Query without indexes on large tables (2,218+ products)
+❌ Skip staging verification before production
+❌ Use Twilio or Firebase (TSH NeuroLink handles ALL communications)
+```
 
 ---
 
-## ✅ Verification
+## ✅ ALWAYS Do This (Best Practices)
 
-Before claiming you're ready to work, verify:
-- [ ] Read KNOWLEDGE_PORTAL.md (navigation guide)
-- [ ] Read AI_CONTEXT_RULES.md (meta-guide)
-- [ ] Read PROJECT_VISION.md (business context)
-- [ ] Read QUICK_REFERENCE.md (quick facts)
-- [ ] Understand: This is a PRODUCTION system with real revenue
-- [ ] Understand: 500+ clients depend on this system daily
-- [ ] Understand: Tech stack is non-negotiable
-- [ ] Understand: Currently in Zoho migration phase
+```yaml
+Code Quality:
+✅ Search existing code before creating new (grep, find, Task tool)
+✅ Include Arabic fields (name_ar, description_ar) on ALL user-facing models
+✅ Paginate lists (max 100 per page for tables > 100 rows)
+✅ Add indexes on foreign keys and search fields
+✅ Use parameterized queries (prevent SQL injection)
+✅ Add error handling (try/except with proper logging)
+✅ Write docstrings for all functions
+✅ Use Pydantic schemas for input validation
+
+Architecture:
+✅ Route ALL Zoho operations through TDS Core (app/tds/)
+✅ Authenticate sensitive endpoints (Depends(get_current_user))
+✅ Authorize admin operations (require_role(["admin", "manager"]))
+✅ Implement all 3 authorization layers (RBAC + ABAC + RLS)
+✅ Deploy ALL components together (backend + frontend + TDS)
+✅ Test on staging (develop branch) before production (main branch)
+✅ Use TSH NeuroLink for ALL notifications and communications
+
+Deployment:
+✅ Push to develop branch first (triggers staging deployment)
+✅ Monitor GitHub Actions (gh run watch)
+✅ Verify ALL staging URLs work
+✅ Get explicit approval before production
+✅ Create PR (develop → main) for production deployment
+✅ Monitor production after deployment
+```
 
 ---
 
-**Remember**: Every decision you make affects a real business with real customers and real revenue. Read the documentation carefully, follow established patterns, and when in doubt - ask Khaleel.
+## 🎯 Quick Decision Trees
+
+### Should I Create New Code or Enhance Existing?
+```
+Start → Search existing code (Grep/Glob/Task tool)
+  ├─→ Found similar? → YES → Enhance existing ✅
+  ├─→ Found similar? → NO → Create new ✅
+  └─→ Not sure? → Use Task tool with Explore agent
+```
+
+### Should I Ask the User?
+```
+Start → Is this business logic?
+  ├─→ YES → Ask user ✅
+  └─→ NO → Is there ONE clear technical solution?
+      ├─→ YES → Implement ✅
+      └─→ NO (multiple options) → Ask user ✅
+```
+
+### Should I Optimize This Code?
+```
+Start → Is it slow? (>2 seconds)
+  ├─→ NO → Don't optimize (premature) ❌
+  └─→ YES → Does it affect many users?
+      ├─→ NO → Low priority (defer) ⏸️
+      └─→ YES → Optimize now ✅ (measure → optimize → verify)
+```
+
+---
+
+## 📋 Most Common Commands
+
+### Git Operations
+```bash
+# Check status and branch
+git status && git branch
+
+# Recent commits
+git log --oneline -10
+
+# Push to staging
+git push origin develop
+
+# Create production PR
+gh pr create --base main --head develop
+
+# Monitor deployment
+gh run list --limit 5
+gh run watch <run-id>
+```
+
+### Verification
+```bash
+# Health checks
+curl https://staging.erp.tsh.sale/health
+curl https://erp.tsh.sale/health
+
+# Database check
+PGPASSWORD='TSH@2025Secure!Production' psql -h localhost -U tsh_app_user \
+  -d tsh_erp_production -c "SELECT COUNT(*) FROM products WHERE is_active = true;"
+```
+
+### Server Access
+```bash
+# SSH to production (requires approval)
+ssh root@167.71.39.50
+
+# Check backend logs
+ssh root@167.71.39.50 "tail -100 /var/www/tsh-erp/logs/backend.log"
+
+# Check TDS Core status
+curl https://tds.tsh.sale/api/health
+```
+
+---
+
+## 📚 File References (Lazy Loading with @docs/)
+
+**For detailed context, use @docs/ prefix to load on-demand:**
+
+### Core Documentation (High Priority)
+- `@docs/core/engineering-standards.md` - **GLOBAL STANDARDS** (Architecture • Security • Coding • Testing)
+- `@docs/core/project-context.md` - Full business context and scale
+- `@docs/core/architecture.md` - Technical patterns and constraints
+- `@docs/core/workflows.md` - Common development workflows
+
+### Operational Guides
+- `@docs/AUTHORIZATION_FRAMEWORK.md` - Security framework (CRITICAL)
+- `@docs/DEPLOYMENT_GUIDE.md` - Complete deployment procedures
+- `@docs/DOCKER_DEPLOYMENT_GUIDE.md` - Container deployment specifics
+- `@docs/FAILSAFE_PROTOCOL.md` - Emergency procedures and recovery
+
+### Reference Materials (On-Demand)
+- `@docs/reference/code-templates/` - Reusable code patterns
+- `@docs/reference/reasoning-patterns.md` - Problem-solving frameworks
+- `@docs/CREDENTIALS.md` - Access credentials and tokens
+- `@docs/KNOWLEDGE_LINKS.md` - URLs and external resources
+
+### Integration Guides
+- `@docs/NEUROLINK_SYSTEM.md` - TSH NeuroLink unified communications
+- `@docs/TDS_MASTER_ARCHITECTURE.md` - Zoho sync orchestration
+
+### Old Structure (Legacy - Being Phased Out)
+- Original files in `.claude.backup/` for reference
+- Use new consolidated structure above
+
+---
+
+## 🎬 Session Start Checklist (Quick Orientation)
+
+```yaml
+1. Context Loaded:
+   ✓ This CLAUDE.md file (auto-loaded)
+   ✓ Current phase: Zoho Migration Phase 1
+   ✓ Authorization framework: RBAC + ABAC + RLS
+   ✓ Scale awareness: 500+ clients, 2,218+ products
+
+2. Current State:
+   - Check git status and current branch
+   - Review recent commits (git log --oneline -5)
+   - Verify no uncommitted critical changes
+
+3. Ready to Work:
+   - Ask user what we're working on today
+   - Load relevant @docs/ files if needed
+   - Search existing code before creating new
+   - Remember: ALL operations need 3 authorization layers
+```
+
+---
+
+## 🚨 Emergency Protocols (Quick Actions)
+
+### Production Down
+```bash
+1. Check health: curl https://erp.tsh.sale/health
+2. Check GitHub Actions: gh run list --limit 3
+3. SSH to VPS: ssh root@167.71.39.50
+4. Check service: systemctl status tsh-erp
+5. Check logs: journalctl -u tsh-erp -n 100
+6. Follow: @docs/FAILSAFE_PROTOCOL.md
+```
+
+### Zoho Sync Failure
+```bash
+1. Check dashboard: https://tds.tsh.sale
+2. Check logs: tail -100 /var/www/tds-core/logs/tds_core.log
+3. Check token expiration (regenerate if needed)
+4. Restart TDS Core: systemctl restart tds-core
+5. Monitor sync status on dashboard
+```
+
+### Database Issues
+```bash
+1. Check connections: SELECT count(*) FROM pg_stat_activity;
+2. Check locks: SELECT * FROM pg_locks WHERE NOT granted;
+3. Restart PostgreSQL: systemctl restart postgresql
+4. Alert user if data corruption suspected
+```
+
+---
+
+## 🎯 Performance Thresholds (When to Act)
+
+```yaml
+Pagination: > 100 records → MUST paginate
+Indexing: > 1,000 rows → MUST index foreign keys and search fields
+Background Jobs: > 5 seconds → Move to background job (Celery)
+Caching: Read:Write ratio > 10:1 → Consider caching
+Response Time:
+  < 500ms → Good ✅
+  500ms - 2s → Investigate ⚠️
+  > 2s → Optimize immediately 🚨
+```
+
+---
+
+## 🔄 Current Project State (Dynamic - Loaded from State File)
+
+```yaml
+# ✅ ENHANCED: Now reads from .claude/state/current-phase.json
+# For complete current state, reference: @.claude/state/current-phase.json
+
+Quick Reference (from state file v2.0.0):
+  Phase: Zoho Migration Phase 1 (v1.2.0) - 65% complete
+  Can Write to Zoho: NO (Phase 1 restriction)
+  Last Updated: 2025-11-14T13:30:00Z
+  Environment Mode: Development (deploy anytime)
+
+  Environments:
+    Production: 167.71.39.50 (main branch) → https://erp.tsh.sale
+    Staging: 167.71.58.65 (develop branch) → https://staging.erp.tsh.sale
+
+  Integration Health:
+    ✅ Zoho Books: healthy (last sync: 12:45)
+    ✅ Zoho Inventory: healthy (last sync: 12:45)
+    ✅ TDS Core v2.1.0: operational
+    ✅ TSH NeuroLink v1.0.0: operational
+
+  Sync Status:
+    ✅ Products: 2,218 active (complete)
+    ✅ Stock Levels: 99% accuracy (complete)
+    ⚠️  Customers: 500+ (needs verification)
+    ⏸️  Vendors: pending (Phase 2)
+    🔄 Sales Orders: in progress (testing)
+    ⏸️  Invoices: pending (Phase 2)
+    ⏸️  Payments: pending (Phase 2)
+
+# To update state, edit: .claude/state/current-phase.json
+# State file includes: feature_flags, scale_metrics, milestones, change_log
+```
+
+---
+
+## 💡 Success Indicators (How I Know I'm Doing Well)
+
+```yaml
+✅ User doesn't have to repeat context
+✅ I search before creating new code
+✅ I never forget Arabic fields or RTL support
+✅ I never forget the 3 authorization layers
+✅ I deploy all components together
+✅ I test on staging first
+✅ Features work correctly first time
+✅ User feels productive working with me
+
+❌ Red Flags (Need Improvement):
+❌ User repeats same context
+❌ I create duplicate functionality
+❌ I forget Arabic fields or authorization layers
+❌ I deploy partial components
+❌ I skip staging testing
+❌ Same bugs appear repeatedly
+```
+
+---
+
+## 🧠 Context Refresh Protocol
+
+**If I'm confused or lost:**
+1. Re-read this CLAUDE.md (you are here)
+2. Check `@docs/core/project-context.md` for business context
+3. Check `@docs/core/architecture.md` for technical rules
+4. Check `@docs/QUICK_REFERENCE.md` for quick facts
+5. Ask user for clarification on specific point
+
+**If user mentions major change:**
+- "We've moved to Phase 2" → Re-read `@docs/core/project-context.md`
+- "Now in production mode" → Re-read `@docs/DEPLOYMENT_GUIDE.md`
+- "Architecture changed" → Re-read `@docs/core/architecture.md`
+
+---
+
+## 📊 Project Scale Awareness (Always Remember)
+
+```
+Users in System:
+├─ 500+ wholesale clients (B2B)
+├─ 100+ partner salesmen (social media sellers)
+├─ 12 travel salespersons ($35K USD weekly)
+├─ 30+ daily retail customers (B2C)
+└─ Multiple warehouse staff + office admin
+
+Daily Operations:
+├─ 30 wholesale orders/day
+├─ 30 retail transactions/day
+├─ Multi-million IQD transaction volume
+└─ Real-time GPS tracking for field teams
+
+Technical Footprint:
+├─ 2,218+ active products (growing)
+├─ 57 database tables (127 MB)
+├─ 8 specialized Flutter mobile apps
+├─ 198+ BFF API endpoints
+├─ 82 utility scripts
+└─ Multiple integrations (Zoho Books, Zoho Inventory, WhatsApp)
+```
+
+This scale means:
+- Pagination is MANDATORY (not optional)
+- Database indexes are CRITICAL (not nice-to-have)
+- Performance matters (thousands of users affected)
+- Security is paramount (real revenue at stake)
+- Arabic support is PRIMARY (not secondary)
+
+---
+
+**END OF CLAUDE.MD**
+
+*This file is automatically loaded every session. Keep it under 500 lines for optimal prompt caching. For detailed documentation, use @docs/ references.*
+
+*Backup of original configuration: `.claude.backup/`*

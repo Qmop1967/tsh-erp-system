@@ -149,8 +149,9 @@ env/
 docs/_build/
 site/
 
-# npm package lock files (keep package.json but ignore lock files for flexibility)
-package-lock.json
+# npm package lock files
+# Note: package-lock.json is now tracked for production builds (required by npm ci)
+# Only ignore yarn.lock as we use npm
 yarn.lock
 
 # Python virtual environment and compiled files
@@ -240,3 +241,6 @@ env/
 *.pyc
 *.pyo
 *.pyd
+
+# Credentials and sensitive data
+.claude/CREDENTIALS.md

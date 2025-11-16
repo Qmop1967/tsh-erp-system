@@ -1,0 +1,277 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  DEPLOY_USER: khaleel
+  DEPLOY_HOST: 167.71.58.65
+  DEPLOY_PATH: /home/khaleel/tsh-erp
+
+jobs:
+  # ============================================================================
+  # Pre-Deployment Tests
+  # ============================================================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio ruff mypy bandit
+
+      - name: Code linting (ruff)
+        run: ruff check . --output-format=github
+        continue-on-error: true
+
+      - name: Type checking (mypy)
+        run: mypy . --ignore-missing-imports --no-strict-optional
+        continue-on-error: true
+
+      - name: Security scan (bandit)
+        run: bandit -r app/ -f screen
+        continue-on-error: true
+
+      - name: Run unit tests
+        run: pytest tests/ -v --cov=app --cov-report=term --cov-report=xml
+        continue-on-error: true
+
+  # ============================================================================
+  # Build Docker Images
+  # ============================================================================
+  build:
+    name: Build Docker Images
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: tsh-erp:staging-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build NeuroLink Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app/neurolink
+          file: ./app/neurolink/Dockerfile
+          push: false
+          tags: tsh-neurolink:staging-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build TDS Dashboard Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/tds_admin_dashboard
+          file: ./apps/tds_admin_dashboard/Dockerfile
+          push: false
+          tags: tds-admin-dashboard:staging-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://app_staging:8000
+            NEXT_PUBLIC_SOCKET_URL=ws://app_staging:8000
+
+  # ============================================================================
+  # Deploy to Staging
+  # ============================================================================
+  deploy:
+    name: Deploy to Staging Server
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Staging
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            set -e
+
+            echo "=========================================="
+            echo "Deploying to Staging Environment"
+            echo "=========================================="
+
+            cd ${{ env.DEPLOY_PATH }}
+
+            # Pull latest code
+            echo "[1/5] Pulling latest code from develop branch..."
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+
+            # Update dependencies
+            echo "[2/5] Updating dependencies..."
+            if [ -d ".venv" ]; then
+              source .venv/bin/activate
+              pip install -r requirements.txt --quiet
+            fi
+
+            # Build and start staging services
+            echo "[3/5] Building and starting staging services..."
+            export VERSION=staging-${{ github.sha }}
+            docker compose -f docker-compose.staging.yml pull || true
+            docker compose -f docker-compose.staging.yml up -d --build
+
+            # Run migrations
+            echo "[4/5] Running database migrations..."
+            if [ -f "alembic.ini" ]; then
+              docker compose -f docker-compose.staging.yml exec -T app_staging alembic upgrade head || echo "Migrations skipped"
+            fi
+
+            # Wait for services
+            echo "[5/5] Waiting for services to be ready..."
+            sleep 20
+
+            echo "=========================================="
+            echo "Staging Deployment Completed!"
+            echo "=========================================="
+          ENDSSH
+
+      - name: Health Check
+        run: |
+          echo "Running health checks..."
+          sleep 10
+
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            if curl -sf https://staging.erp.tsh.sale/health > /dev/null 2>&1; then
+              echo "✅ Staging environment is healthy!"
+              exit 0
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            sleep 5
+          done
+
+          echo "❌ Health check failed!"
+          exit 1
+
+  # ============================================================================
+  # Smoke Tests
+  # ============================================================================
+  smoke-tests:
+    name: Run Smoke Tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        run: |
+          python3 << 'EOF'
+          import requests
+          import sys
+
+          BASE_URL = "https://staging.erp.tsh.sale"
+
+          tests = [
+              ("/health", "Health endpoint"),
+              ("/docs", "API documentation"),
+              ("/openapi.json", "OpenAPI spec"),
+          ]
+
+          passed = 0
+          failed = 0
+
+          for endpoint, description in tests:
+              try:
+                  response = requests.get(f"{BASE_URL}{endpoint}", timeout=10)
+                  if response.status_code == 200:
+                      print(f"✅ {description}: PASS")
+                      passed += 1
+                  else:
+                      print(f"❌ {description}: FAIL ({response.status_code})")
+                      failed += 1
+              except Exception as e:
+                  print(f"❌ {description}: ERROR ({e})")
+                  failed += 1
+
+          print(f"\nResults: {passed} passed, {failed} failed")
+
+          if failed > 0:
+              sys.exit(1)
+          EOF
+
+  # ============================================================================
+  # Notification
+  # ============================================================================
+  notify:
+    name: Send Notification
+    needs: [deploy, smoke-tests]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.smoke-tests.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Telegram notification
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram not configured, skipping notification"
+            exit 0
+          fi
+
+          TEXT="Staging Deployment ${{ steps.status.outputs.emoji }}
+          Branch: develop
+          Commit: ${{ github.sha }}
+          By: ${{ github.actor }}
+          Status: ${{ steps.status.outputs.status }}
+          URL: https://staging.erp.tsh.sale"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="$TEXT"

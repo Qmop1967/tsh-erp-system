@@ -1,591 +1,581 @@
-# TDS Dashboard & Core - Deployment Guide
+# TSH ERP Ecosystem - Comprehensive Deployment Guide
 
-**Date**: November 2, 2024
-**Target**: Production Server Deployment
-**Method**: CI/CD with Blue/Green Zero-Downtime
-
----
-
-## 🎯 Deployment Options
-
-You have two deployment options:
-
-### Option 1: GitHub Actions Automated Deployment (Recommended)
-- Push to `main` branch triggers automatic deployment
-- Runs all tests before deploying
-- Zero-downtime blue/green deployment
-- Automatic rollback on failure
-
-### Option 2: Manual Server Deployment
-- SSH to server and run deployment script
-- Full control over deployment process
-- Good for initial setup or testing
+**Last Updated:** 2025-11-15
+**Version:** 2.0.0
 
 ---
 
-## 📋 Pre-Deployment Checklist
+## Table of Contents
 
-Before deploying, ensure:
-
-- [ ] Production server is available and accessible via SSH
-- [ ] Server meets requirements (Ubuntu 20.04+, Python 3.11+, PostgreSQL, Nginx)
-- [ ] Production database is set up and accessible
-- [ ] GitHub repository has latest code
-- [ ] All tests pass locally
-- [ ] Environment variables are configured
+1. [Overview](#overview)
+2. [Deployment Architecture](#deployment-architecture)
+3. [Environment Configuration](#environment-configuration)
+4. [Docker Compose Files](#docker-compose-files)
+5. [Blue-Green Deployment](#blue-green-deployment)
+6. [GitHub Actions Workflows](#github-actions-workflows)
+7. [Manual Deployment](#manual-deployment)
+8. [Rollback Procedures](#rollback-procedures)
+9. [Health Checks](#health-checks)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🚀 Option 1: Automated GitHub Actions Deployment
+## Overview
 
-### Step 1: Server Initial Setup (One-Time)
+TSH ERP uses a modern, production-grade deployment pipeline with:
 
-SSH into your production server and run these commands:
+- **Zero-Downtime Deployments**: Blue-green strategy for production
+- **Automated CI/CD**: GitHub Actions for staging and production
+- **Container Orchestration**: Docker Compose with multi-stage builds
+- **Health Monitoring**: Comprehensive health checks and smoke tests
+- **Quick Rollback**: Automated rollback capability (<2 minutes)
+- **Image Registry**: GitHub Container Registry (GHCR) for versioned images
+
+### Deployment Environments
+
+| Environment | URL | Branch | Auto-Deploy | Purpose |
+|-------------|-----|--------|-------------|---------|
+| **Development** | localhost | any | No | Local development |
+| **Staging** | staging.erp.tsh.sale | develop | Yes | Pre-production testing |
+| **Production** | erp.tsh.sale | main | Yes | Live production system |
+
+---
+
+## Deployment Architecture
+
+### Production Architecture (Blue-Green)
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 Nginx Reverse Proxy                  │
+│              (Port 80/443 - SSL/TLS)                │
+└──────────────┬──────────────────────┬────────────────┘
+               │                      │
+               │ Active Slot          │ Inactive Slot
+               ↓                      ↓
+       ┌───────────────┐      ┌───────────────┐
+       │  Backend API  │      │  Backend API  │
+       │  (Blue/Green) │      │  (Blue/Green) │
+       │   Port 8001   │      │   Port 8011   │
+       └───────┬───────┘      └───────┬───────┘
+               │                      │
+               └──────────┬───────────┘
+                          │
+                          ↓
+              ┌────────────────────────┐
+              │   PostgreSQL Database   │
+              │      (Persistent)       │
+              └────────────────────────┘
+                          │
+                          ↓
+              ┌────────────────────────┐
+              │    Redis Cache          │
+              │    (Persistent)         │
+              └────────────────────────┘
+```
+
+### Multi-Container Setup
+
+```yaml
+Services:
+  - tsh_postgres: PostgreSQL 15 (persistent data)
+  - tsh_redis: Redis 7 (cache/sessions)
+  - app_blue: Backend API (Blue slot)
+  - app_green: Backend API (Green slot)
+  - neurolink: Notification service
+  - tds_admin_dashboard: Next.js dashboard
+  - nginx: Reverse proxy (optional)
+```
+
+---
+
+## Environment Configuration
+
+### Creating Environment Files
+
+#### Staging Environment
 
 ```bash
-# 1. Install required packages
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3 python3-venv python3-pip postgresql postgresql-client nginx git curl rsync
+# Copy template
+cp .env.staging.template .env.staging
 
-# 2. Create directory structure
-sudo mkdir -p /opt/tsh_erp/{releases/{blue,green},shared/{env,logs/api},venvs,bin}
-sudo mkdir -p /opt/backups
-sudo chown -R $USER:$USER /opt/tsh_erp /opt/backups
-
-# 3. Create upstream directory for Nginx
-sudo mkdir -p /etc/nginx/upstreams
+# Edit with production values
+nano .env.staging
 ```
 
-### Step 2: Copy Deployment Files to Server
+**Required Variables:**
+- `POSTGRES_PASSWORD`: Strong database password
+- `JWT_SECRET_KEY`: 256-bit random key
+- `RESEND_API_KEY`: Email service API key
+- `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`: Zoho OAuth credentials
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`: AWS credentials
 
-From your local machine:
+#### Production Environment
 
 ```bash
-# Copy Nginx configurations
-scp deployment/nginx/tsh_erp.conf YOUR_SERVER:/tmp/
-scp deployment/nginx/tsh_erp_blue.conf YOUR_SERVER:/tmp/
-scp deployment/nginx/tsh_erp_green.conf YOUR_SERVER:/tmp/
+# Copy template
+cp .env.production.template .env.production
 
-# On server, move to correct locations
-ssh YOUR_SERVER
-sudo mv /tmp/tsh_erp.conf /etc/nginx/sites-available/
-sudo mv /tmp/tsh_erp_blue.conf /etc/nginx/upstreams/
-sudo mv /tmp/tsh_erp_green.conf /etc/nginx/upstreams/
-sudo ln -s /etc/nginx/sites-available/tsh_erp.conf /etc/nginx/sites-enabled/
-sudo ln -sfn /etc/nginx/upstreams/tsh_erp_blue.conf /etc/nginx/upstreams/tsh_erp_active.conf
-
-# Copy systemd services
-exit # exit server
-scp deployment/systemd/tsh_erp-blue.service YOUR_SERVER:/tmp/
-scp deployment/systemd/tsh_erp-green.service YOUR_SERVER:/tmp/
-
-ssh YOUR_SERVER
-sudo mv /tmp/tsh_erp-*.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable tsh_erp-blue.service
-sudo systemctl enable tsh_erp-green.service
-
-# Copy deployment scripts
-exit
-scp deployment/scripts/*.sh YOUR_SERVER:/tmp/
-ssh YOUR_SERVER
-sudo mv /tmp/*.sh /opt/tsh_erp/bin/
-sudo chmod +x /opt/tsh_erp/bin/*.sh
+# Edit with production values (use strong credentials!)
+nano .env.production
 ```
 
-### Step 3: Configure Environment Variables
+**Critical Security:**
+- Never commit `.env.staging` or `.env.production` to git
+- Use strong, unique passwords for production
+- Rotate secrets regularly
+- Store backup copies securely
 
-On the server:
+---
+
+## Docker Compose Files
+
+### File Structure
+
+```
+TSH_ERP_Ecosystem/
+├── docker-compose.yml               # Development (legacy)
+├── docker-compose.staging.yml       # Staging environment
+├── docker-compose.production.yml    # Production (Blue-Green)
+└── Dockerfile                       # Main backend image
+```
+
+### Staging Deployment
 
 ```bash
-# Create production environment file
-sudo nano /opt/tsh_erp/shared/env/prod.env
+# Start staging environment
+docker compose -f docker-compose.staging.yml up -d
+
+# View logs
+docker compose -f docker-compose.staging.yml logs -f
+
+# Stop staging
+docker compose -f docker-compose.staging.yml down
 ```
 
-Add your production configuration:
-
-```env
-# Database Configuration
-DATABASE_NAME=tsh_erp_production
-DATABASE_USER=tsh_app_user
-DATABASE_PASSWORD=YOUR_SECURE_PASSWORD
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-
-# Application Settings
-ENV=production
-DEBUG=False
-LOG_LEVEL=INFO
-APP_VERSION=1.0.0
-
-# API Configuration
-API_PORT_BLUE=8001
-API_PORT_GREEN=8002
-API_HOST=0.0.0.0
-
-# Security
-SECRET_KEY=YOUR_SECURE_SECRET_KEY_HERE
-ALLOWED_HOSTS=your-domain.com,www.your-domain.com
-
-# Zoho Integration (if needed)
-ZOHO_CLIENT_ID=your_client_id
-ZOHO_CLIENT_SECRET=your_client_secret
-ZOHO_REFRESH_TOKEN=your_refresh_token
-ZOHO_ORGANIZATION_ID=your_org_id
-```
-
-Create staging environment for migration testing:
+### Production Deployment
 
 ```bash
-sudo nano /opt/tsh_erp/shared/env/staging.env
+# Start production (blue slot by default)
+docker compose -f docker-compose.production.yml up -d
+
+# Start green slot for blue-green deployment
+docker compose -f docker-compose.production.yml --profile green up -d app_green
+
+# Check running services
+docker compose -f docker-compose.production.yml ps
 ```
 
-```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/tsh_erp_staging
-```
+---
 
-Set proper permissions:
+## Blue-Green Deployment
+
+### Concept
+
+Blue-Green deployment eliminates downtime by:
+1. Running two identical production environments (Blue and Green)
+2. Deploying new version to inactive environment
+3. Testing inactive environment thoroughly
+4. Switching traffic from active to new environment
+5. Keeping old environment running for quick rollback
+
+### Automatic Blue-Green (via GitHub Actions)
 
 ```bash
-sudo chmod 600 /opt/tsh_erp/shared/env/*.env
+# On main branch push, GitHub Actions will:
+# 1. Determine current active slot (blue or green)
+# 2. Deploy to inactive slot
+# 3. Run health checks on inactive slot
+# 4. Switch Nginx to point to new slot
+# 5. Verify public endpoint
+# 6. Stop old slot
 ```
 
-### Step 4: Setup Production Database
+### Manual Blue-Green Deployment
 
 ```bash
-# Connect to PostgreSQL
-sudo -u postgres psql
+# Navigate to project directory
+cd /opt/tsh-erp
 
-# Create databases
-CREATE DATABASE tsh_erp_production;
-CREATE DATABASE tsh_erp_staging;
+# Run blue-green deployment script
+./scripts/deployment/blue_green_deploy.sh v1.2.3
 
-# Create user
-CREATE USER tsh_app_user WITH PASSWORD 'YOUR_SECURE_PASSWORD';
-
-# Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE tsh_erp_production TO tsh_app_user;
-GRANT ALL PRIVILEGES ON DATABASE tsh_erp_staging TO tsh_app_user;
-
-\q
-
-# Run initial schema
-PGPASSWORD='YOUR_PASSWORD' psql -h localhost -U tsh_app_user -d tsh_erp_production -f /path/to/schema.sql
+# The script will:
+# - Detect active slot
+# - Build and start new slot
+# - Run health checks
+# - Update Nginx configuration
+# - Switch traffic
+# - Stop old slot
 ```
 
-### Step 5: Configure GitHub Secrets
+### Deployment Flow
 
-Go to your GitHub repository:
-- Settings → Secrets and variables → Actions → New repository secret
+```mermaid
+graph TD
+    A[Start Deployment] --> B[Detect Active Slot]
+    B --> C[Build New Image for Inactive Slot]
+    C --> D[Start Inactive Slot]
+    D --> E[Health Check Inactive Slot]
+    E --> F{Healthy?}
+    F -->|No| G[Stop Inactive Slot & Abort]
+    F -->|Yes| H[Run Smoke Tests]
+    H --> I{Tests Pass?}
+    I -->|No| G
+    I -->|Yes| J[Update Nginx Config]
+    J --> K[Switch Traffic]
+    K --> L[Verify Public Endpoint]
+    L --> M{Verified?}
+    M -->|No| N[Rollback Nginx & Abort]
+    M -->|Yes| O[Stop Active Slot]
+    O --> P[Deployment Complete]
+```
 
-Add these secrets:
+---
 
-| Secret Name | Value | Description |
-|-------------|-------|-------------|
-| `PROD_HOST` | `your.server.ip` | Production server IP or domain |
-| `PROD_USER` | `root` or your user | SSH user for deployment |
-| `PROD_SSH_KEY` | Private SSH key content | For authentication |
-| `PROD_SSH_PORT` | `22` | SSH port (default 22) |
+## GitHub Actions Workflows
 
-To generate SSH key:
+### Staging Deployment (`deploy-staging.yml`)
+
+**Trigger:** Push to `develop` branch
+
+**Steps:**
+1. Run tests (linting, type checking, unit tests)
+2. Build Docker images
+3. Deploy to staging server via SSH
+4. Run health checks
+5. Run smoke tests
+6. Send notification (Telegram)
+
+**Manual Trigger:**
+```bash
+# Via GitHub UI: Actions → Deploy to Staging → Run workflow
+```
+
+### Production Deployment (`deploy-production.yml`)
+
+**Trigger:** Push to `main` branch or manual dispatch
+
+**Steps:**
+1. Determine version to deploy
+2. Run pre-deployment checks
+3. Backup production database to AWS S3
+4. Blue-green deployment to production
+5. Run comprehensive smoke tests
+6. Automatic rollback if tests fail
+7. Send notifications
+
+**Manual Trigger:**
+```bash
+# Via GitHub UI: Actions → Deploy to Production → Run workflow
+# Select optional parameters:
+# - Version to deploy
+# - Skip tests (not recommended)
+# - Skip backup (not recommended)
+```
+
+### Build and Push to GHCR (`build-and-push-ghcr.yml`)
+
+**Trigger:** Push to `main`, `develop`, or tags
+
+**Purpose:** Build and push versioned Docker images to GitHub Container Registry
+
+**Images Built:**
+- `ghcr.io/qmop1967/tsh-erp:latest`
+- `ghcr.io/qmop1967/tsh-erp-neurolink:latest`
+- `ghcr.io/qmop1967/tsh-erp-tds-dashboard:latest`
+
+---
+
+## Manual Deployment
+
+### Prerequisites
+
+- SSH access to production server (167.71.39.50)
+- Docker and Docker Compose installed
+- Git repository cloned to `/opt/tsh-erp`
+- Environment files configured
+
+### Step-by-Step Production Deployment
+
+#### 1. Connect to Server
 
 ```bash
-# On your server
-ssh-keygen -t ed25519 -C "github-actions@tsh.sale" -f ~/.ssh/github_deploy_key -N ""
-
-# Display private key (copy this to GitHub Secrets as PROD_SSH_KEY)
-cat ~/.ssh/github_deploy_key
-
-# Add public key to authorized_keys
-cat ~/.ssh/github_deploy_key.pub >> ~/.ssh/authorized_keys
+ssh root@167.71.39.50
+cd /opt/tsh-erp
 ```
 
-### Step 6: Update Deployment Script
-
-Edit the repository URL in the deployment script:
+#### 2. Pull Latest Code
 
 ```bash
-# On server
-sudo nano /opt/tsh_erp/bin/deploy.sh
-
-# Find this line and update with your repo URL:
-REPO="https://github.com/YOUR_USERNAME/TSH_ERP_Ecosystem.git"
+git fetch origin
+git checkout main
+git pull origin main
 ```
 
-### Step 7: Test Nginx Configuration
+#### 3. Update Dependencies
 
 ```bash
-sudo nginx -t
-sudo systemctl reload nginx
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### Step 8: Run Initial Deployment
+#### 4. Run Blue-Green Deployment
 
 ```bash
-# On server, run first deployment manually
-bash /opt/tsh_erp/bin/deploy.sh main
-
-# This will:
-# 1. Clone the repository to blue directory
-# 2. Create virtual environment
-# 3. Install dependencies
-# 4. Start the blue service
-# 5. Run health checks
-# 6. Switch Nginx to blue
+./scripts/deployment/blue_green_deploy.sh
 ```
 
-### Step 9: Verify Deployment
+#### 5. Verify Deployment
 
 ```bash
 # Check service status
-systemctl status tsh_erp-blue
+docker compose -f docker-compose.production.yml ps
 
-# Check which color is active
-readlink /etc/nginx/upstreams/tsh_erp_active.conf
-
-# Test endpoints
-curl http://your-domain.com/ready
-curl http://your-domain.com/health
-curl http://your-domain.com/queue/stats
-
-# Check logs
-tail -f /opt/tsh_erp/shared/logs/api/deploy_*.log
-journalctl -u tsh_erp-blue -f
-```
-
-### Step 10: Enable Automated Deployments
-
-Now that manual deployment works, push to GitHub to trigger automated deployment:
-
-```bash
-# From your local machine
-git add .
-git commit -m "Enable CI/CD deployment"
-git push origin main
-
-# GitHub Actions will:
-# 1. Run tests (lint, type-check, security, unit)
-# 2. SSH to production server
-# 3. Run deployment script
-# 4. Deploy to idle color (green)
-# 5. Run health checks
-# 6. Switch traffic with zero downtime
-```
-
----
-
-## 🔧 Option 2: Manual Deployment
-
-If you prefer manual control or don't have GitHub Actions:
-
-### Quick Manual Deployment
-
-```bash
-# SSH to server
-ssh your-server
-
-# Run deployment
-bash /opt/tsh_erp/bin/deploy.sh main
-
-# Or deploy specific branch
-bash /opt/tsh_erp/bin/deploy.sh develop
-```
-
-### Manual Deployment Steps Explained
-
-The deployment script performs these steps:
-
-1. **Determine Active Color**: Checks which instance (blue/green) is currently serving traffic
-2. **Stop Idle Service**: Stops the idle instance to prepare for new code
-3. **Sync Code**: Pulls latest code from GitHub to idle directory
-4. **Create/Update Venv**: Sets up Python virtual environment
-5. **Install Dependencies**: Installs requirements.txt packages
-6. **Backup Database**: Creates pg_dump backup of production DB
-7. **Test Migrations**: Runs migrations on staging DB first (safety check)
-8. **Start Idle Service**: Starts the newly deployed instance
-9. **Health Check**: Waits for `/ready` endpoint to respond (30s timeout)
-10. **Switch Traffic**: Updates Nginx symlink to point to new instance
-11. **Run Migrations**: Applies migrations to production DB
-12. **Stop Old Service**: Stops the previous version
-13. **Cleanup**: Removes old log files
-
----
-
-## 🔄 Rollback Procedure
-
-If something goes wrong after deployment:
-
-```bash
-# Instant rollback (takes ~10 seconds)
-bash /opt/tsh_erp/bin/rollback.sh
-
-# This will:
-# 1. Switch Nginx back to previous version
-# 2. Start previous service if stopped
-# 3. Stop current service
-```
-
----
-
-## 📊 Monitoring After Deployment
-
-### Check Application Health
-
-```bash
-# Via curl
-curl http://your-domain.com/health | python3 -m json.tool
-
-# Expected response:
-{
-  "status": "healthy",
-  "timestamp": "2024-11-02T...",
-  "version": "1.0.0",
-  "database": {
-    "status": "connected",
-    "response_time_ms": 2
-  },
-  "queue": {
-    "pending": 0,
-    "processing": 0,
-    "failed": 0
-  },
-  "uptime_seconds": 120
-}
-```
-
-### Monitor Logs
-
-```bash
-# Deployment logs
-tail -f /opt/tsh_erp/shared/logs/api/deploy_*.log
-
-# Application logs
-journalctl -u tsh_erp-blue -f
-journalctl -u tsh_erp-green -f
-
-# Nginx logs
-tail -f /var/log/nginx/tsh_erp_access.log
-tail -f /var/log/nginx/tsh_erp_error.log
-```
-
-### Check Service Status
-
-```bash
-# Which color is active?
-readlink /etc/nginx/upstreams/tsh_erp_active.conf
-
-# Service status
-systemctl status tsh_erp-blue
-systemctl status tsh_erp-green
-
-# Port check
-lsof -i :8001  # Blue
-lsof -i :8002  # Green
-```
-
----
-
-## 🎨 Deploy TDS Dashboard (Frontend)
-
-The TDS Dashboard is a static frontend that can be deployed separately:
-
-### Option A: Deploy with Nginx (Same Server)
-
-```bash
-# Build the dashboard
-cd tds_dashboard
-npm run build
-
-# Copy build to server
-scp -r dist/* YOUR_SERVER:/var/www/tds_dashboard/
-
-# Configure Nginx
-sudo nano /etc/nginx/sites-available/tds_dashboard.conf
-```
-
-Add:
-
-```nginx
-server {
-    listen 80;
-    server_name dashboard.tsh.sale;
-    root /var/www/tds_dashboard;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # API proxy
-    location /api/ {
-        proxy_pass http://localhost:8001/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-```bash
-# Enable site
-sudo ln -s /etc/nginx/sites-available/tds_dashboard.conf /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### Option B: Deploy to Vercel/Netlify (Recommended for Frontend)
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-cd tds_dashboard
-vercel --prod
-
-# Set environment variable
-vercel env add VITE_TDS_API_URL production
-# Enter: https://api.tsh.sale
-```
-
----
-
-## 🔐 Security Considerations
-
-### Firewall Configuration
-
-```bash
-# Allow only necessary ports
-sudo ufw allow 22/tcp   # SSH
-sudo ufw allow 80/tcp   # HTTP
-sudo ufw allow 443/tcp  # HTTPS
-sudo ufw enable
-```
-
-### SSL/TLS Setup (Recommended)
-
-```bash
-# Install Certbot
-sudo apt install certbot python3-certbot-nginx
-
-# Get certificate
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com
-
-# Auto-renewal
-sudo certbot renew --dry-run
-```
-
-### Database Security
-
-```bash
-# Limit PostgreSQL to local connections only
-sudo nano /etc/postgresql/*/main/pg_hba.conf
-
-# Ensure this line exists:
-host    all             all             127.0.0.1/32            md5
-```
-
----
-
-## ✅ Post-Deployment Verification
-
-After deployment, verify:
-
-1. **API Health**
-   ```bash
-   curl https://your-domain.com/health
-   ```
-
-2. **Dashboard Access**
-   - Open https://dashboard.tsh.sale
-   - Verify all components load
-   - Check real-time updates working
-
-3. **Database Connectivity**
-   ```bash
-   PGPASSWORD='...' psql -h localhost -U tsh_app_user -d tsh_erp_production -c "SELECT COUNT(*) FROM tds_sync_queue;"
-   ```
-
-4. **Logs Clean**
-   ```bash
-   journalctl -u tsh_erp-blue -n 50 --no-pager
-   ```
-
-5. **No Errors**
-   - Check Nginx error log
-   - Check application error log
-   - Verify health endpoint returns healthy
-
----
-
-## 🆘 Troubleshooting
-
-### Deployment Failed
-
-```bash
-# Check deployment logs
-tail -100 /opt/tsh_erp/shared/logs/api/deploy_*.log
-
-# Check service logs
-journalctl -u tsh_erp-blue -n 100
-
-# Manual service start
-sudo systemctl start tsh_erp-blue
-sudo systemctl status tsh_erp-blue
-```
-
-### Health Check Failing
-
-```bash
-# Test directly
-curl http://localhost:8001/ready
-curl http://localhost:8001/health
-
-# Check if service is running
-systemctl is-active tsh_erp-blue
-
-# Check logs for errors
-journalctl -u tsh_erp-blue -n 50
-```
-
-### Database Connection Issues
-
-```bash
-# Test database connection
-PGPASSWORD='...' psql -h localhost -U tsh_app_user -d tsh_erp_production -c "SELECT 1"
-
-# Check environment file
-cat /opt/tsh_erp/shared/env/prod.env | grep DATABASE
-```
-
----
-
-## 📞 Support
-
-**Documentation:**
-- Setup Guide: `CI_CD_SETUP_GUIDE.md`
-- Quick Reference: `deployment/docs/QUICK_REFERENCE.md`
-- This Guide: `DEPLOYMENT_GUIDE.md`
-
-**Common Commands:**
-```bash
-# Deploy
-bash /opt/tsh_erp/bin/deploy.sh main
-
-# Rollback
-bash /opt/tsh_erp/bin/rollback.sh
-
-# Check status
-systemctl status tsh_erp-blue tsh_erp-green
+# Check health endpoint
+curl https://erp.tsh.sale/health
 
 # View logs
-tail -f /opt/tsh_erp/shared/logs/api/*.log
+docker compose -f docker-compose.production.yml logs -f --tail=100
 ```
 
 ---
 
-**Created**: November 2, 2024
-**Status**: Production Ready ✅
-**Deployment Method**: Blue/Green Zero-Downtime
+## Rollback Procedures
+
+### Automatic Rollback
+
+GitHub Actions will automatically rollback if:
+- Health checks fail on new deployment
+- Smoke tests fail
+- Public endpoint verification fails
+
+### Manual Rollback
+
+#### Using Rollback Script (Recommended)
+
+```bash
+cd /opt/tsh-erp
+./scripts/deployment/rollback.sh
+
+# Or rollback to specific version
+./scripts/deployment/rollback.sh v1.2.2
+```
+
+#### Manual Rollback Steps
+
+```bash
+# 1. Identify inactive slot (will become active after rollback)
+docker ps -a | grep tsh_erp_app
+
+# 2. Start inactive slot
+docker compose -f docker-compose.production.yml up -d app_blue
+# or
+docker compose -f docker-compose.production.yml --profile green up -d app_green
+
+# 3. Wait for health
+sleep 30
+curl http://localhost:8001/health  # or 8011 for green
+
+# 4. Update Nginx
+nano /etc/nginx/sites-available/tsh-erp
+# Change upstream port
+
+nginx -t && nginx -s reload
+
+# 5. Stop problematic slot
+docker compose -f docker-compose.production.yml stop app_green
+# or app_blue
+```
+
+**Rollback Time:** <2 minutes
+
+---
+
+## Health Checks
+
+### Automated Health Checks
+
+All services include Docker health checks:
+
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+```
+
+### Manual Health Check Script
+
+```bash
+# Check specific environment
+./scripts/deployment/health_check.sh http://localhost:8001
+
+# Check production
+./scripts/deployment/health_check.sh https://erp.tsh.sale
+```
+
+### Health Check Endpoints
+
+| Endpoint | Description | Expected Response |
+|----------|-------------|-------------------|
+| `/health` | Basic health | `{"status": "healthy"}` |
+| `/docs` | API documentation | 200 OK |
+| `/openapi.json` | OpenAPI spec | 200 OK |
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Deployment Fails - Database Connection
+
+```bash
+# Check PostgreSQL status
+docker logs tsh_postgres
+
+# Verify database credentials
+docker compose -f docker-compose.production.yml exec app_blue env | grep DATABASE_URL
+
+# Test database connection
+docker compose -f docker-compose.production.yml exec app_blue python -c "from app.db import engine; engine.connect()"
+```
+
+#### 2. Health Check Fails
+
+```bash
+# Check application logs
+docker logs tsh_erp_app_blue --tail=100
+
+# Check if service is listening
+docker exec tsh_erp_app_blue netstat -tuln | grep 8000
+
+# Manual health check
+curl -v http://localhost:8001/health
+```
+
+#### 3. Nginx Not Routing Traffic
+
+```bash
+# Test Nginx configuration
+nginx -t
+
+# Check Nginx error logs
+tail -f /var/log/nginx/error.log
+
+# Verify upstream configuration
+cat /etc/nginx/sites-available/tsh-erp | grep upstream
+
+# Reload Nginx
+nginx -s reload
+```
+
+#### 4. Blue-Green Deployment Stuck
+
+```bash
+# Check both slots
+docker ps | grep tsh_erp_app
+
+# Force stop problematic slot
+docker compose -f docker-compose.production.yml stop app_green
+docker compose -f docker-compose.production.yml stop app_blue
+
+# Restart known good slot
+docker compose -f docker-compose.production.yml up -d app_blue
+```
+
+#### 5. Out of Disk Space
+
+```bash
+# Check disk usage
+df -h
+
+# Clean up Docker
+docker system prune -af --volumes
+
+# Clean old images
+docker images | grep tsh-erp | grep -v latest | awk '{print $3}' | xargs docker rmi
+
+# Clean logs
+find /var/log -name "*.log" -mtime +30 -delete
+```
+
+### Monitoring Commands
+
+```bash
+# Real-time container stats
+docker stats
+
+# Check all container health
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# View recent logs from all services
+docker compose -f docker-compose.production.yml logs --tail=50 --timestamps
+
+# Check resource usage
+htop
+```
+
+---
+
+## Best Practices
+
+### Before Deployment
+
+- [ ] Test thoroughly in staging environment
+- [ ] Review git diff for changes
+- [ ] Check database migrations
+- [ ] Verify all secrets are updated
+- [ ] Notify team of upcoming deployment
+- [ ] Check current system load
+
+### During Deployment
+
+- [ ] Monitor deployment logs in real-time
+- [ ] Watch health check progress
+- [ ] Verify no errors in application logs
+- [ ] Test critical user flows immediately
+- [ ] Monitor error tracking (Sentry)
+
+### After Deployment
+
+- [ ] Verify all services are healthy
+- [ ] Run smoke tests manually if needed
+- [ ] Monitor error rates for 30 minutes
+- [ ] Check database backup completed
+- [ ] Update deployment documentation
+- [ ] Notify team of completion
+
+---
+
+## Emergency Contacts
+
+**Production Issues:**
+- DevOps Lead: [Contact Info]
+- Project Owner: Khaleel Al-Mulla
+- Emergency Rollback: `./scripts/deployment/rollback.sh`
+
+**Critical Service Failures:**
+1. Run rollback immediately
+2. Investigate logs
+3. Fix issue in develop branch
+4. Deploy fix through staging first
+5. Deploy to production after verification
+
+---
+
+## Additional Resources
+
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Nginx Blue-Green Deployment](https://www.nginx.com/blog/blue-green-deployments-with-nginx/)
+- [PostgreSQL Backup Best Practices](https://www.postgresql.org/docs/current/backup.html)
+
+---
+
+**Last Updated:** 2025-11-15
+**Maintained By:** DevOps Team
+**Version:** 2.0.0

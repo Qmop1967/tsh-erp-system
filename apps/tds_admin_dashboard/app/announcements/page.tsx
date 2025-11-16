@@ -84,16 +84,26 @@ export default function AnnouncementsPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    content: string;
+    severity: 'info' | 'warning' | 'error' | 'critical';
+    target_type: 'all' | 'roles' | 'branches' | 'users';
+    target_roles: string[];
+    requires_acknowledgment: boolean;
+    publish_at: string;
+    expires_at: string;
+    delivery_channels: string[];
+  }>({
     title: '',
     content: '',
-    severity: 'info' as const,
-    target_type: 'all' as const,
-    target_roles: [] as string[],
+    severity: 'info',
+    target_type: 'all',
+    target_roles: [],
     requires_acknowledgment: false,
     publish_at: '',
     expires_at: '',
-    delivery_channels: ['in_app'] as string[],
+    delivery_channels: ['in_app'],
   });
 
   const handleCreate = async () => {

@@ -12,20 +12,10 @@ Date: November 6, 2025
 
 import logging
 from typing import Dict, Any, Optional
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-
-
-def safe_decimal(value: Any, default: Decimal = Decimal('0')) -> Decimal:
-    """Safely convert value to Decimal, handling None, empty strings, and invalid values"""
-    if value is None or value == '' or value == 'None':
-        return default
-    try:
-        return Decimal(str(value))
-    except (InvalidOperation, ValueError, TypeError):
-        return default
 
 
 class ProductProcessor:
@@ -35,6 +25,25 @@ class ProductProcessor:
 
     Validates, transforms, and prepares Zoho product data for local storage.
     """
+
+    @staticmethod
+    def _safe_decimal(value: Any) -> Decimal:
+        """
+        Safely convert value to Decimal, handling empty strings and None
+
+        Args:
+            value: Value to convert
+
+        Returns:
+            Decimal: Converted value or Decimal('0') if invalid
+        """
+        if value is None or value == '' or value == 'None':
+            return Decimal('0')
+        try:
+            return Decimal(str(value))
+        except (ValueError, TypeError, Exception):
+            logger.warning(f"Invalid decimal value: {value}, using 0")
+            return Decimal('0')
 
     @staticmethod
     def validate(product_data: Dict[str, Any]) -> bool:
@@ -86,21 +95,21 @@ class ProductProcessor:
             'unit': product_data.get('unit'),
 
             # Pricing
-            'rate': safe_decimal(product_data.get('rate')),
-            'purchase_rate': safe_decimal(product_data.get('purchase_rate')),
-            'cost_price': safe_decimal(product_data.get('purchase_rate')),
-            'selling_price': safe_decimal(product_data.get('rate')),
+            'rate': ProductProcessor._safe_decimal(product_data.get('rate', 0)),
+            'purchase_rate': ProductProcessor._safe_decimal(product_data.get('purchase_rate', 0)),
+            'cost_price': ProductProcessor._safe_decimal(product_data.get('purchase_rate', 0)),
+            'selling_price': ProductProcessor._safe_decimal(product_data.get('rate', 0)),
 
             # Stock - Zoho returns 'actual_available_stock' and 'available_stock'
-            'stock_on_hand': safe_decimal(product_data.get('actual_available_stock')),
-            'available_stock': safe_decimal(product_data.get('available_stock')),
-            'actual_available_stock': safe_decimal(product_data.get('actual_available_stock')),
-            'reorder_level': safe_decimal(product_data.get('reorder_level')),
+            'stock_on_hand': ProductProcessor._safe_decimal(product_data.get('actual_available_stock', 0)),
+            'available_stock': ProductProcessor._safe_decimal(product_data.get('available_stock', 0)),
+            'actual_available_stock': ProductProcessor._safe_decimal(product_data.get('actual_available_stock', 0)),
+            'reorder_level': ProductProcessor._safe_decimal(product_data.get('reorder_level', 0)),
 
             # Attributes
             'is_taxable': product_data.get('is_taxable', False),
             'tax_id': product_data.get('tax_id'),
-            'tax_percentage': safe_decimal(product_data.get('tax_percentage')),
+            'tax_percentage': ProductProcessor._safe_decimal(product_data.get('tax_percentage', 0)),
             'is_returnable': product_data.get('is_returnable', True),
 
             # Status

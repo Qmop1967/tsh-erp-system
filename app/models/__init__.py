@@ -48,6 +48,9 @@ from .expense import (
 from .money_transfer import (
     MoneyTransfer, TransferPlatform
 )
+from .salesperson import (
+    SalespersonGPSLocation, SalespersonCommission, SalespersonTarget, SalespersonDailySummary
+)
 from .pricing import (
     PricingList, ProductPrice, PriceListCategory, PriceHistory, 
     PriceNegotiationRequest, CustomerPriceCategory
@@ -130,6 +133,8 @@ __all__ = [
     "Expense", "ExpenseItem", "ExpenseAttachment",
     # Money Transfer models (CRITICAL - Fraud Prevention)
     "MoneyTransfer", "TransferPlatform",
+    # Salesperson models (Field Sales App 06)
+    "SalespersonGPSLocation", "SalespersonCommission", "SalespersonTarget", "SalespersonDailySummary",
     # Pricing models
     "PricingList", "ProductPrice", "PriceListCategory", "PriceHistory", 
     "PriceNegotiationRequest", "CustomerPriceCategory",

@@ -20,13 +20,15 @@ from app.models import (
     InventoryItem, StockMovement,
     SalesOrder, SalesItem, PurchaseOrder, PurchaseItem,
     # Accounting models
-    Currency, ExchangeRate, ChartOfAccounts, Account, 
+    Currency, ExchangeRate, ChartOfAccounts, Account,
     Journal, JournalEntry, JournalLine, FiscalYear, AccountingPeriod,
     # POS models
     POSTerminal, POSSession, POSTransaction, POSTransactionItem,
     POSPayment, POSDiscount, POSPromotion,
     # Invoice models
-    SalesInvoice, SalesInvoiceItem, PurchaseInvoice, PurchaseInvoiceItem, InvoicePayment
+    SalesInvoice, SalesInvoiceItem, PurchaseInvoice, PurchaseInvoiceItem, InvoicePayment,
+    # Salesperson models (Field Sales App 06)
+    SalespersonGPSLocation, SalespersonCommission, SalespersonTarget, SalespersonDailySummary
 )
 
 # هذا الكائن يحتوي على إعدادات Alembic

@@ -144,14 +144,10 @@ class MenuPage extends StatelessWidget {
                       context,
                       icon: MdiIcons.walletOutline,
                       title: 'عمولاتي',
-                      subtitle: 'عرض العمولات والأرباح',
+                      subtitle: 'تتبع عمولة 2.25% والأرباح',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FinancialManagementPage(),
-                          ),
-                        );
+                        final userId = authProvider.user?.id ?? 1;
+                        context.push('${AppRoutes.commissionDashboard}?salespersonId=$userId');
                       },
                     ),
                     _buildMenuItem(
@@ -166,6 +162,77 @@ class MenuPage extends StatelessWidget {
                             builder: (context) => const RemittanceManagementPage(),
                           ),
                         );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildMenuSection(
+                  title: 'إدارة التحويلات المالية',
+                  items: [
+                    _buildMenuItem(
+                      context,
+                      icon: MdiIcons.walletOutline,
+                      title: 'لوحة التحويلات',
+                      subtitle: 'صندوق المال والإحصائيات',
+                      onTap: () {
+                        final userId = authProvider.user?.id ?? 1;
+                        context.push('${AppRoutes.transferDashboard}?salespersonId=$userId');
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: MdiIcons.bankTransferIn,
+                      title: 'تحويل جديد',
+                      subtitle: 'تسجيل تحويل (الطيف، زين كاش، سوبر كيو)',
+                      onTap: () {
+                        final userId = authProvider.user?.id ?? 1;
+                        context.push('${AppRoutes.createTransfer}?salespersonId=$userId');
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: MdiIcons.history,
+                      title: 'سجل التحويلات',
+                      subtitle: 'عرض جميع التحويلات السابقة',
+                      onTap: () {
+                        final userId = authProvider.user?.id ?? 1;
+                        context.push('${AppRoutes.transferHistory}?salespersonId=$userId');
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildMenuSection(
+                  title: 'التتبع والموقع',
+                  items: [
+                    _buildMenuItem(
+                      context,
+                      icon: MdiIcons.mapMarker,
+                      title: 'التتبع المباشر',
+                      subtitle: 'عرض موقعك الحالي على الخريطة',
+                      onTap: () {
+                        context.push(AppRoutes.gpsTracking);
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: MdiIcons.chartLine,
+                      title: 'لوحة تحكم التتبع',
+                      subtitle: 'إحصائيات وتحليل المسار اليومي',
+                      onTap: () {
+                        final userId = authProvider.user?.id ?? 1;
+                        context.push('${AppRoutes.trackingDashboard}?salespersonId=$userId');
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: MdiIcons.history,
+                      title: 'سجل المواقع',
+                      subtitle: 'عرض سجل المواقع السابقة',
+                      onTap: () {
+                        final userId = authProvider.user?.id ?? 1;
+                        context.push('${AppRoutes.locationHistory}?salespersonId=$userId');
                       },
                     ),
                   ],

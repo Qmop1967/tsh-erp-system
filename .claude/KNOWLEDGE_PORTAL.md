@@ -22,26 +22,24 @@
 
 ## 📊 File Loading Priority (For AI Session Start)
 
-### Priority 0: SESSION START - Read Immediately
+### Priority 0: 🚨 ULTRA-CRITICAL - Read FIRST Before Any Server Operation
 ```yaml
-0. CLAUDE.md (~130 lines)
-   Purpose: Session start instructions and global rules
-   When: At the very start of EVERY new session
+0. SERVER_INFRASTRUCTURE.md (~300 lines) ⚠️ NEW - READ FIRST!
+   Purpose: Server IP addresses and SSH credentials (NEVER confuse staging/production)
+   When: FIRST before ANY deployment or server check
    Key Content:
-     - Session start routine
-     - File reading order
-     - Non-negotiable rules (NO TWILIO, tech stack)
-     - Project location and structure
-     - Verification checklist
-
-   Note: This file directs to read the Priority 1 files below
+     - Staging Server: 167.71.58.65 (user: khaleel, develop branch)
+     - Production Server: 167.71.39.50 (user: root, main branch)
+     - Quick commands, decision matrix, memory aids
+     - Pre-operation checklist
+   ⚠️ WARNING: Getting IPs wrong = deploying to wrong server = disaster!
 ```
 
 ### Priority 1: CRITICAL - Read First
 ```yaml
 1. AI_CONTEXT_RULES.md (~1,540 lines)
    Purpose: Meta-guide - HOW to read and interpret all other files
-   When: FIRST file to read in every session (after CLAUDE.md)
+   When: After SERVER_INFRASTRUCTURE.md
    Key Content:
      - File loading order hierarchy
      - Conflict resolution rules
@@ -169,43 +167,9 @@
       - Deployment checklist
 ```
 
-### Priority 5: SESSION CONTINUITY - Memory & Context
+### Priority 5: ADMINISTRATIVE - Reference Only
 ```yaml
-13. SESSION_STATE.md (~200 lines)
-    Purpose: Track current work across sessions
-    When: Session start/end, context recovery
-    Key Content:
-      - Current task and progress
-      - Recent context (last session)
-      - Active branches and git status
-      - Pending questions
-      - Session continuity instructions
-
-14. DECISIONS.md (~800 lines)
-    Purpose: Record important decisions with reasoning
-    When: Making architectural/business decisions
-    Key Content:
-      - Architecture decisions (deploy all, TDS Core, working directory)
-      - Zoho migration decisions
-      - Technology stack decisions (non-negotiable)
-      - Development process decisions
-      - Business logic decisions
-
-15. COMMON_ISSUES.md (~1,000 lines)
-    Purpose: Recurring problems with proven solutions
-    When: Debugging, troubleshooting, problem-solving
-    Key Content:
-      - Critical issues (production impact)
-      - High/Medium/Low impact issues
-      - Root cause analysis
-      - Step-by-step solutions
-      - Prevention strategies
-      - Issue statistics
-```
-
-### Priority 6: ADMINISTRATIVE - Reference Only
-```yaml
-16. CHANGELOG_AI.md (~300 lines)
+13. CHANGELOG_AI.md (~300 lines)
     Purpose: Track .claude/ system changes
     When: After major updates, phase transitions
     Key Content:
@@ -213,7 +177,7 @@
       - Context evolution over time
       - Update instructions
 
-17. KNOWLEDGE_LINKS.md (~200 lines)
+14. KNOWLEDGE_LINKS.md (~200 lines)
     Purpose: Operational resources (URLs, credentials)
     When: Need access to systems
     Key Content:
@@ -223,7 +187,7 @@
       - Zoho organization info
       - Domain management
 
-18. KNOWLEDGE_PORTAL.md (This file)
+15. KNOWLEDGE_PORTAL.md (This file)
     Purpose: Navigation index
     When: Session start or when lost
     Key Content:
@@ -235,37 +199,6 @@
 ---
 
 ## 🗂️ Topic-Based Navigation
-
-### 🚀 Session Start & Orientation
-```yaml
-Start a new session:
-  → CLAUDE.md (session start instructions, global rules)
-
-Get oriented quickly:
-  → QUICK_REFERENCE.md (60-second context refresh)
-
-Navigate documentation:
-  → KNOWLEDGE_PORTAL.md (this file - navigation index)
-
-Resume previous work:
-  → SESSION_STATE.md (current task, recent context)
-  → scripts/session_handoff.sh (save/load session state)
-```
-
-### 🧠 Memory & Context (NEW)
-```yaml
-Track current work:
-  → SESSION_STATE.md (what I'm working on now)
-
-Remember decisions:
-  → DECISIONS.md (why we made certain choices)
-
-Solve recurring problems:
-  → COMMON_ISSUES.md (known issues with solutions)
-
-Session recovery:
-  → scripts/session_handoff.sh (automated save/load)
-```
 
 ### 🧠 Thinking & Learning
 ```yaml
@@ -301,6 +234,10 @@ Detect security issues:
 
 Secure code patterns:
   → CODE_TEMPLATES.md (authentication, authorization, validation)
+
+Credentials & API keys:
+  → CREDENTIALS.md (Namecheap DNS, Database, Redis, Zoho, JWT, Email)
+  ⚠️  CONFIDENTIAL - Contains production credentials
 ```
 
 ### 🧾 Operations & Process
@@ -514,16 +451,6 @@ Total: ~11,800 lines (~600 KB)
 
 ...recover from confusion:
   → This file (KNOWLEDGE_PORTAL.md)
-
-...resume previous work:
-  → SESSION_STATE.md
-  → scripts/session_handoff.sh
-
-...understand past decisions:
-  → DECISIONS.md
-
-...solve a recurring problem:
-  → COMMON_ISSUES.md
 ```
 
 ---
@@ -531,23 +458,6 @@ Total: ~11,800 lines (~600 KB)
 ## 🆕 Recently Added/Updated Files
 
 ```yaml
-[2025-11-13] Session Continuity & Memory Enhancement:
-  ✅ SESSION_STATE.md (NEW - track current work across sessions)
-  ✅ DECISIONS.md (NEW - record important decisions with reasoning)
-  ✅ COMMON_ISSUES.md (NEW - recurring problems with solutions)
-  ✅ scripts/session_handoff.sh (NEW - save/load session state)
-  ✅ KNOWLEDGE_PORTAL.md (UPDATED - added Priority 5 Session Continuity)
-
-[2025-11-13] Session Start Enhancement:
-  ✅ CLAUDE.md (MOVED - from home directory to .claude/)
-  ✅ QUICK_START.txt (NEW - ultra-fast reference card)
-  ✅ ENHANCEMENTS_2025-11-13.md (NEW - enhancement documentation)
-  ✅ .claude/verify_context.sh (NEW - automated verification script)
-  ✅ .claude/search_docs.sh (NEW - fast documentation search)
-  ✅ scripts/session_context.sh (NEW - session recovery helper)
-  ✅ AI_CONTEXT_RULES.md (UPDATED - Working Directory Protocol)
-  ✅ KNOWLEDGE_PORTAL.md (UPDATED - added CLAUDE.md as Priority 0)
-
 [2025-11-12] Phase IV Implementation:
   ✅ CODE_TEMPLATES.md (NEW - 2,500 lines)
   ✅ PERFORMANCE_OPTIMIZATION.md (NEW - 1,000 lines)
@@ -583,17 +493,13 @@ Total: ~11,800 lines (~600 KB)
 **Before starting work, verify:**
 
 ```yaml
-□ All 27 markdown files + 1 TXT file present in .claude/ directory
-□ CLAUDE.md read (session start instructions)
+□ All 15 files present in .claude/ directory
 □ AI_CONTEXT_RULES.md read (loading order understood)
 □ PROJECT_VISION.md internalized (business context clear)
-□ QUICK_REFERENCE.md read (quick facts)
-□ SESSION_STATE.md available (session continuity)
-□ DECISIONS.md available (decision reference)
-□ COMMON_ISSUES.md available (problem solving)
 □ Current phase confirmed (Zoho Migration Phase 1)
 □ Current environment known (Development, deploy anytime)
 □ "Last Updated" dates reviewed (context is current)
+□ QUICK_REFERENCE.md bookmarked (fast access)
 □ No knowledge gaps or confusion
 
 Status: READY TO WORK
@@ -607,11 +513,10 @@ Status: READY TO WORK
 
 ```yaml
 If New AI Session:
-  1. Read CLAUDE.md (session start instructions)
-  2. Read AI_CONTEXT_RULES.md (meta-guide)
-  3. Read PROJECT_VISION.md (business context)
-  4. Read QUICK_REFERENCE.md (quick facts)
-  5. Confirm with: "Context loaded. TSH ERP Ecosystem ready. How can I help?"
+  1. Read AI_CONTEXT_RULES.md
+  2. Read QUICK_REFERENCE.md
+  3. Read PROJECT_VISION.md
+  4. Confirm with: "Hi Khaleel! Context loaded. Ready to work."
 
 If New Human Developer:
   1. Follow Day 1 onboarding path (above)

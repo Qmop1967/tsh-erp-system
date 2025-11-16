@@ -47,6 +47,10 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
           : DateTime.parse(json['lastLogin'] as String),
       timezone: json['timezone'] as String?,
       lang: json['lang'] as String?,
+      role: json['role'] as String?,
+      permissions: (json['permissions'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -63,6 +67,8 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
       'lastLogin': instance.lastLogin?.toIso8601String(),
       'timezone': instance.timezone,
       'lang': instance.lang,
+      'role': instance.role,
+      'permissions': instance.permissions,
     };
 
 LoginRequest _$LoginRequestFromJson(Map<String, dynamic> json) => LoginRequest(

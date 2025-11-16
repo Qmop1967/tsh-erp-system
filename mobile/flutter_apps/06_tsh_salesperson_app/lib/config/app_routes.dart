@@ -9,6 +9,13 @@ import '../pages/orders/orders_page.dart';
 import '../pages/products/products_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/sales/sales_page.dart';
+import '../pages/gps/gps_tracking_page.dart';
+import '../pages/gps/tracking_dashboard_page.dart';
+import '../pages/gps/location_history_page.dart';
+import '../pages/transfers/transfer_dashboard_page.dart';
+import '../pages/transfers/create_transfer_page.dart';
+import '../pages/transfers/transfer_history_page.dart';
+import '../pages/commission/commission_dashboard_page.dart';
 import '../providers/auth_provider.dart';
 
 class AppRoutes {
@@ -86,6 +93,71 @@ class AppRoutes {
         name: 'profile',
         builder: (context, state) => const ProfilePage(),
       ),
+      GoRoute(
+        path: '/gps-tracking',
+        name: 'gps-tracking',
+        builder: (context, state) => const GPSTrackingPage(),
+      ),
+      GoRoute(
+        path: '/tracking-dashboard',
+        name: 'tracking-dashboard',
+        builder: (context, state) {
+          final salespersonId = state.uri.queryParameters['salespersonId'];
+          return TrackingDashboardPage(
+            salespersonId: int.tryParse(salespersonId ?? '1') ?? 1,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/location-history',
+        name: 'location-history',
+        builder: (context, state) {
+          final salespersonId = state.uri.queryParameters['salespersonId'];
+          return LocationHistoryPage(
+            salespersonId: int.tryParse(salespersonId ?? '1') ?? 1,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/transfer-dashboard',
+        name: 'transfer-dashboard',
+        builder: (context, state) {
+          final salespersonId = state.uri.queryParameters['salespersonId'];
+          return TransferDashboardPage(
+            salespersonId: int.tryParse(salespersonId ?? '1') ?? 1,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/create-transfer',
+        name: 'create-transfer',
+        builder: (context, state) {
+          final salespersonId = state.uri.queryParameters['salespersonId'];
+          return CreateTransferPage(
+            salespersonId: int.tryParse(salespersonId ?? '1') ?? 1,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/transfer-history',
+        name: 'transfer-history',
+        builder: (context, state) {
+          final salespersonId = state.uri.queryParameters['salespersonId'];
+          return TransferHistoryPage(
+            salespersonId: int.tryParse(salespersonId ?? '1') ?? 1,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/commission-dashboard',
+        name: 'commission-dashboard',
+        builder: (context, state) {
+          final salespersonId = state.uri.queryParameters['salespersonId'];
+          return CommissionDashboardPage(
+            salespersonId: int.tryParse(salespersonId ?? '1') ?? 1,
+          );
+        },
+      ),
     ],
   );
 
@@ -97,4 +169,11 @@ class AppRoutes {
   static const String products = '/products';
   static const String sales = '/sales';
   static const String profile = '/profile';
+  static const String gpsTracking = '/gps-tracking';
+  static const String trackingDashboard = '/tracking-dashboard';
+  static const String locationHistory = '/location-history';
+  static const String transferDashboard = '/transfer-dashboard';
+  static const String createTransfer = '/create-transfer';
+  static const String transferHistory = '/transfer-history';
+  static const String commissionDashboard = '/commission-dashboard';
 }

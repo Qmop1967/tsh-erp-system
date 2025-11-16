@@ -206,14 +206,23 @@ async def assign_customers_to_user(
             detail="User not found"
         )
 
-    # Clear existing assignments
-    db.execute(f"DELETE FROM user_customers WHERE user_id = {assignment.user_id}")
+    # Clear existing assignments using parameterized query
+    from sqlalchemy import text
+    db.execute(
+        text("DELETE FROM user_customers WHERE user_id = :user_id"),
+        {"user_id": assignment.user_id}
+    )
 
-    # Add new assignments
+    # Add new assignments using parameterized queries
     for customer_id in assignment.customer_ids:
         db.execute(
-            f"INSERT INTO user_customers (user_id, customer_id, assigned_by, assigned_at) "
-            f"VALUES ({assignment.user_id}, {customer_id}, {current_user.id}, NOW())"
+            text("INSERT INTO user_customers (user_id, customer_id, assigned_by, assigned_at) "
+                 "VALUES (:user_id, :customer_id, :assigned_by, NOW())"),
+            {
+                "user_id": assignment.user_id,
+                "customer_id": customer_id,
+                "assigned_by": current_user.id
+            }
         )
 
     db.commit()
@@ -242,14 +251,23 @@ async def assign_warehouses_to_user(
             detail="User not found"
         )
 
-    # Clear existing assignments
-    db.execute(f"DELETE FROM user_warehouses WHERE user_id = {assignment.user_id}")
+    # Clear existing assignments using parameterized query
+    from sqlalchemy import text
+    db.execute(
+        text("DELETE FROM user_warehouses WHERE user_id = :user_id"),
+        {"user_id": assignment.user_id}
+    )
 
-    # Add new assignments
+    # Add new assignments using parameterized queries
     for warehouse_id in assignment.warehouse_ids:
         db.execute(
-            f"INSERT INTO user_warehouses (user_id, warehouse_id, assigned_by, assigned_at) "
-            f"VALUES ({assignment.user_id}, {warehouse_id}, {current_user.id}, NOW())"
+            text("INSERT INTO user_warehouses (user_id, warehouse_id, assigned_by, assigned_at) "
+                 "VALUES (:user_id, :warehouse_id, :assigned_by, NOW())"),
+            {
+                "user_id": assignment.user_id,
+                "warehouse_id": warehouse_id,
+                "assigned_by": current_user.id
+            }
         )
 
     db.commit()
@@ -275,14 +293,23 @@ async def assign_branches_to_user(
             detail="User not found"
         )
 
-    # Clear existing assignments
-    db.execute(f"DELETE FROM user_branches WHERE user_id = {assignment.user_id}")
+    # Clear existing assignments using parameterized query
+    from sqlalchemy import text
+    db.execute(
+        text("DELETE FROM user_branches WHERE user_id = :user_id"),
+        {"user_id": assignment.user_id}
+    )
 
-    # Add new assignments
+    # Add new assignments using parameterized queries
     for branch_id in assignment.branch_ids:
         db.execute(
-            f"INSERT INTO user_branches (user_id, branch_id, assigned_by, assigned_at) "
-            f"VALUES ({assignment.user_id}, {branch_id}, {current_user.id}, NOW())"
+            text("INSERT INTO user_branches (user_id, branch_id, assigned_by, assigned_at) "
+                 "VALUES (:user_id, :branch_id, :assigned_by, NOW())"),
+            {
+                "user_id": assignment.user_id,
+                "branch_id": branch_id,
+                "assigned_by": current_user.id
+            }
         )
 
     db.commit()

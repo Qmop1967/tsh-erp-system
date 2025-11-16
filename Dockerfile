@@ -2,7 +2,7 @@
 # Multi-stage build for optimized image size
 
 # Stage 1: Builder
-FROM python:3.12-slim as builder
+FROM python:3.11-slim as builder
 
 # Set working directory
 WORKDIR /app
@@ -22,7 +22,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage 2: Runtime
-FROM python:3.12-slim
+FROM python:3.11-slim
+
+LABEL maintainer="TSH ERP Team"
+LABEL description="TSH ERP - Backend API Service"
+LABEL version="1.0"
 
 # Set working directory
 WORKDIR /app

@@ -52,14 +52,39 @@ class BaseEntityHandler(ABC):
         Returns:
             Result of upsert operation
         """
-        stmt = pg_insert(table).values(**values)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[conflict_column],
-            set_=values
-        )
-        result = await self.db.execute(stmt)
-        await self.db.commit()
-        return result
+        async with self.db.begin():  # ✅ FIX: Explicit async transaction context
+            stmt = pg_insert(table).values(**values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[conflict_column],
+                set_=values
+            )
+            result = await self.db.execute(stmt)
+            return result  # Auto-commits on context exit
+
+    async def execute_with_context(self, query, params: Dict = None):
+        """
+        Execute query with proper async transaction context
+
+        This helper method ensures all database operations are wrapped
+        in an explicit async transaction, which is required for proper
+        SQLAlchemy async session handling.
+
+        Args:
+            query: SQL query (text() or ORM query)
+            params: Query parameters dictionary
+
+        Returns:
+            Query result
+
+        Usage:
+            result = await self.execute_with_context(
+                text("INSERT INTO ... VALUES (...)"),
+                {"field": "value"}
+            )
+        """
+        async with self.db.begin():  # ✅ Explicit async transaction context
+            result = await self.db.execute(query, params or {})
+            return result  # Auto-commits on context exit
 
 
 # ============================================================================
@@ -104,9 +129,8 @@ class ProductHandler(BaseEntityHandler):
             # Note: This is a simplified example - real implementation would use actual SQLAlchemy models
             from sqlalchemy import text
 
-            # Perform upsert using raw SQL for now
-            # TODO: Replace with proper SQLAlchemy model when available
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO products (zoho_item_id, name, sku, description, price, stock_quantity, is_active, updated_at)
                     VALUES (:zoho_item_id, :name, :sku, :description, :price, :stock_quantity, :is_active, NOW())
@@ -121,18 +145,9 @@ class ProductHandler(BaseEntityHandler):
                         updated_at = NOW()
                     RETURNING id
                 """),
-                {
-                    "zoho_item_id": product_data["zoho_item_id"],
-                    "name": product_data["name"],
-                    "sku": product_data["sku"],
-                    "description": product_data["description"],
-                    "price": product_data["price"],
-                    "stock_quantity": product_data["stock_quantity"],
-                    "is_active": product_data["is_active"],
-                }
+                product_data
             )
-
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             # Get the product ID
             row = result.fetchone()
@@ -148,7 +163,7 @@ class ProductHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Product sync failed: {e}", exc_info=True)
             raise
 
@@ -184,7 +199,8 @@ class CustomerHandler(BaseEntityHandler):
             from sqlalchemy import text
             import json
 
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO customers (zoho_contact_id, contact_name, company_name, email, phone, billing_address, shipping_address, updated_at)
                     VALUES (:zoho_contact_id, :contact_name, :company_name, :email, :phone, :billing_address, :shipping_address, NOW())
@@ -209,8 +225,7 @@ class CustomerHandler(BaseEntityHandler):
                     "shipping_address": json.dumps(shipping_address) if shipping_address else None,
                 }
             )
-
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             row = result.fetchone()
             customer_id = row[0] if row else None
@@ -225,7 +240,7 @@ class CustomerHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Customer sync failed: {e}", exc_info=True)
             raise
 
@@ -282,7 +297,8 @@ class InvoiceHandler(BaseEntityHandler):
             invoice_date = parse_date(payload.get("date"))
             due_date = parse_date(payload.get("due_date"))
 
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO invoices (zoho_invoice_id, invoice_number, customer_id, invoice_date, due_date, total, status, zoho_data, updated_at)
                     VALUES (:zoho_invoice_id, :invoice_number, :customer_id, :invoice_date, :due_date, :total, :status, :zoho_data, NOW())
@@ -309,8 +325,7 @@ class InvoiceHandler(BaseEntityHandler):
                     "zoho_data": json.dumps(payload)
                 }
             )
-
-            await self.db.commit()
+            # ✅ No manual commit needed
 
             row = result.fetchone()
             invoice_id = row[0] if row else None
@@ -325,8 +340,718 @@ class InvoiceHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Invoice sync failed: {e}", exc_info=True)
+            raise
+
+
+# ============================================================================
+# SALES ORDER HANDLER
+# ============================================================================
+
+class SalesOrderHandler(BaseEntityHandler):
+    """Handler for sales order synchronization"""
+
+    async def sync(self, payload: Dict[str, Any], operation: str) -> Dict[str, Any]:
+        """
+        Sync sales order to local sales_orders and sales_items tables
+
+        Expected payload fields:
+        - salesorder_id (required)
+        - salesorder_number (required)
+        - customer_id (required)
+        - date
+        - shipment_date
+        - line_items[] (array of products)
+          - item_id
+          - quantity
+          - rate (unit price)
+          - discount
+        - subtotal
+        - tax_total
+        - total
+        - status
+        """
+        try:
+            zoho_salesorder_id = payload.get("salesorder_id")
+            if not zoho_salesorder_id:
+                raise ValueError("Missing required field: salesorder_id")
+
+            from sqlalchemy import text
+            from datetime import datetime
+            import json
+
+            # Helper function to parse date strings
+            def parse_date(date_value):
+                """Convert date string to date object"""
+                if date_value is None:
+                    return None
+                if isinstance(date_value, str):
+                    try:
+                        return datetime.strptime(date_value, '%Y-%m-%d').date()
+                    except ValueError:
+                        try:
+                            return datetime.strptime(date_value, '%d-%m-%Y').date()
+                        except ValueError:
+                            logger.warning(f"Could not parse date: {date_value}, using NULL")
+                            return None
+                return date_value
+
+            # Parse dates
+            order_date = parse_date(payload.get("date"))
+            shipment_date = parse_date(payload.get("shipment_date"))
+            expected_delivery_date = parse_date(payload.get("delivery_date"))
+
+            # Map Zoho customer_id to local customer
+            zoho_customer_id = payload.get("customer_id", "")
+
+            # Get local customer ID from zoho_contact_id
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            customer_result = await self.execute_with_context(
+                text("SELECT id FROM customers WHERE zoho_contact_id = :zoho_contact_id LIMIT 1"),
+                {"zoho_contact_id": str(zoho_customer_id)}
+            )
+            customer_row = customer_result.fetchone()
+            local_customer_id = customer_row[0] if customer_row else None
+
+            if not local_customer_id:
+                logger.warning(f"Customer not found for zoho_contact_id: {zoho_customer_id}, creating placeholder")
+                # Create placeholder customer (you may want to sync customer first)
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                placeholder_result = await self.execute_with_context(
+                    text("""
+                        INSERT INTO customers (zoho_contact_id, contact_name, created_at, updated_at)
+                        VALUES (:zoho_contact_id, :contact_name, NOW(), NOW())
+                        RETURNING id
+                    """),
+                    {
+                        "zoho_contact_id": str(zoho_customer_id),
+                        "contact_name": payload.get("customer_name", f"Customer {zoho_customer_id}")
+                    }
+                )
+                # ✅ No manual commit needed - auto-commits on context exit
+                placeholder_row = placeholder_result.fetchone()
+                local_customer_id = placeholder_row[0] if placeholder_row else None
+
+            # Step 1: Upsert sales order header
+            # Note: Assuming zoho_salesorder_id column exists or using order_number as unique
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
+                text("""
+                    INSERT INTO sales_orders (
+                        order_number,
+                        customer_id,
+                        branch_id,
+                        warehouse_id,
+                        order_date,
+                        expected_delivery_date,
+                        actual_delivery_date,
+                        status,
+                        payment_status,
+                        payment_method,
+                        subtotal,
+                        discount_percentage,
+                        discount_amount,
+                        tax_percentage,
+                        tax_amount,
+                        total_amount,
+                        paid_amount,
+                        notes,
+                        created_by,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (
+                        :order_number,
+                        :customer_id,
+                        :branch_id,
+                        :warehouse_id,
+                        :order_date,
+                        :expected_delivery_date,
+                        :actual_delivery_date,
+                        :status,
+                        :payment_status,
+                        :payment_method,
+                        :subtotal,
+                        :discount_percentage,
+                        :discount_amount,
+                        :tax_percentage,
+                        :tax_amount,
+                        :total_amount,
+                        :paid_amount,
+                        :notes,
+                        :created_by,
+                        NOW(),
+                        NOW()
+                    )
+                    ON CONFLICT (order_number)
+                    DO UPDATE SET
+                        customer_id = EXCLUDED.customer_id,
+                        order_date = EXCLUDED.order_date,
+                        expected_delivery_date = EXCLUDED.expected_delivery_date,
+                        actual_delivery_date = EXCLUDED.actual_delivery_date,
+                        status = EXCLUDED.status,
+                        payment_status = EXCLUDED.payment_status,
+                        payment_method = EXCLUDED.payment_method,
+                        subtotal = EXCLUDED.subtotal,
+                        discount_percentage = EXCLUDED.discount_percentage,
+                        discount_amount = EXCLUDED.discount_amount,
+                        tax_percentage = EXCLUDED.tax_percentage,
+                        tax_amount = EXCLUDED.tax_amount,
+                        total_amount = EXCLUDED.total_amount,
+                        paid_amount = EXCLUDED.paid_amount,
+                        notes = EXCLUDED.notes,
+                        updated_at = NOW()
+                    RETURNING id
+                """),
+                {
+                    "order_number": payload.get("salesorder_number", f"SO-{zoho_salesorder_id}"),
+                    "customer_id": local_customer_id,
+                    "branch_id": 1,  # Default branch (TODO: map from Zoho or config)
+                    "warehouse_id": 1,  # Default warehouse (TODO: map from Zoho or config)
+                    "order_date": order_date or datetime.utcnow().date(),
+                    "expected_delivery_date": expected_delivery_date,
+                    "actual_delivery_date": shipment_date,
+                    "status": payload.get("status", "DRAFT").upper(),
+                    "payment_status": "PENDING",  # TODO: derive from payment info
+                    "payment_method": None,
+                    "subtotal": float(payload.get("sub_total", 0)),
+                    "discount_percentage": float(payload.get("discount_percent", 0)),
+                    "discount_amount": float(payload.get("discount", 0)),
+                    "tax_percentage": 0,  # TODO: calculate from line items
+                    "tax_amount": float(payload.get("tax_total", 0)),
+                    "total_amount": float(payload.get("total", 0)),
+                    "paid_amount": 0,  # TODO: sync from payments
+                    "notes": payload.get("notes", ""),
+                    "created_by": 1,  # TODO: map from Zoho user or use system user
+                }
+            )
+
+            row = result.fetchone()
+            sales_order_id = row[0] if row else None
+
+            records_affected = 1
+
+            # Step 2: Sync line items
+            line_items = payload.get("line_items", [])
+            if line_items and sales_order_id:
+                # First, delete existing items for this order (to handle updates)
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                await self.execute_with_context(
+                    text("DELETE FROM sales_items WHERE sales_order_id = :sales_order_id"),
+                    {"sales_order_id": sales_order_id}
+                )
+
+                for item in line_items:
+                    zoho_item_id = item.get("item_id")
+                    if not zoho_item_id:
+                        logger.warning(f"Line item missing item_id, skipping")
+                        continue
+
+                    # Get local product ID from zoho_item_id
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    product_result = await self.execute_with_context(
+                        text("SELECT id FROM products WHERE zoho_item_id = :zoho_item_id LIMIT 1"),
+                        {"zoho_item_id": str(zoho_item_id)}
+                    )
+                    product_row = product_result.fetchone()
+
+                    if not product_row:
+                        logger.warning(f"Product not found for zoho_item_id: {zoho_item_id}, skipping line item")
+                        continue
+
+                    product_id = product_row[0]
+                    quantity = float(item.get("quantity", 0))
+                    unit_price = float(item.get("rate", 0))
+                    discount_amount = float(item.get("discount_amount", 0))
+                    line_total = float(item.get("item_total", quantity * unit_price - discount_amount))
+
+                    # Insert sales item
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    await self.execute_with_context(
+                        text("""
+                            INSERT INTO sales_items (
+                                sales_order_id,
+                                product_id,
+                                quantity,
+                                unit_price,
+                                discount_percentage,
+                                discount_amount,
+                                line_total,
+                                delivered_quantity,
+                                notes
+                            )
+                            VALUES (
+                                :sales_order_id,
+                                :product_id,
+                                :quantity,
+                                :unit_price,
+                                :discount_percentage,
+                                :discount_amount,
+                                :line_total,
+                                :delivered_quantity,
+                                :notes
+                            )
+                        """),
+                        {
+                            "sales_order_id": sales_order_id,
+                            "product_id": product_id,
+                            "quantity": quantity,
+                            "unit_price": unit_price,
+                            "discount_percentage": float(item.get("discount", 0)),
+                            "discount_amount": discount_amount,
+                            "line_total": line_total,
+                            "delivered_quantity": float(item.get("quantity_invoiced", 0)),
+                            "notes": item.get("description", "")
+                        }
+                    )
+
+                    records_affected += 1
+
+            # ✅ No manual commit needed - auto-commits on context exit
+
+            logger.info(
+                f"Sales order synced successfully: {zoho_salesorder_id} -> local ID {sales_order_id} "
+                f"({len(line_items)} items)"
+            )
+
+            return {
+                "success": True,
+                "local_entity_id": str(sales_order_id),
+                "operation_performed": "upsert_salesorder_and_items",
+                "records_affected": records_affected
+            }
+
+        except Exception as e:
+            # ✅ No manual rollback needed - context manager handles it automatically
+            logger.error(f"Sales order sync failed: {e}", exc_info=True)
+            raise
+
+
+# ============================================================================
+# PAYMENT HANDLER
+# ============================================================================
+
+class PaymentHandler(BaseEntityHandler):
+    """Handler for customer payment synchronization"""
+
+    async def sync(self, payload: Dict[str, Any], operation: str) -> Dict[str, Any]:
+        """
+        Sync customer payment to local invoice_payments table
+
+        Expected payload fields:
+        - payment_id (required)
+        - payment_number (required)
+        - customer_id
+        - date (payment date)
+        - amount
+        - payment_mode (cash, bank, card, check, etc.)
+        - reference_number
+        - bank_name / bank_account
+        - invoices[] (array of invoices this payment applies to)
+          - invoice_id
+          - invoice_number
+          - amount_applied
+        """
+        try:
+            zoho_payment_id = payload.get("payment_id")
+            if not zoho_payment_id:
+                raise ValueError("Missing required field: payment_id")
+
+            from sqlalchemy import text
+            from datetime import datetime
+
+            # Helper function to parse date strings
+            def parse_date(date_value):
+                """Convert date string to date object"""
+                if date_value is None:
+                    return None
+                if isinstance(date_value, str):
+                    try:
+                        return datetime.strptime(date_value, '%Y-%m-%d').date()
+                    except ValueError:
+                        try:
+                            return datetime.strptime(date_value, '%d-%m-%Y').date()
+                        except ValueError:
+                            logger.warning(f"Could not parse date: {date_value}, using today")
+                            return datetime.utcnow().date()
+                return date_value
+
+            # Parse payment date
+            payment_date = parse_date(payload.get("date"))
+
+            # Get invoices this payment applies to
+            invoices = payload.get("invoices", [])
+
+            # If there are multiple invoices, create one payment record per invoice
+            # If no invoices specified, create one general payment record
+            if not invoices:
+                invoices = [{"invoice_id": None, "amount_applied": payload.get("amount", 0)}]
+
+            records_affected = 0
+
+            for invoice_payment in invoices:
+                zoho_invoice_id = invoice_payment.get("invoice_id")
+                amount_applied = float(invoice_payment.get("amount_applied", 0))
+
+                # Get local invoice ID if specified
+                local_invoice_id = None
+                if zoho_invoice_id:
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    invoice_result = await self.execute_with_context(
+                        text("SELECT id FROM invoices WHERE zoho_invoice_id = :zoho_invoice_id LIMIT 1"),
+                        {"zoho_invoice_id": str(zoho_invoice_id)}
+                    )
+                    invoice_row = invoice_result.fetchone()
+                    if invoice_row:
+                        local_invoice_id = invoice_row[0]
+                    else:
+                        logger.warning(f"Invoice not found for zoho_invoice_id: {zoho_invoice_id}, payment will be unlinked")
+
+                # Upsert payment record
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                result = await self.execute_with_context(
+                    text("""
+                        INSERT INTO invoice_payments (
+                            payment_number,
+                            sales_invoice_id,
+                            purchase_invoice_id,
+                            payment_date,
+                            amount,
+                            currency_id,
+                            exchange_rate,
+                            payment_method,
+                            reference_number,
+                            bank_account,
+                            check_number,
+                            check_date,
+                            notes,
+                            created_by,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            :payment_number,
+                            :sales_invoice_id,
+                            :purchase_invoice_id,
+                            :payment_date,
+                            :amount,
+                            :currency_id,
+                            :exchange_rate,
+                            :payment_method,
+                            :reference_number,
+                            :bank_account,
+                            :check_number,
+                            :check_date,
+                            :notes,
+                            :created_by,
+                            NOW(),
+                            NOW()
+                        )
+                        ON CONFLICT (payment_number)
+                        DO UPDATE SET
+                            sales_invoice_id = EXCLUDED.sales_invoice_id,
+                            payment_date = EXCLUDED.payment_date,
+                            amount = EXCLUDED.amount,
+                            payment_method = EXCLUDED.payment_method,
+                            reference_number = EXCLUDED.reference_number,
+                            bank_account = EXCLUDED.bank_account,
+                            check_number = EXCLUDED.check_number,
+                            check_date = EXCLUDED.check_date,
+                            notes = EXCLUDED.notes,
+                            updated_at = NOW()
+                        RETURNING id
+                    """),
+                    {
+                        "payment_number": payload.get("payment_number", f"PAY-{zoho_payment_id}"),
+                        "sales_invoice_id": local_invoice_id,  # Link to sales invoice
+                        "purchase_invoice_id": None,  # Not applicable for customer payments
+                        "payment_date": payment_date or datetime.utcnow().date(),
+                        "amount": amount_applied,
+                        "currency_id": 1,  # Default currency (TODO: map from Zoho or config)
+                        "exchange_rate": float(payload.get("exchange_rate", 1.0)),
+                        "payment_method": payload.get("payment_mode", "UNKNOWN").upper(),
+                        "reference_number": payload.get("reference_number", ""),
+                        "bank_account": payload.get("bank_name", ""),
+                        "check_number": payload.get("check_number", ""),
+                        "check_date": parse_date(payload.get("check_date")),
+                        "notes": payload.get("notes", ""),
+                        "created_by": 1,  # TODO: map from Zoho user or use system user
+                    }
+                )
+
+                row = result.fetchone()
+                payment_id = row[0] if row else None
+                records_affected += 1
+
+                logger.info(f"Payment synced: {zoho_payment_id} -> invoice: {zoho_invoice_id or 'N/A'}, local ID {payment_id}")
+
+            # ✅ No manual commit needed - auto-commits on context exit
+
+            logger.info(
+                f"Payment synced successfully: {zoho_payment_id} "
+                f"({records_affected} payment records created)"
+            )
+
+            return {
+                "success": True,
+                "local_entity_id": str(zoho_payment_id),  # Return Zoho ID since we may have multiple records
+                "operation_performed": "upsert_payment",
+                "records_affected": records_affected
+            }
+
+        except Exception as e:
+            # ✅ No manual rollback needed - context manager handles it automatically
+            logger.error(f"Payment sync failed: {e}", exc_info=True)
+            raise
+
+
+# ============================================================================
+# VENDOR HANDLER
+# ============================================================================
+
+class VendorHandler(BaseEntityHandler):
+    """Handler for vendor/supplier synchronization"""
+
+    async def sync(self, payload: Dict[str, Any], operation: str) -> Dict[str, Any]:
+        """
+        Sync vendor to local vendors table
+
+        Expected payload fields:
+        - vendor_id (required)
+        - vendor_name (required)
+        - company_name
+        - email
+        - phone
+        - billing_address
+        - shipping_address
+        - payment_terms
+        - currency_code
+        """
+        try:
+            zoho_vendor_id = payload.get("vendor_id") or payload.get("contact_id")
+            if not zoho_vendor_id:
+                raise ValueError("Missing required field: vendor_id or contact_id")
+
+            from sqlalchemy import text
+            import json
+
+            # Extract addresses
+            billing_address = payload.get("billing_address", {})
+            shipping_address = payload.get("shipping_address", {})
+
+            # Try to create vendors table if it doesn't exist
+            # This is a temporary solution until proper migration is run
+            try:
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                await self.execute_with_context(text("""
+                    CREATE TABLE IF NOT EXISTS vendors (
+                        id SERIAL PRIMARY KEY,
+                        zoho_vendor_id VARCHAR NOT NULL UNIQUE,
+                        vendor_name VARCHAR NOT NULL,
+                        company_name VARCHAR,
+                        email VARCHAR,
+                        phone VARCHAR,
+                        billing_address JSONB,
+                        shipping_address JSONB,
+                        payment_terms VARCHAR,
+                        currency_code VARCHAR DEFAULT 'IQD',
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                # ✅ No manual commit needed - auto-commits on context exit
+                logger.info("Vendors table created or already exists")
+            except Exception as e:
+                logger.warning(f"Could not create vendors table: {e}")
+                # ✅ No manual rollback needed - context manager handles it
+
+            # Upsert vendor
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
+                text("""
+                    INSERT INTO vendors (
+                        zoho_vendor_id,
+                        vendor_name,
+                        company_name,
+                        email,
+                        phone,
+                        billing_address,
+                        shipping_address,
+                        payment_terms,
+                        currency_code,
+                        is_active,
+                        updated_at
+                    )
+                    VALUES (
+                        :zoho_vendor_id,
+                        :vendor_name,
+                        :company_name,
+                        :email,
+                        :phone,
+                        :billing_address,
+                        :shipping_address,
+                        :payment_terms,
+                        :currency_code,
+                        :is_active,
+                        NOW()
+                    )
+                    ON CONFLICT (zoho_vendor_id)
+                    DO UPDATE SET
+                        vendor_name = EXCLUDED.vendor_name,
+                        company_name = EXCLUDED.company_name,
+                        email = EXCLUDED.email,
+                        phone = EXCLUDED.phone,
+                        billing_address = EXCLUDED.billing_address,
+                        shipping_address = EXCLUDED.shipping_address,
+                        payment_terms = EXCLUDED.payment_terms,
+                        currency_code = EXCLUDED.currency_code,
+                        is_active = EXCLUDED.is_active,
+                        updated_at = NOW()
+                    RETURNING id
+                """),
+                {
+                    "zoho_vendor_id": str(zoho_vendor_id),
+                    "vendor_name": payload.get("vendor_name") or payload.get("contact_name", ""),
+                    "company_name": payload.get("company_name", ""),
+                    "email": payload.get("email", ""),
+                    "phone": payload.get("phone", ""),
+                    "billing_address": json.dumps(billing_address) if billing_address else None,
+                    "shipping_address": json.dumps(shipping_address) if shipping_address else None,
+                    "payment_terms": payload.get("payment_terms", "NET_30"),
+                    "currency_code": payload.get("currency_code", "IQD"),
+                    "is_active": payload.get("is_active", True),
+                }
+            )
+
+            # ✅ No manual commit needed - auto-commits on context exit
+
+            row = result.fetchone()
+            vendor_id = row[0] if row else None
+
+            logger.info(f"Vendor synced successfully: {zoho_vendor_id} -> local ID {vendor_id}")
+
+            return {
+                "success": True,
+                "local_entity_id": str(vendor_id),
+                "operation_performed": "upsert",
+                "records_affected": 1
+            }
+
+        except Exception as e:
+            # ✅ No manual rollback needed - context manager handles it automatically
+            logger.error(f"Vendor sync failed: {e}", exc_info=True)
+            raise
+
+
+# ============================================================================
+# USER HANDLER
+# ============================================================================
+
+class UserHandler(BaseEntityHandler):
+    """Handler for Zoho user synchronization"""
+
+    async def sync(self, payload: Dict[str, Any], operation: str) -> Dict[str, Any]:
+        """
+        Sync Zoho user to local zoho_users table
+
+        Expected payload fields:
+        - user_id (required)
+        - name (required)
+        - email (required)
+        - role
+        - status
+        """
+        try:
+            zoho_user_id = payload.get("user_id")
+            if not zoho_user_id:
+                raise ValueError("Missing required field: user_id")
+
+            from sqlalchemy import text
+            import json
+
+            # Try to create zoho_users table if it doesn't exist
+            try:
+                # ✅ FIX: Use execute_with_context for proper async transaction handling
+                await self.execute_with_context(text("""
+                    CREATE TABLE IF NOT EXISTS zoho_users (
+                        id SERIAL PRIMARY KEY,
+                        zoho_user_id VARCHAR NOT NULL UNIQUE,
+                        name VARCHAR NOT NULL,
+                        email VARCHAR NOT NULL,
+                        role VARCHAR,
+                        status VARCHAR DEFAULT 'active',
+                        zoho_data JSONB,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                # ✅ No manual commit needed - auto-commits on context exit
+                logger.info("Zoho users table created or already exists")
+            except Exception as e:
+                logger.warning(f"Could not create zoho_users table: {e}")
+                # ✅ No manual rollback needed - context manager handles it
+
+            # Upsert user
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
+                text("""
+                    INSERT INTO zoho_users (
+                        zoho_user_id,
+                        name,
+                        email,
+                        role,
+                        status,
+                        zoho_data,
+                        updated_at
+                    )
+                    VALUES (
+                        :zoho_user_id,
+                        :name,
+                        :email,
+                        :role,
+                        :status,
+                        :zoho_data,
+                        NOW()
+                    )
+                    ON CONFLICT (zoho_user_id)
+                    DO UPDATE SET
+                        name = EXCLUDED.name,
+                        email = EXCLUDED.email,
+                        role = EXCLUDED.role,
+                        status = EXCLUDED.status,
+                        zoho_data = EXCLUDED.zoho_data,
+                        updated_at = NOW()
+                    RETURNING id
+                """),
+                {
+                    "zoho_user_id": str(zoho_user_id),
+                    "name": payload.get("name", ""),
+                    "email": payload.get("email", ""),
+                    "role": payload.get("role", ""),
+                    "status": payload.get("status", "active"),
+                    "zoho_data": json.dumps(payload),
+                }
+            )
+
+            # ✅ No manual commit needed - auto-commits on context exit
+
+            row = result.fetchone()
+            user_id = row[0] if row else None
+
+            logger.info(f"Zoho user synced successfully: {zoho_user_id} -> local ID {user_id}")
+
+            return {
+                "success": True,
+                "local_entity_id": str(user_id),
+                "operation_performed": "upsert",
+                "records_affected": 1
+            }
+
+        except Exception as e:
+            # ✅ No manual rollback needed - context manager handles it automatically
+            logger.error(f"Zoho user sync failed: {e}", exc_info=True)
             raise
 
 
@@ -398,7 +1123,8 @@ class PriceListHandler(BaseEntityHandler):
             from sqlalchemy import text
 
             # Step 1: Sync pricelist header
-            result = await self.db.execute(
+            # ✅ FIX: Use execute_with_context for proper async transaction handling
+            result = await self.execute_with_context(
                 text("""
                     INSERT INTO pricelists (zoho_pricelist_id, name, currency, is_active, updated_at)
                     VALUES (:zoho_pricelist_id, :name, :currency, :is_active, NOW())
@@ -432,7 +1158,8 @@ class PriceListHandler(BaseEntityHandler):
                         continue
 
                     # Get local product ID from zoho_item_id
-                    product_result = await self.db.execute(
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    product_result = await self.execute_with_context(
                         text("SELECT id FROM products WHERE zoho_item_id = :zoho_item_id"),
                         {"zoho_item_id": zoho_item_id}
                     )
@@ -445,7 +1172,8 @@ class PriceListHandler(BaseEntityHandler):
                     product_id = product_row[0]
 
                     # Upsert product price
-                    await self.db.execute(
+                    # ✅ FIX: Use execute_with_context for proper async transaction handling
+                    await self.execute_with_context(
                         text("""
                             INSERT INTO product_prices (product_id, pricelist_id, price, discount_percentage, currency, updated_at)
                             VALUES (:product_id, :pricelist_id, :price, :discount_percentage, :currency, NOW())
@@ -466,7 +1194,7 @@ class PriceListHandler(BaseEntityHandler):
 
                     records_affected += 1
 
-            await self.db.commit()
+            # ✅ No manual commit needed - auto-commits on context exit
 
             logger.info(
                 f"Price list synced successfully: {zoho_pricelist_id} -> local ID {pricelist_id} "
@@ -481,7 +1209,7 @@ class PriceListHandler(BaseEntityHandler):
             }
 
         except Exception as e:
-            await self.db.rollback()
+            # ✅ No manual rollback needed - context manager handles it automatically
             logger.error(f"Price list sync failed: {e}", exc_info=True)
             raise
 
@@ -497,6 +1225,13 @@ class EntityHandlerFactory:
         "product": ProductHandler,
         "customer": CustomerHandler,
         "invoice": InvoiceHandler,
+        "order": SalesOrderHandler,  # Sales orders
+        "salesorder": SalesOrderHandler,  # Alternate key
+        "payment": PaymentHandler,  # Customer payments
+        "customerpayment": PaymentHandler,  # Alternate key
+        "vendor": VendorHandler,  # Vendors/suppliers
+        "supplier": VendorHandler,  # Alternate key
+        "user": UserHandler,  # Zoho users
         "bill": BillHandler,
         "credit_note": CreditNoteHandler,
         "stock_adjustment": StockAdjustmentHandler,

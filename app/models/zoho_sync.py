@@ -51,8 +51,11 @@ class EntityType(str, enum.Enum):
     STOCK_ADJUSTMENT = "stock_adjustment"
     PRICE_LIST = "price_list"
     BRANCH = "branch"
-    USER = "user"
+    USER = "USER"  # Uppercase to match webhook processor
     ORDER = "order"
+    PAYMENT = "PAYMENT"  # Customer payments (uppercase to match webhook processor)
+    VENDOR = "VENDOR"  # Vendors/suppliers (uppercase)
+    SUPPLIER = "SUPPLIER"  # Alternate key for vendors
 
 
 class AlertSeverity(str, enum.Enum):

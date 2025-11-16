@@ -11,7 +11,9 @@ class Customer(Base):
     id = Column(Integer, primary_key=True, index=True)
     customer_code = Column(String(50), unique=True, nullable=False, index=True)
     name = Column(String(200), nullable=False, index=True)
+    name_ar = Column(String(200), nullable=False, index=True)  # Arabic name (MANDATORY for user-facing data)
     company_name = Column(String(200), nullable=True)
+    company_name_ar = Column(String(200), nullable=True)  # Arabic company name
     phone = Column(String(20), nullable=True, index=True)
     email = Column(String(255), nullable=True, index=True)
     address = Column(Text, nullable=True)
@@ -23,10 +25,16 @@ class Customer(Base):
     discount_percentage = Column(Numeric(5, 2), default=0)  # نسبة الخصم
     currency = Column(String(3), default='IQD')  # عملة العميل (USD, EUR, IQD, etc.)
     portal_language = Column(String(5), default='en')  # لغة البوابة (en, ar, etc.)
-    salesperson_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # مندوب المبيعات
+    salesperson_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # مندوب المبيعات
     is_active = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Zoho sync fields
+    zoho_contact_id = Column(String(100), unique=True, nullable=True, index=True)  # Zoho Books contact ID
+    zoho_owner_id = Column(String(100), nullable=True, index=True)  # Zoho user ID (owner/salesperson)
+    zoho_last_sync = Column(DateTime(timezone=True), nullable=True)  # Last sync timestamp
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # العلاقات
@@ -44,7 +52,9 @@ class Supplier(Base):
     id = Column(Integer, primary_key=True, index=True)
     supplier_code = Column(String(50), unique=True, nullable=False, index=True)
     name = Column(String(200), nullable=False, index=True)
+    name_ar = Column(String(200), nullable=False, index=True)  # Arabic name (MANDATORY for user-facing data)
     company_name = Column(String(200), nullable=True)
+    company_name_ar = Column(String(200), nullable=True)  # Arabic company name
     phone = Column(String(20), nullable=True, index=True)
     email = Column(String(255), nullable=True, index=True)
     address = Column(Text, nullable=True)
@@ -54,7 +64,7 @@ class Supplier(Base):
     payment_terms = Column(Integer, default=30)  # شروط الدفع بالأيام
     is_active = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # العلاقات

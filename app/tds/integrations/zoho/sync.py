@@ -59,15 +59,33 @@ class SyncStatus(str, Enum):
 
 class EntityType(str, Enum):
     """أنواع الكيانات"""
+    # Products & Inventory
     PRODUCTS = "products"
     INVENTORY = "inventory"
+
+    # Customers & Vendors
     CUSTOMERS = "customers"
+    CONTACTS = "contacts"
+    VENDORS = "vendors"
+    SUPPLIERS = "suppliers"
+
+    # Sales Documents
     INVOICES = "invoices"
     ORDERS = "orders"
-    BILLS = "bills"
-    CONTACTS = "contacts"
     SALESORDERS = "salesorders"
+    CREDITNOTES = "creditnotes"
+
+    # Purchase Documents
+    BILLS = "bills"
     PURCHASEORDERS = "purchaseorders"
+
+    # Payments
+    PAYMENTS = "payments"
+    CUSTOMERPAYMENTS = "customerpayments"
+    VENDORPAYMENTS = "vendorpayments"
+
+    # Users
+    USERS = "users"
 
 
 @dataclass
@@ -124,15 +142,37 @@ class ZohoSyncOrchestrator:
 
     # Entity type to Zoho API endpoint mapping
     ENTITY_ENDPOINTS = {
+        # Products & Inventory (Zoho Inventory API)
         EntityType.PRODUCTS: (ZohoAPI.INVENTORY, "items"),
         EntityType.INVENTORY: (ZohoAPI.INVENTORY, "items"),
+
+        # Customers (Zoho Books API - filter by contact_type=customer)
         EntityType.CUSTOMERS: (ZohoAPI.BOOKS, "contacts"),
-        EntityType.INVOICES: (ZohoAPI.BOOKS, "invoices"),
-        EntityType.ORDERS: (ZohoAPI.INVENTORY, "salesorders"),
-        EntityType.BILLS: (ZohoAPI.BOOKS, "bills"),
         EntityType.CONTACTS: (ZohoAPI.BOOKS, "contacts"),
+
+        # Vendors (Zoho Books API - filter by contact_type=vendor)
+        EntityType.VENDORS: (ZohoAPI.BOOKS, "contacts"),
+        EntityType.SUPPLIERS: (ZohoAPI.BOOKS, "contacts"),
+
+        # Sales Documents (Zoho Books API)
+        EntityType.INVOICES: (ZohoAPI.BOOKS, "invoices"),
+        EntityType.CREDITNOTES: (ZohoAPI.BOOKS, "creditnotes"),
+
+        # Sales Orders (Zoho Inventory API - also in Books but Inventory has more details)
+        EntityType.ORDERS: (ZohoAPI.INVENTORY, "salesorders"),
         EntityType.SALESORDERS: (ZohoAPI.INVENTORY, "salesorders"),
+
+        # Purchase Documents (Zoho Books API)
+        EntityType.BILLS: (ZohoAPI.BOOKS, "bills"),
         EntityType.PURCHASEORDERS: (ZohoAPI.INVENTORY, "purchaseorders"),
+
+        # Payments (Zoho Books API)
+        EntityType.PAYMENTS: (ZohoAPI.BOOKS, "customerpayments"),
+        EntityType.CUSTOMERPAYMENTS: (ZohoAPI.BOOKS, "customerpayments"),
+        EntityType.VENDORPAYMENTS: (ZohoAPI.BOOKS, "vendorpayments"),
+
+        # Users (Zoho Books API)
+        EntityType.USERS: (ZohoAPI.BOOKS, "users"),
     }
 
     def __init__(
@@ -534,10 +574,24 @@ class ZohoSyncOrchestrator:
             # Route to appropriate handler based on entity type
             if config.entity_type in [EntityType.PRODUCTS, EntityType.INVENTORY]:
                 await self._save_product(entity)
-            elif config.entity_type == EntityType.CUSTOMERS:
+            elif config.entity_type in [EntityType.CUSTOMERS, EntityType.CONTACTS]:
                 await self._save_customer(entity)
+            elif config.entity_type in [EntityType.VENDORS, EntityType.SUPPLIERS]:
+                await self._save_vendor(entity)
             elif config.entity_type == EntityType.INVOICES:
                 await self._save_invoice(entity)
+            elif config.entity_type in [EntityType.PAYMENTS, EntityType.CUSTOMERPAYMENTS]:
+                await self._save_payment(entity)
+            elif config.entity_type == EntityType.CREDITNOTES:
+                await self._save_credit_note(entity)
+            elif config.entity_type == EntityType.BILLS:
+                await self._save_bill(entity)
+            elif config.entity_type in [EntityType.ORDERS, EntityType.SALESORDERS]:
+                await self._save_sales_order(entity)
+            elif config.entity_type == EntityType.PURCHASEORDERS:
+                await self._save_purchase_order(entity)
+            elif config.entity_type == EntityType.USERS:
+                await self._save_user(entity)
             else:
                 logger.warning(f"No handler for entity type: {config.entity_type}")
 
@@ -661,11 +715,101 @@ class ZohoSyncOrchestrator:
         logger.debug(f"Saving customer: {entity.get('contact_id')}")
         pass
 
+    async def _save_vendor(self, entity: Dict[str, Any]):
+        """Save vendor entity to database"""
+        from .processors.vendors import VendorProcessor
+
+        processor = VendorProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"Vendor validation failed: {entity.get('contact_id')}")
+            return
+
+        transformed = processor.transform(entity)
+        # TODO: Implement database save for vendors
+        logger.debug(f"Vendor transformed and ready to save: {transformed.get('zoho_vendor_id')}")
+
     async def _save_invoice(self, entity: Dict[str, Any]):
         """Save invoice entity to database"""
-        # TODO: Implement invoice save
-        logger.debug(f"Saving invoice: {entity.get('invoice_id')}")
-        pass
+        from .processors.invoices import InvoiceProcessor
+
+        processor = InvoiceProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"Invoice validation failed: {entity.get('invoice_id')}")
+            return
+
+        transformed = processor.transform(entity)
+        # TODO: Implement database save for invoices
+        logger.debug(f"Invoice transformed and ready to save: {transformed.get('zoho_invoice_id')}")
+
+    async def _save_payment(self, entity: Dict[str, Any]):
+        """Save customer payment entity to database"""
+        from .processors.payments import PaymentProcessor
+
+        processor = PaymentProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"Payment validation failed: {entity.get('payment_id')}")
+            return
+
+        transformed = processor.transform(entity)
+        # TODO: Implement database save for payments
+        logger.debug(f"Payment transformed and ready to save: {transformed.get('zoho_payment_id')}")
+
+    async def _save_credit_note(self, entity: Dict[str, Any]):
+        """Save credit note entity to database"""
+        from .processors.credit_notes import CreditNoteProcessor
+
+        processor = CreditNoteProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"Credit note validation failed: {entity.get('creditnote_id')}")
+            return
+
+        transformed = processor.transform(entity)
+        # TODO: Implement database save for credit notes
+        logger.debug(f"Credit note transformed and ready to save: {transformed.get('zoho_creditnote_id')}")
+
+    async def _save_bill(self, entity: Dict[str, Any]):
+        """Save purchase bill entity to database"""
+        from .processors.bills import BillProcessor
+
+        processor = BillProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"Bill validation failed: {entity.get('bill_id')}")
+            return
+
+        transformed = processor.transform(entity)
+        # TODO: Implement database save for bills
+        logger.debug(f"Bill transformed and ready to save: {transformed.get('zoho_bill_id')}")
+
+    async def _save_sales_order(self, entity: Dict[str, Any]):
+        """Save sales order entity to database"""
+        from .processors.orders import OrderProcessor
+
+        processor = OrderProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"Sales order validation failed: {entity.get('salesorder_id')}")
+            return
+
+        # OrderProcessor.prepare_for_zoho is for creating orders, not syncing
+        # TODO: Create OrderProcessor.transform method for syncing orders from Zoho
+        logger.debug(f"Sales order ready to save: {entity.get('salesorder_id')}")
+
+    async def _save_purchase_order(self, entity: Dict[str, Any]):
+        """Save purchase order entity to database"""
+        # TODO: Create PurchaseOrderProcessor and implement
+        logger.debug(f"Purchase order ready to save: {entity.get('purchaseorder_id')}")
+
+    async def _save_user(self, entity: Dict[str, Any]):
+        """Save Zoho user entity to database"""
+        from .processors.users import UserProcessor
+
+        processor = UserProcessor()
+        if not processor.validate(entity):
+            logger.warning(f"User validation failed: {entity.get('user_id')}")
+            return
+
+        transformed = processor.transform(entity)
+        # TODO: Implement database save for users
+        logger.debug(f"User transformed and ready to save: {transformed.get('zoho_user_id')}")
 
     async def _get_last_sync_time(
         self,
@@ -684,12 +828,13 @@ class ZohoSyncOrchestrator:
         """Publish event to event bus"""
         if self.event_bus:
             try:
-                await self.event_bus.publish({
-                    "event_type": event_type,
-                    "module": "tds.zoho",
-                    "data": data,
-                    "timestamp": datetime.utcnow().isoformat()
-                })
+                from ....core.events.base_event import BaseEvent
+                event = BaseEvent(
+                    event_type=event_type,
+                    module="tds.zoho",
+                    data=data
+                )
+                await self.event_bus.publish(event)
             except Exception as e:
                 logger.warning(f"Failed to publish event {event_type}: {e}")
 

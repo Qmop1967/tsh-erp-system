@@ -1,0 +1,230 @@
+{
+  "schema_version": "2.0.0",
+  "last_updated": "2025-11-14T13:30:00Z",
+  "updated_by": "claude-code",
+
+  "project_phase": {
+    "name": "Zoho Migration Phase 1",
+    "version": "1.2.0",
+    "status": "active",
+    "phase_description": "One-directional sync: Zoho Books + Zoho Inventory → TSH ERP (READ ONLY)",
+    "can_write_to_zoho": false,
+    "phase_started": "2025-10-01",
+    "last_phase_review": "2025-11-14",
+    "next_phase_estimate": "2025-12-01",
+    "phase_completion_percentage": 65
+  },
+
+  "phase_constraints": {
+    "data_flow": [
+      "NO writes to Zoho Books or Zoho Inventory from TSH ERP",
+      "All data entry happens in Zoho Books + Zoho Inventory",
+      "TSH ERP is READ-ONLY consumer of Zoho data",
+      "ALL Zoho operations MUST go through TDS Core"
+    ],
+    "architectural": [
+      "Triple-layer authorization required (RBAC + ABAC + RLS)",
+      "Arabic RTL support mandatory on all UI components",
+      "Pagination required for datasets > 100 records",
+      "All APIs must use FastAPI framework",
+      "All mobile apps must use Flutter 3.0+"
+    ],
+    "security": [
+      "JWT authentication on all sensitive endpoints",
+      "Role-based access control enforced",
+      "Attribute-based access control for advanced permissions",
+      "Row-level security in database queries",
+      "No hardcoded credentials (environment variables only)"
+    ]
+  },
+
+  "integration_status": {
+    "zoho_books": {
+      "enabled": true,
+      "sync_method": "TDS Core API",
+      "sync_frequency": "real-time webhook + 5min polling",
+      "entities_synced": ["items", "contacts", "invoices", "credit_notes", "payments"],
+      "last_successful_sync": "2025-11-14T12:45:00Z",
+      "sync_health": "healthy"
+    },
+    "zoho_inventory": {
+      "enabled": true,
+      "sync_method": "TDS Core API",
+      "sync_frequency": "real-time webhook + 5min polling",
+      "entities_synced": ["items", "stock_levels", "warehouses"],
+      "last_successful_sync": "2025-11-14T12:45:00Z",
+      "sync_health": "healthy"
+    },
+    "tds_core": {
+      "enabled": true,
+      "version": "2.1.0",
+      "status": "operational",
+      "dashboard_url": "https://tds.tsh.sale",
+      "health_check_url": "https://tds.tsh.sale/api/health"
+    },
+    "tsh_neurolink": {
+      "enabled": true,
+      "version": "1.0.0",
+      "status": "operational",
+      "handles": ["whatsapp", "notifications", "ai_assistant"]
+    }
+  },
+
+  "phase_success_criteria": {
+    "products_synced": {
+      "status": "complete",
+      "count": 2218,
+      "last_verified": "2025-11-14"
+    },
+    "stock_levels_synced": {
+      "status": "complete",
+      "sync_accuracy": "99%",
+      "last_verified": "2025-11-14"
+    },
+    "customers_synced": {
+      "status": "needs_verification",
+      "count": 500,
+      "last_verified": "2025-11-10"
+    },
+    "vendors_synced": {
+      "status": "pending",
+      "reason": "Phase 2 scope"
+    },
+    "sales_orders_synced": {
+      "status": "in_progress",
+      "reason": "Testing in staging"
+    },
+    "invoices_synced": {
+      "status": "pending",
+      "reason": "Phase 2 scope"
+    },
+    "payments_synced": {
+      "status": "pending",
+      "reason": "Phase 2 scope"
+    },
+    "sync_metrics": {
+      "success_rate": "99%",
+      "average_latency": "< 30 seconds",
+      "daily_sync_count": 150,
+      "error_rate": "< 1%"
+    }
+  },
+
+  "deployment_status": {
+    "current_mode": "development",
+    "can_deploy_anytime": true,
+    "business_hours_restriction": false,
+    "reason": "Business primarily runs on Zoho Books + Zoho Inventory",
+    "environments": {
+      "production": {
+        "server": "167.71.39.50",
+        "user": "root",
+        "branch": "main",
+        "status": "active",
+        "url": "https://erp.tsh.sale",
+        "last_deployed": "2025-11-13"
+      },
+      "staging": {
+        "server": "167.71.58.65",
+        "user": "khaleel",
+        "branch": "develop",
+        "status": "active",
+        "url": "https://staging.erp.tsh.sale",
+        "last_deployed": "2025-11-14"
+      }
+    }
+  },
+
+  "feature_flags": {
+    "zoho_write_enabled": false,
+    "advanced_analytics": true,
+    "mobile_apps_enabled": true,
+    "ai_assistant_enabled": true,
+    "gps_tracking_enabled": true,
+    "whatsapp_integration": true,
+    "multi_warehouse": true,
+    "rtl_support": true
+  },
+
+  "scale_metrics": {
+    "wholesale_clients": 500,
+    "daily_wholesale_orders": 30,
+    "daily_retail_customers": 30,
+    "partner_salesmen": 100,
+    "travel_salespersons": 12,
+    "active_products": 2218,
+    "database_tables": 57,
+    "database_size_mb": 127,
+    "mobile_apps": 8,
+    "weekly_transaction_volume_usd": 35000
+  },
+
+  "technical_stack": {
+    "backend": {
+      "framework": "FastAPI",
+      "language": "Python 3.9+",
+      "database": "PostgreSQL 12+",
+      "orm": "SQLAlchemy"
+    },
+    "frontend": {
+      "admin_panel": "React 18",
+      "consumer_app": "Flutter Web"
+    },
+    "mobile": {
+      "framework": "Flutter 3.0+",
+      "apps_count": 8
+    },
+    "infrastructure": {
+      "containerization": "Docker",
+      "web_server": "Nginx",
+      "ci_cd": "GitHub Actions",
+      "backup": "AWS S3 (eu-north-1)"
+    }
+  },
+
+  "next_milestones": [
+    {
+      "id": "M1",
+      "title": "Complete Phase 1 Sync Verification",
+      "target_date": "2025-11-20",
+      "priority": "high",
+      "status": "in_progress"
+    },
+    {
+      "id": "M2",
+      "title": "Phase 2 Planning: Bi-directional Sync",
+      "target_date": "2025-12-01",
+      "priority": "high",
+      "status": "planned"
+    },
+    {
+      "id": "M3",
+      "title": "Mobile Apps Phase 1 Release",
+      "target_date": "2025-12-15",
+      "priority": "medium",
+      "status": "planned"
+    }
+  ],
+
+  "change_log": [
+    {
+      "version": "2.0.0",
+      "date": "2025-11-14",
+      "changes": [
+        "Enhanced state tracking with versioning",
+        "Added comprehensive integration status",
+        "Added feature flags and scale metrics",
+        "Added technical stack reference",
+        "Added next milestones tracking"
+      ]
+    },
+    {
+      "version": "1.2.0",
+      "date": "2025-11-10",
+      "changes": [
+        "Updated sync success criteria",
+        "Added deployment constraints"
+      ]
+    }
+  ]
+}
