@@ -99,7 +99,7 @@ services:
       ENVIRONMENT: staging
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
     ports:
-      - "8002:8000"
+      - "8004:8000"  # Changed from 8002 to avoid conflict with production NeuroLink
     depends_on:
       tsh_postgres_staging:
         condition: service_healthy
