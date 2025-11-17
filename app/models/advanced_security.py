@@ -121,37 +121,37 @@ class AdvancedPermission(Base):
     user_permissions = relationship("UserPermissionOverride", back_populates="permission")
     policy_permissions = relationship("PolicyPermissionMapping", back_populates="permission")
 
-class Role(Base):
+class AdvancedRole(Base):
     """Enhanced roles with hierarchical structure"""
     __tablename__ = "security_roles"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, nullable=False, index=True)
     display_name = Column(String(200))
     description = Column(Text)
-    
+
     # Hierarchical roles
     parent_role_id = Column(Integer, ForeignKey("security_roles.id"))
     level = Column(Integer, default=0)  # Hierarchy level
-    
+
     # Role attributes for ABAC
     attributes = Column(JSON)  # Department, location, clearance level, etc.
     security_level = Column(Enum(SecurityLevel), default=SecurityLevel.INTERNAL)
-    
+
     # Restrictions
     max_users = Column(Integer)  # Maximum users that can have this role
     requires_approval = Column(Boolean, default=False)
-    
+
     # Metadata
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
-    parent_role = relationship("Role", remote_side=[id])
-    child_roles = relationship("Role")
+    parent_role = relationship("AdvancedRole", remote_side=[id])
+    child_roles = relationship("AdvancedRole")
     role_permissions = relationship("RolePermissionMapping", back_populates="role")
-    users = relationship("User", back_populates="role")
+    users = relationship("User", back_populates="advanced_role")
     restriction_groups = relationship("RoleRestrictionGroup", back_populates="role")
 
 class RolePermissionMapping(Base):
@@ -172,7 +172,7 @@ class RolePermissionMapping(Base):
     granted_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    role = relationship("Role", back_populates="role_permissions")
+    role = relationship("AdvancedRole", back_populates="role_permissions")
     permission = relationship("AdvancedPermission", back_populates="role_permissions")
     granter = relationship("User", foreign_keys=[granted_by])
 
@@ -349,7 +349,7 @@ class RoleRestrictionGroup(Base):
     applied_by = Column(Integer, ForeignKey("users.id"))
     
     # Relationships
-    role = relationship("Role", back_populates="restriction_groups")
+    role = relationship("AdvancedRole", back_populates="restriction_groups")
     restriction_group = relationship("RestrictionGroup", back_populates="role_restrictions")
 
 class UserRestrictionGroup(Base):
