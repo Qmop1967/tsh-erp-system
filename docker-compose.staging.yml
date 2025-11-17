@@ -33,7 +33,7 @@ services:
       - postgres_staging_data:/var/lib/postgresql/data
       - ./backups:/backups
     ports:
-      - "5433:5432"
+      - "5434:5432"  # Changed from 5433 to avoid conflict with production postgres
     networks:
       - tsh_staging_network
     deploy:
