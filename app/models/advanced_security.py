@@ -151,7 +151,8 @@ class AdvancedRole(Base):
     parent_role = relationship("AdvancedRole", remote_side=[id])
     child_roles = relationship("AdvancedRole")
     role_permissions = relationship("RolePermissionMapping", back_populates="role")
-    users = relationship("User", back_populates="advanced_role")
+    # users relationship commented out - User model doesn't have advanced_role foreign key
+    # users = relationship("User", back_populates="advanced_role")
     restriction_groups = relationship("RoleRestrictionGroup", back_populates="role")
 
 class RolePermissionMapping(Base):
