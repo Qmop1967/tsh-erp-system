@@ -468,7 +468,8 @@ class UserDevice(Base):
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
-    sessions = relationship("UserSession", back_populates="device")
+    # sessions relationship disabled - UserSession doesn't have device property
+    # sessions = relationship("UserSession", back_populates="device")
     approver = relationship("User", foreign_keys=[approved_by])
 
 # === SESSION MANAGEMENT ===
