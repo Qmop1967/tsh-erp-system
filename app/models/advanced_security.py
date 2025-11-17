@@ -539,7 +539,8 @@ class SessionActivity(Base):
 class AuditLog(Base):
     """Comprehensive audit logging"""
     __tablename__ = "audit_logs"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     
     # Who
@@ -585,7 +586,8 @@ class AuditLog(Base):
 class SecurityEvent(Base):
     """Security events and alerts"""
     __tablename__ = "security_events"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     
     # Event details
