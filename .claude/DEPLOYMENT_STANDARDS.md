@@ -125,6 +125,7 @@ VERSION=production-v$(date +%Y.%m.%d)-$(git rev-parse --short HEAD)
 # SSH Access
 STAGING_SSH_KEY        # Private key for staging server (khaleel@167.71.58.65)
 PROD_SSH_KEY           # Private key for production server (root@167.71.39.50)
+STAGING_SUDO_PASSWORD  # Sudo password for khaleel user on staging (for nginx reload)
 
 # Docker Registry (Future Enhancement)
 DOCKER_USERNAME        # For GHCR: github_username
