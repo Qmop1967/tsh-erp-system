@@ -1,0 +1,558 @@
+# TSH ERP Agent Enhancement Schema v2.0.0
+# This schema defines the standard structure for all enhanced agents
+# Apply this consistently across all 9 agents for uniformity
+
+schema_version: "2.0.0"
+created: "2025-11-17"
+author: "Claude Code"
+
+# =============================================================================
+# AGENT BASE DEFINITION
+# =============================================================================
+agent_definition:
+  name:
+    type: string
+    required: true
+    description: "Agent identifier (e.g., 'devops', 'security', 'architect')"
+
+  version:
+    type: semver
+    required: true
+    description: "Agent version following semantic versioning"
+    example: "2.0.0"
+
+  domain:
+    type: string
+    required: true
+    description: "Primary domain of expertise"
+    examples:
+      - "Deployment, CI/CD, Infrastructure"
+      - "Authentication, Authorization, Data Security"
+      - "System Architecture, Design Patterns"
+
+  mission:
+    type: string
+    required: true
+    max_length: 200
+    description: "Single sentence mission statement"
+    example: "Ensure zero-downtime deployments and reliable infrastructure for production ERP"
+
+# =============================================================================
+# LAYER 1: CONTEXT BINDING (REQUIRED - ALL AGENTS)
+# =============================================================================
+context_binding_layer:
+  description: "Philosophy alignment and governance enforcement"
+
+  required_files:
+    philosophy:
+      type: array
+      items: filepath
+      min_items: 3
+      required:
+        - ".claude/PROJECT_VISION.md"
+        - ".claude/ARCHITECTURE_RULES.md"
+        - ".claude/CLAUDE.md"
+      description: "Core philosophy files to read before ANY operation"
+
+    authorization:
+      type: array
+      items: filepath
+      min_items: 1
+      required:
+        - ".claude/AUTHORIZATION_FRAMEWORK.md"
+      description: "Authorization rules (RBAC + ABAC + RLS)"
+
+    current_state:
+      type: array
+      items: filepath
+      min_items: 1
+      required:
+        - ".claude/state/current-phase.json"
+      description: "Dynamic project state"
+
+    domain_specific:
+      type: array
+      items: filepath
+      description: "Additional files specific to this agent's domain"
+      example:
+        - ".claude/DEPLOYMENT_GUIDE.md"  # for DevOps
+        - ".claude/SECURITY_STANDARDS.md"  # for Security
+
+  validation_rules:
+    type: array
+    items: validation_rule
+    description: "Rules to validate before executing any action"
+    required_rules:
+      - id: "no_zoho_write_phase1"
+        condition: "phase == 'Phase 1'"
+        action: "block"
+        message: "Cannot write to Zoho in Phase 1 (read-only)"
+
+      - id: "require_authentication"
+        condition: "endpoint_type == 'sensitive'"
+        action: "require"
+        requirement: "get_current_user dependency present"
+
+      - id: "require_arabic_fields"
+        condition: "model_type == 'user_facing'"
+        action: "require"
+        requirement: "name_ar and description_ar fields present"
+
+  philosophy_alignment:
+    read_frequency: "before_every_major_operation"
+    check_violations: true
+    auto_correct: true
+    escalate_on_violation: true
+
+# =============================================================================
+# LAYER 2: ENVIRONMENTAL INTELLIGENCE (REQUIRED - ALL AGENTS)
+# =============================================================================
+environmental_intelligence_layer:
+  description: "Context awareness and monitoring integration"
+
+  metadata_awareness:
+    server_info:
+      production:
+        ip: "167.71.39.50"
+        branch: "main"
+        user: "root"
+        ports:
+          backend: 8001
+          postgres: 5432
+          redis: 6379
+      staging:
+        ip: "167.71.58.65"
+        branch: "develop"
+        user: "khaleel"
+        ports:
+          backend: 8002
+          postgres: 5432
+          redis: 6379
+
+    database_info:
+      host: "localhost"
+      port: 5432
+      database: "tsh_erp_production"
+      user: "tsh_app_user"
+      tables: 57
+      size_mb: 127
+
+    integration_endpoints:
+      zoho_books: "https://books.zoho.com"
+      zoho_inventory: "https://inventory.zoho.com"
+      tds_core: "https://tds.tsh.sale"
+      health_checks:
+        - "https://erp.tsh.sale/health"
+        - "https://staging.erp.tsh.sale/health"
+        - "https://tds.tsh.sale/api/health"
+
+    scale_awareness:
+      clients: 500
+      products: 2218
+      daily_orders: 30
+      mobile_apps: 8
+      endpoints: 198
+
+  history_tracking:
+    enabled: true
+    retention_days: 30
+    track_items:
+      - "deployment_results"
+      - "sync_operations"
+      - "error_patterns"
+      - "performance_metrics"
+    analysis:
+      - "identify_trends"
+      - "detect_anomalies"
+      - "predict_failures"
+
+  monitoring_integration:
+    github_actions:
+      enabled: true
+      check_on: ["push", "pr_merge", "manual_trigger"]
+    docker_health:
+      enabled: true
+      check_interval: "5_minutes"
+    database_health:
+      enabled: true
+      check_connections: true
+      check_locks: true
+
+  context_cache:
+    enabled: true
+    ttl_minutes: 15
+    invalidate_on:
+      - "new_deployment"
+      - "config_change"
+      - "state_update"
+
+# =============================================================================
+# LAYER 3: CORE SKILL MODULES (DOMAIN-SPECIFIC)
+# =============================================================================
+core_skill_modules:
+  description: "6 primary skills per agent with self-healing capabilities"
+
+  skill_template:
+    id:
+      type: string
+      pattern: "^\\d+_[a-z_]+$"
+      example: "1_log_analyzer"
+
+    purpose:
+      type: string
+      max_length: 100
+      description: "Clear statement of what this skill does"
+
+    capabilities:
+      type: array
+      items: string
+      min_items: 3
+      max_items: 10
+      description: "Specific things this skill can do"
+
+    inputs:
+      type: array
+      items: input_definition
+      description: "Required inputs for this skill"
+
+    outputs:
+      type: array
+      items: output_definition
+      description: "What this skill produces"
+
+    auto_heal:
+      enabled: boolean
+      conditions: array
+      max_retries: integer
+      escalation_threshold: integer
+
+    self_healing_actions:
+      type: array
+      items: healing_action
+      description: "Autonomous recovery actions"
+
+  max_skills_per_agent: 6
+  min_skills_per_agent: 4
+
+  common_skills:
+    # Every agent should have these in some form
+    health_monitor:
+      applicable_to: "all"
+      monitors: "domain-specific health metrics"
+
+    self_healer:
+      applicable_to: "all"
+      heals: "domain-specific failures"
+
+    compliance_checker:
+      applicable_to: "all"
+      checks: "TSH constraints and rules"
+
+# =============================================================================
+# LAYER 4: SELF-HEALING FRAMEWORK (REQUIRED - ALL AGENTS)
+# =============================================================================
+self_healing_framework:
+  description: "Autonomous recovery capabilities"
+
+  severity_classification:
+    critical:
+      definition: "System down, data at risk, business impacted"
+      auto_heal: false
+      max_retries: 1
+      escalate_after: 0  # immediate
+      examples:
+        - "Database corruption"
+        - "Security breach"
+        - "Complete service outage"
+
+    high:
+      definition: "Major functionality impaired"
+      auto_heal: true
+      max_retries: 3
+      escalate_after: 2
+      examples:
+        - "Sync failure"
+        - "Deployment rollback needed"
+        - "Authentication service down"
+
+    medium:
+      definition: "Degraded performance or partial failure"
+      auto_heal: true
+      max_retries: 5
+      escalate_after: 4
+      examples:
+        - "Slow queries"
+        - "Cache miss"
+        - "Minor config drift"
+
+    low:
+      definition: "Minor issues, no immediate impact"
+      auto_heal: true
+      max_retries: 10
+      escalate_after: 8
+      examples:
+        - "Log rotation"
+        - "Temp file cleanup"
+        - "Documentation sync"
+
+  retry_strategy:
+    type: "exponential_backoff"
+    initial_delay_ms: 1000
+    max_delay_ms: 30000
+    multiplier: 2
+    jitter: true
+
+  recovery_procedure:
+    steps:
+      1: "log_failure_details"
+      2: "assess_severity"
+      3: "check_prerequisites"
+      4: "attempt_recovery"
+      5: "verify_recovery"
+      6: "rollback_if_failed"
+      7: "document_outcome"
+      8: "escalate_if_needed"
+
+  safeguards:
+    require_rollback_plan: true
+    max_auto_actions_per_hour: 10
+    require_approval_for:
+      - "production_changes"
+      - "data_modifications"
+      - "security_settings"
+    never_auto_heal:
+      - "financial_data_issues"
+      - "user_credential_changes"
+      - "compliance_violations"
+
+# =============================================================================
+# LAYER 5: INTER-AGENT COORDINATION (REQUIRED - ALL AGENTS)
+# =============================================================================
+inter_agent_coordination:
+  description: "Communication and handoff protocols between agents"
+
+  handoff_protocol:
+    from_agent:
+      type: string
+      required: true
+
+    to_agent:
+      type: string
+      required: true
+
+    context_transfer:
+      task_id:
+        type: uuid
+        auto_generated: true
+      priority:
+        type: enum
+        values: ["critical", "high", "medium", "low"]
+      state:
+        type: object
+        description: "Current state to pass"
+      artifacts:
+        type: array
+        items: artifact
+        description: "Files, logs, or data created"
+      expectations:
+        expected_outcome: string
+        deadline: timestamp
+        success_criteria: array
+
+  collaboration_matrix:
+    # Define which agents work together
+    devops:
+      hands_off_to: ["docs", "security", "orixoon"]
+      receives_from: ["orixoon", "security", "architect"]
+    security:
+      hands_off_to: ["devops", "docs", "architect"]
+      receives_from: ["devops", "orixoon", "zoho_sync_manager"]
+    architect:
+      hands_off_to: ["bff", "flutter", "security", "devops"]
+      receives_from: ["security", "bff", "flutter"]
+    # ... define for all 9 agents
+
+  shared_context:
+    global_state:
+      - "current_phase"
+      - "deployment_mode"
+      - "last_deployment"
+      - "active_incidents"
+    session_state:
+      - "current_task"
+      - "changes_made"
+      - "files_modified"
+      - "tests_passed"
+    agent_outputs:
+      - "decisions_made"
+      - "actions_taken"
+      - "artifacts_created"
+
+# =============================================================================
+# LAYER 6: AUDIT & COMPLIANCE (REQUIRED - ALL AGENTS)
+# =============================================================================
+audit_compliance_layer:
+  description: "Complete audit trail and compliance enforcement"
+
+  log_structure:
+    timestamp:
+      type: ISO8601
+      required: true
+    agent_name:
+      type: string
+      required: true
+    action_type:
+      type: string
+      required: true
+    severity:
+      type: enum
+      values: ["critical", "high", "medium", "low", "info"]
+    decision_reasoning:
+      type: string
+      required: true
+      description: "Why this action was taken"
+    inputs:
+      type: object
+      description: "What triggered this action"
+    outputs:
+      type: object
+      description: "What resulted from this action"
+    outcome:
+      type: enum
+      values: ["success", "failure", "partial", "escalated"]
+    rollback_available:
+      type: boolean
+      required: true
+    compliance_checks:
+      type: array
+      items: compliance_result
+
+  retention_policy:
+    agent_actions: "90_days"
+    security_decisions: "365_days"
+    compliance_actions: "7_years"
+    financial_operations: "10_years"
+
+  compliance_frameworks:
+    tsh_internal:
+      - "RBAC enforcement"
+      - "ABAC compliance"
+      - "RLS application"
+      - "Arabic field presence"
+    data_protection:
+      - "Sensitive data handling"
+      - "Access control logging"
+      - "Data retention limits"
+    regulatory:
+      - "Financial data protection"
+      - "Employee data privacy"
+
+  reporting:
+    frequency:
+      critical_alerts: "immediate"
+      daily_summary: "08:00_UTC"
+      weekly_report: "Monday_08:00_UTC"
+    recipients:
+      critical: ["owner", "admin"]
+      high: ["admin", "manager"]
+      medium: ["manager"]
+      low: ["archived_only"]
+
+# =============================================================================
+# IMPLEMENTATION CHECKLIST
+# =============================================================================
+implementation_checklist:
+  per_agent:
+    - [ ] "Define agent base (name, version, domain, mission)"
+    - [ ] "Configure context binding layer (required files)"
+    - [ ] "Set up environmental intelligence (metadata awareness)"
+    - [ ] "Implement 6 core skills (domain-specific)"
+    - [ ] "Add self-healing framework (severity, retry, safeguards)"
+    - [ ] "Configure inter-agent coordination (handoffs)"
+    - [ ] "Set up audit layer (logging, retention)"
+    - [ ] "Write comprehensive tests"
+    - [ ] "Document all capabilities"
+    - [ ] "Validate against this schema"
+
+  validation:
+    - "Schema compliance check"
+    - "Philosophy alignment verification"
+    - "Security rule enforcement"
+    - "Performance benchmarking"
+    - "Integration testing"
+
+# =============================================================================
+# EXAMPLE: Minimal Enhanced Agent Definition
+# =============================================================================
+example_agent:
+  agent:
+    name: "example_agent"
+    version: "2.0.0"
+    domain: "Example Domain"
+    mission: "Demonstrate the enhanced agent schema structure"
+
+  context_binding:
+    required_files:
+      philosophy:
+        - ".claude/PROJECT_VISION.md"
+        - ".claude/ARCHITECTURE_RULES.md"
+        - ".claude/CLAUDE.md"
+      authorization:
+        - ".claude/AUTHORIZATION_FRAMEWORK.md"
+      current_state:
+        - ".claude/state/current-phase.json"
+      domain_specific:
+        - ".claude/agents/example/domain_guide.md"
+
+  environment:
+    track_history: true
+    monitor_health: true
+    cache_context: true
+
+  core_skills:
+    1_health_monitor:
+      purpose: "Monitor system health"
+      capabilities:
+        - "Check service availability"
+        - "Measure response times"
+        - "Detect anomalies"
+      auto_heal: true
+
+    2_self_healer:
+      purpose: "Recover from failures"
+      capabilities:
+        - "Retry failed operations"
+        - "Rollback bad changes"
+        - "Escalate critical issues"
+      auto_heal: true
+
+    3_compliance_checker:
+      purpose: "Ensure rule compliance"
+      capabilities:
+        - "Validate against TSH rules"
+        - "Check authorization"
+        - "Verify Arabic fields"
+      auto_heal: false
+
+    4_domain_specific_skill:
+      purpose: "Handle domain-specific tasks"
+      capabilities:
+        - "Domain capability 1"
+        - "Domain capability 2"
+      auto_heal: true
+
+  self_healing:
+    enabled: true
+    max_auto_retries: 5
+    require_approval_for_prod: true
+
+  coordination:
+    collaborates_with:
+      - "devops_agent"
+      - "security_agent"
+    shares_context: true
+
+  audit:
+    log_all_actions: true
+    retain_days: 90
+    compliance_mode: "strict"
