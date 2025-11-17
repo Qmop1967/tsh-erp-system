@@ -67,6 +67,7 @@ class BranchFactory(BaseFactory):
 
     id = factory.Sequence(lambda n: n + 1)
     name = factory.Faker('city')
+    name_ar = factory.LazyAttribute(lambda obj: f"{obj.name} - عربي")  # Arabic name (required NOT NULL field)
     code = factory.Sequence(lambda n: f"BR{n:03d}")
     address = factory.Faker('address')
     phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
