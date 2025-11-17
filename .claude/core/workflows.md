@@ -263,20 +263,39 @@ git push origin develop
 
 ## 🚀 Deployment Workflow
 
+**⚠️ IMPORTANT: All deployments MUST comply with @docs/DEPLOYMENT_STANDARDS.md**
+
 ### Staging Deployment (Develop Branch)
+
+**Automated via GitHub Actions** - Push triggers full CI/CD pipeline:
+```yaml
+Pipeline: test → build → deploy → smoke-tests → notify
+Server: 167.71.58.65 (user: khaleel, branch: develop)
+Ports:
+  - Backend: 8004:8000
+  - PostgreSQL: 5434:5432
+  - Redis: 6380:6379
+  - NeuroLink: 8003:8002
+  - TDS Dashboard: 3001:3000
+```
 
 ```bash
 # 1. Verify all changes committed
 git status
 
-# 2. Push to develop branch
+# 2. Push to develop branch (triggers automated deployment)
 git push origin develop
 
 # 3. Monitor GitHub Actions
 gh run list --limit 3
 gh run watch <run-id>
 
-# 4. Wait for deployment to complete
+# 4. Wait for all pipeline stages to complete:
+#    - Tests pass
+#    - Docker images built
+#    - Deployed to staging server via SSH
+#    - Smoke tests verify health endpoints
+#    - Telegram notification sent
 
 # 5. Verify staging URLs
 curl https://staging.erp.tsh.sale/health
@@ -290,6 +309,18 @@ curl https://staging.tds.tsh.sale/api/health
 
 ### Production Deployment (Main Branch)
 
+**Automated via GitHub Actions with Blue-Green strategy:**
+```yaml
+Pipeline: test → backup-database → deploy (blue-green) → smoke-tests → notify
+Server: 167.71.39.50 (user: root, branch: main)
+Features:
+  - Database backup to S3 before deployment
+  - Blue-green deployment (zero-downtime)
+  - Automatic rollback on smoke test failure
+  - Comprehensive health checks
+  - Telegram notifications
+```
+
 ```bash
 # Pre-Deployment Checklist:
 □ All features tested on staging
@@ -297,7 +328,8 @@ curl https://staging.tds.tsh.sale/api/health
 □ All tests passing
 □ User approval obtained
 □ Deployment time appropriate (current phase: anytime)
-□ Rollback plan ready
+□ Rollback plan ready (automatic on failure)
+□ Database backup verified (S3)
 
 # 1. Create Pull Request
 gh pr create --base main --head develop --title "Deploy to Production" \
@@ -308,17 +340,24 @@ gh pr create --base main --head develop --title "Deploy to Production" \
 
 Staging tested: Yes
 Risk level: Low/Medium/High
-Rollback: Available via git revert"
+Rollback: Automatic on smoke test failure"
 
 # 2. Review PR
 # Check diff
 # Verify all components included
 # Confirm tests pass
 
-# 3. Merge PR
+# 3. Merge PR (triggers automated deployment)
 gh pr merge <pr-number> --squash
 
-# 4. Monitor Deployment
+# 4. Monitor Deployment Pipeline:
+#    - Version determination
+#    - Pre-deployment validation
+#    - Database backup to S3
+#    - Blue-green deployment
+#    - Smoke tests
+#    - Automatic rollback (if tests fail)
+#    - Team notification
 gh run watch
 
 # 5. Verify Production URLs
@@ -338,9 +377,8 @@ curl https://tds.tsh.sale/api/health
 # Check TDS dashboard
 # Monitor user reports
 
-# 8. Rollback if Issues
-git revert <commit-hash>
-git push origin main
+# 8. Manual Rollback (if needed after auto-rollback passed)
+# See @docs/DEPLOYMENT_STANDARDS.md for rollback procedure
 ```
 
 ### Emergency Hotfix Deployment

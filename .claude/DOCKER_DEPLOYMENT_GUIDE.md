@@ -2,7 +2,19 @@
 
 **Priority:** CRITICAL - Read before any deployment
 **Purpose:** Leverage Docker's portability for easy, consistent deployments
-**Last Updated:** November 13, 2025
+**Last Updated:** November 17, 2025
+
+---
+
+## ⚠️ IMPORTANT UPDATE
+
+**Authoritative Deployment Standards:** Please refer to `DEPLOYMENT_STANDARDS.md` for the current mandatory Docker & GitHub CI/CD standards.
+
+Key updates (2025-11-17):
+- Use **separate compose files**: `docker-compose.staging.yml`, `docker-compose.production.yml`
+- NOT profiles in single docker-compose.yml
+- Deployments are **automated via GitHub Actions**
+- Manual deployment commands below are for reference/emergency use only
 
 ---
 

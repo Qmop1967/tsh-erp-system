@@ -244,29 +244,98 @@ curl https://tds.tsh.sale/api/health
 
 **For detailed context, use @docs/ prefix to load on-demand:**
 
-### Core Documentation (High Priority)
+### Core Documentation (High Priority - Auto-Loaded)
+- `@docs/CLAUDE.md` - **THIS FILE** - Main context (auto-loaded every session)
 - `@docs/core/engineering-standards.md` - **GLOBAL STANDARDS** (Architecture • Security • Coding • Testing)
 - `@docs/core/project-context.md` - Full business context and scale
 - `@docs/core/architecture.md` - Technical patterns and constraints
 - `@docs/core/workflows.md` - Common development workflows
+- `@docs/PROJECT_VISION.md` - Business vision and core principles
+- `@docs/QUICK_REFERENCE.md` - 60-second context refresh
 
-### Operational Guides
-- `@docs/AUTHORIZATION_FRAMEWORK.md` - Security framework (CRITICAL)
+### Security & Authorization (CRITICAL)
+- `@docs/AUTHORIZATION_FRAMEWORK.md` - **3-layer security** (RBAC + ABAC + RLS)
+- `@docs/ARCHITECTURE_RULES.md` - Technical constraints and patterns
+- `@docs/AI_CONTEXT_RULES.md` - AI-specific rules and guidelines
+
+### Deployment & Operations
+- `@docs/DEPLOYMENT_STANDARDS.md` - **MANDATORY** Docker & GitHub CI/CD standards (NEW)
 - `@docs/DEPLOYMENT_GUIDE.md` - Complete deployment procedures
 - `@docs/DOCKER_DEPLOYMENT_GUIDE.md` - Container deployment specifics
 - `@docs/FAILSAFE_PROTOCOL.md` - Emergency procedures and recovery
+- `@docs/STAGING_TO_PRODUCTION_WORKFLOW.md` - Deployment workflow
+- `@docs/SERVER_INFRASTRUCTURE.md` - Server details and access
 
-### Reference Materials (On-Demand)
-- `@docs/reference/code-templates/` - Reusable code patterns
-- `@docs/reference/reasoning-patterns.md` - Problem-solving frameworks
-- `@docs/CREDENTIALS.md` - Access credentials and tokens
-- `@docs/KNOWLEDGE_LINKS.md` - URLs and external resources
-
-### Integration Guides
+### Integration & Systems
 - `@docs/NEUROLINK_SYSTEM.md` - TSH NeuroLink unified communications
 - `@docs/TDS_MASTER_ARCHITECTURE.md` - Zoho sync orchestration
+- `@docs/PHASE_1_REQUIREMENTS.md` - Current phase requirements
 
-### Old Structure (Legacy - Being Phased Out)
+### Code Patterns & Templates
+- `@docs/CODE_TEMPLATES.md` - Reusable code patterns and examples
+- `@docs/reference/code-templates/` - Detailed code templates by category
+  - `authentication.md` - Auth patterns
+  - `crud-operations.md` - CRUD patterns
+  - `pagination.md` - Pagination patterns
+  - `error-handling.md` - Error handling
+  - `database-optimization.md` - DB optimization
+  - `arabic-bilingual.md` - Arabic/RTL support
+  - `testing.md` - Testing patterns
+  - `zoho-sync.md` - Zoho integration patterns
+
+### Problem-Solving & Reasoning
+- `@docs/REASONING_PATTERNS.md` - Problem-solving frameworks
+- `@docs/TASK_PATTERNS.md` - Task execution patterns
+- `@docs/reference/failsafe/` - Failsafe procedures
+  - `README.md` - Failsafe overview
+  - `response-framework.md` - Response patterns
+  - `recovery-procedures.md` - Recovery steps
+  - `critical-scenarios/` - Specific failure scenarios
+
+### AI Guidelines & Best Practices
+- `@docs/reference/ai-guidelines/` - AI-specific guidelines
+  - `ai-context-core.md` - Context management
+  - `ai-operation-modes.md` - Operation modes
+  - `ai-session-recovery.md` - Session recovery
+  - `ai-monitoring.md` - Monitoring patterns
+  - `ai-learning.md` - Learning patterns
+
+### Quick Start & Reference
+- `@docs/QUICK_START.md` - Quick start guide
+- `@docs/QUICK_REFERENCE.md` - 60-second context refresh
+- `@docs/SESSION_START.md` - Session start checklist
+- `@docs/SESSION_CHECKLIST.md` - Session checklist
+- `@docs/WORKING_TOGETHER.md` - Collaboration guidelines
+
+### Knowledge & Resources
+- `@docs/KNOWLEDGE_PORTAL.md` - Knowledge navigation hub
+- `@docs/KNOWLEDGE_LINKS.md` - URLs and external resources
+- `@docs/DOCUMENTATION_INDEX.md` - Complete documentation index
+- `@docs/DOCUMENTATION_STANDARDS.md` - Documentation standards
+
+### Agent System (Advanced)
+- `@docs/AGENTS_INDEX.md` - Agent system overview
+- `@docs/AGENT_ROUTING_SYSTEM.md` - Agent routing
+- `@docs/AGENT_SYSTEM_SUMMARY.md` - Agent system summary
+- `@docs/agents/` - Individual agent definitions
+
+### Performance & Optimization
+- `@docs/PERFORMANCE_OPTIMIZATION.md` - Performance guidelines
+- `@docs/OPTIMIZATION_SUMMARY.md` - Optimization summary
+
+### Commands & Scripts
+- `@docs/SCRIPTS_QUICK_START.md` - Scripts quick start
+- `@docs/commands/` - Command definitions
+  - `start-work.md` - Start work command
+  - `end-work.md` - End work command
+  - `context-handoff.md` - Context handoff
+  - `reload-context.md` - Reload context
+
+### State & Configuration
+- `@docs/state/current-phase.json` - Current project phase state
+- `@docs/settings.local.json` - Local settings (if exists)
+
+### Legacy Files (Reference Only)
 - Original files in `.claude.backup/` for reference
 - Use new consolidated structure above
 
