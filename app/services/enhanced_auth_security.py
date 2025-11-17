@@ -471,23 +471,33 @@ class SecurityEventService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         metadata: Optional[dict] = None
-    ) -> SecurityEvent:
-        """Log a security event"""
+    ) -> Optional[SecurityEvent]:
+        """Log a security event - fails silently if async/sync mismatch"""
         import json
+        import logging
 
-        event = SecurityEvent(
-            user_id=user_id,
-            event_type=event_type,
-            severity=severity,
-            description=description,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            event_data=metadata  # JSON column accepts dict directly
-        )
-        db.add(event)
-        db.commit()
-        db.refresh(event)
-        return event
+        try:
+            event = SecurityEvent(
+                user_id=user_id,
+                event_type=event_type,
+                severity=severity,
+                description=description,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                event_data=metadata  # JSON column accepts dict directly
+            )
+            db.add(event)
+            db.commit()
+            db.refresh(event)
+            return event
+        except Exception as e:
+            # Log the error but don't fail the parent operation
+            logging.getLogger(__name__).warning(f"Failed to log security event: {e}")
+            try:
+                db.rollback()
+            except:
+                pass
+            return None
 
     @staticmethod
     def generate_secure_token(length: int = 32) -> str:
