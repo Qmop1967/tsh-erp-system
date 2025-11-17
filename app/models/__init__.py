@@ -93,6 +93,12 @@ from .zoho_sync import (
 # Data Investigation Models
 from .data_investigation import DataInvestigationReport
 
+# Owner Approval Models (TSH Security Console)
+from .owner_approval import (
+    OwnerApproval, ApprovalAuditLog, OwnerSecuritySettings,
+    ApprovalMethod, ApprovalStatus, ApprovalType, RiskLevel
+)
+
 # Mobile BFF Models
 from .promotion import Promotion
 from .cart import Cart, CartItem
@@ -168,5 +174,8 @@ __all__ = [
     "Notification", "NotificationTemplate", "NotificationPreference",
     "NotificationType", "NotificationPriority", "NotificationChannel",
     # Data Investigation Models
-    "DataInvestigationReport"
+    "DataInvestigationReport",
+    # Owner Approval Models
+    "OwnerApproval", "ApprovalAuditLog", "OwnerSecuritySettings",
+    "ApprovalMethod", "ApprovalStatus", "ApprovalType", "RiskLevel"
 ]
