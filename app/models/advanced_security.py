@@ -475,7 +475,8 @@ class UserDevice(Base):
 class UserSession(Base):
     """Enhanced user sessions with device tracking"""
     __tablename__ = "user_sessions"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     device_id = Column(String(36), ForeignKey("user_devices.id"))
