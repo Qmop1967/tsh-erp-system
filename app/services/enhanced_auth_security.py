@@ -482,7 +482,7 @@ class SecurityEventService:
             description=description,
             ip_address=ip_address,
             user_agent=user_agent,
-            event_metadata=json.dumps(metadata) if metadata else None
+            event_data=metadata  # JSON column accepts dict directly
         )
         db.add(event)
         db.commit()
