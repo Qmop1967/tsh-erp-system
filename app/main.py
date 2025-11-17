@@ -8,6 +8,9 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import time
 
+# Deployment version: 2025.11.17-staging-ci-fix
+# This version includes: SSH key regeneration, Nginx auto-reload, NeuroLink pool fix
+
 # Initialize structured logging
 from app.utils.logging_config import get_logger, log_api_request, log_api_response
 
