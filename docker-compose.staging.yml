@@ -95,7 +95,7 @@ services:
     env_file: *app-env-files
     environment:
       REDIS_URL: redis://redis_staging:6379/0
-      DATABASE_URL: postgresql://${POSTGRES_USER:-tsh_admin}:${POSTGRES_PASSWORD}@tsh_postgres_staging:5432/${POSTGRES_DB:-tsh_erp_staging}
+      # DATABASE_URL is provided by .env.staging (with URL-encoded password)
       ENVIRONMENT: staging
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
     ports:
