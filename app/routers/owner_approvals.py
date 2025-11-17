@@ -194,7 +194,7 @@ async def request_approval(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent", ""),
         expires_at=expires_at,
-        metadata=request_data.metadata
+        request_metadata=request_data.metadata
     )
 
     # Generate QR payload

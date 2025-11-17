@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS owner_approvals (
     owner_geolocation JSONB,
 
     -- Additional metadata
-    metadata JSONB,
+    request_metadata JSONB,
     notification_sent BOOLEAN DEFAULT FALSE,
     notification_sent_at TIMESTAMP WITH TIME ZONE,
     reminder_count INTEGER DEFAULT 0

@@ -126,7 +126,7 @@ class OwnerApproval(Base):
     owner_geolocation = Column(JSON)
 
     # Additional metadata
-    metadata = Column(JSON)  # Any additional context data
+    request_metadata = Column(JSON)  # Any additional context data
     notification_sent = Column(Boolean, default=False)
     notification_sent_at = Column(DateTime)
     reminder_count = Column(Integer, default=0)
