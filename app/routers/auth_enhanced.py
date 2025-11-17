@@ -243,11 +243,15 @@ async def mobile_login(
     # Create access token
     access_token = AuthService.create_access_token(data={"sub": user.email, "platform": "mobile"})
 
+    # Create refresh token for mobile apps (30-day expiration)
+    refresh_token = AuthService.create_refresh_token(data={"sub": user.email, "platform": "mobile"})
+
     role_name = user.role.name if user.role else "User"
 
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
+        refresh_token=refresh_token,  # Include refresh token for mobile apps
         user={
             "id": user.id,
             "name": user.name,
@@ -318,6 +322,100 @@ async def logout(
         )
 
     return {"message": "Successfully logged out"}
+
+
+@router.post("/refresh")
+async def refresh_access_token(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Refresh access token using refresh token.
+    Used by mobile apps for token refresh without re-login.
+    """
+    try:
+        body = await request.json()
+        refresh_token = body.get("refresh_token")
+
+        if not refresh_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Refresh token is required"
+            )
+
+        # Decode and verify refresh token
+        try:
+            payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+
+            # Check if this is a refresh token (not access token)
+            if payload.get("type") != "refresh":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token type"
+                )
+
+            email = payload.get("sub")
+            if not email:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid refresh token"
+                )
+
+            # Check if token is blacklisted
+            if TokenBlacklistService.is_token_blacklisted(db, refresh_token):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been revoked"
+                )
+
+            # Get user
+            user = db.query(User).filter(User.email == email).first()
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found"
+                )
+
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Account has been deactivated"
+                )
+
+            # Create new access token
+            platform = payload.get("platform", "mobile")
+            new_access_token = AuthService.create_access_token(
+                data={"sub": email, "platform": platform}
+            )
+
+            SecurityEventService.log_security_event(
+                db, user_id=user.id, event_type="token_refresh",
+                severity="info", description="Access token refreshed via refresh token"
+            )
+
+            return {
+                "access_token": new_access_token,
+                "token_type": "bearer"
+            }
+
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has expired"
+            )
+        except jwt.JWTError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Invalid refresh token: {str(e)}"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error refreshing token: {str(e)}"
+        )
 
 
 @router.get("/me", response_model=UserResponse)
