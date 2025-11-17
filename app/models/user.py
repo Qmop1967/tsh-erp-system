@@ -1,16 +1,18 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
+import uuid
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False, index=True)
-    email = Column(String(255), nullable=False, unique=True, index=True)
-    password = Column(String(255), nullable=False)  # سيتم تشفيرها
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    name = Column(Text, nullable=True)  # Display name
+    email = Column(Text, nullable=False, unique=True, index=True)
+    password = Column(String(255), nullable=True)  # Nullable for Zoho-synced users without local password
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)  # Made nullable for unified schema
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)  # Made nullable for unified schema
 
@@ -21,15 +23,20 @@ class User(Base):
     # password_hash = Column(String(255), nullable=True)  # New hashed password field
     # password_salt = Column(String(64), nullable=True)   # Salt for password hashing
 
-    # Enhanced user information
-    employee_code = Column(String(20), unique=True, nullable=True, index=True)
-    phone = Column(String(20))
-    is_salesperson = Column(Boolean, default=False, nullable=False)
+    # User information (matching actual database schema)
+    full_name = Column(Text, nullable=True)  # Synced from Zoho
+    phone = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    is_verified = Column(Boolean, default=False)  # Email verification status
+
+    # Enhanced fields (not yet migrated to database)
+    # employee_code = Column(String(20), unique=True, nullable=True, index=True)
+    # is_salesperson = Column(Boolean, default=False, nullable=False)
+    # is_verified = Column(Boolean, default=False)  # Email verification status
 
     # Zoho sync fields
     zoho_user_id = Column(String(100), unique=True, nullable=True, index=True)  # Zoho Books/Inventory user ID
+    zoho_customer_id = Column(Text, nullable=True)  # Zoho customer ID
+    zoho_contact_id = Column(Text, nullable=True)   # Zoho contact ID
     zoho_last_sync = Column(DateTime, nullable=True)  # Last sync timestamp with Zoho
 
     # Audit fields
