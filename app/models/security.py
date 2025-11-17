@@ -236,4 +236,4 @@ class SecurityEvent(Base):
     resolved_at = Column(DateTime)
 
     # Relationships
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
