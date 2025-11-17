@@ -244,3 +244,4 @@ env/
 
 # Credentials and sensitive data
 .claude/CREDENTIALS.md
+.claude/credentials.local.md

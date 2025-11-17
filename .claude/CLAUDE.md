@@ -334,6 +334,7 @@ curl https://tds.tsh.sale/api/health
 ### State & Configuration
 - `@docs/state/current-phase.json` - Current project phase state
 - `@docs/settings.local.json` - Local settings (if exists)
+- `@docs/credentials.local.md` - **CONFIDENTIAL** Server credentials (gitignored, local only)
 
 ### Legacy Files (Reference Only)
 - Original files in `.claude.backup/` for reference
