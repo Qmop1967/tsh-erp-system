@@ -510,7 +510,7 @@ class AdvancedUserSession(Base):
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
-    device = relationship("UserDevice", back_populates="sessions")
+    device = relationship("UserDevice", foreign_keys=[device_id])  # Removed back_populates - UserDevice.sessions is disabled
     activities = relationship("SessionActivity", back_populates="session")
 
 class SessionActivity(Base):
