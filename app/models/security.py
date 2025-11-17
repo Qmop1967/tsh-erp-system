@@ -219,21 +219,24 @@ class TrustedDevice(Base):
     user = relationship("User")
 
 
-class SecurityEvent(Base):
-    """Track security-related events for monitoring"""
-    __tablename__ = "security_events"
+# SecurityEvent class has been moved to app/models/advanced_security.py
+# as AdvancedSecurityEvent to avoid mapper conflicts
+# See: AdvancedSecurityEvent class which maps to "security_events" table
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    event_type = Column(String(100), nullable=False, index=True)
-    severity = Column(String(20), default="info")  # info, warning, critical
-    description = Column(Text)
-    ip_address = Column(String(45))
-    user_agent = Column(String(500))
-    event_metadata = Column(Text)  # JSON with additional data (renamed from metadata)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    resolved = Column(Boolean, default=False)
-    resolved_at = Column(DateTime)
+# Backwards compatibility alias - import AdvancedSecurityEvent and alias as SecurityEvent
+from app.models.advanced_security import AdvancedSecurityEvent as SecurityEvent
 
-    # Relationships
-    user = relationship("User", foreign_keys=[user_id])
+__all__ = [
+    "LoginAttempt",
+    "AccountLockout",
+    "TokenBlacklist",
+    "MFAMethod",
+    "UserMFA",
+    "MFAVerification",
+    "UserSession",
+    "PasswordHistory",
+    "PasswordResetToken",
+    "EmailVerificationToken",
+    "TrustedDevice",
+    "SecurityEvent",  # Re-exported from advanced_security for backwards compatibility
+]
