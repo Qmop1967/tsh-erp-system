@@ -110,8 +110,13 @@ class WarehouseFactory(BaseFactory):
 
     id = factory.Sequence(lambda n: n + 1)
     name = factory.Faker('company')
+    name_ar = factory.LazyAttribute(lambda obj: f"{obj.name} - عربي")  # Arabic name (required NOT NULL field)
+    address = factory.Faker('address')
+    city = factory.Faker('city')
+    phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
     # code, location, is_active removed - not in Warehouse model
     branch_id = factory.SubFactory(BranchFactory)
+    is_active = True
 
 
 class CategoryFactory(BaseFactory):
@@ -186,6 +191,7 @@ class CustomerFactory(BaseFactory):
     id = factory.Sequence(lambda n: n + 1)
     customer_code = factory.Sequence(lambda n: f"CUST{n:06d}")  # Required unique field
     name = factory.Faker('company')
+    name_ar = factory.LazyAttribute(lambda obj: f"{obj.name} - عربي")  # Arabic name (required NOT NULL field)
     company_name = factory.Faker('company')
     email = factory.Faker('company_email')
     phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
@@ -214,6 +220,7 @@ class SupplierFactory(BaseFactory):
     id = factory.Sequence(lambda n: n + 1)
     supplier_code = factory.Sequence(lambda n: f"SUPP{n:06d}")  # Required unique field
     name = factory.Faker('company')
+    name_ar = factory.LazyAttribute(lambda obj: f"{obj.name} - عربي")  # Arabic name (required NOT NULL field)
     company_name = factory.Faker('company')
     email = factory.Faker('company_email')
     phone = factory.LazyAttribute(lambda o: f'+964-{fuzzy.FuzzyInteger(7000, 7999).fuzz()}-{fuzzy.FuzzyInteger(1000000, 9999999).fuzz()}')
