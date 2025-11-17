@@ -472,7 +472,7 @@ class UserDevice(Base):
 
 # === SESSION MANAGEMENT ===
 
-class UserSession(Base):
+class AdvancedUserSession(Base):
     """Enhanced user sessions with device tracking"""
     __tablename__ = "user_sessions"
     __table_args__ = {'extend_existing': True}
@@ -480,32 +480,32 @@ class UserSession(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     device_id = Column(String(36), ForeignKey("user_devices.id"))
-    
+
     # Session details
     session_token = Column(String(500), unique=True, nullable=False)
     refresh_token = Column(String(500), unique=True)
-    
+
     # Status
     status = Column(Enum(SessionStatus), default=SessionStatus.ACTIVE)
     is_mobile = Column(Boolean, default=False)
-    
+
     # Timing
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     last_activity = Column(DateTime, default=datetime.utcnow)
     terminated_at = Column(DateTime)
-    
+
     # Location and security
     ip_address = Column(String(45))
     location = Column(JSON)
     user_agent = Column(String(500))
     risk_score = Column(Float, default=0.0)
     risk_level = Column(Enum(RiskLevel), default=RiskLevel.LOW)
-    
+
     # Admin controls
     can_be_terminated = Column(Boolean, default=True)
     requires_mfa = Column(Boolean, default=False)
-    
+
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
     device = relationship("UserDevice", back_populates="sessions")
@@ -532,17 +532,17 @@ class SessionActivity(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    session = relationship("UserSession", back_populates="activities")
+    session = relationship("AdvancedUserSession", back_populates="activities")
 
 # === CENTRALIZED AUDIT LOGGING ===
 
-class AuditLog(Base):
+class AdvancedAuditLog(Base):
     """Comprehensive audit logging"""
     __tablename__ = "audit_logs"
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
-    
+
     # Who
     user_id = Column(Integer, ForeignKey("users.id"))
     session_id = Column(String(36), ForeignKey("user_sessions.id"))
@@ -579,23 +579,23 @@ class AuditLog(Base):
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
-    session = relationship("UserSession", foreign_keys=[session_id])
+    session = relationship("AdvancedUserSession", foreign_keys=[session_id])
 
 # === SECURITY EVENTS ===
 
-class SecurityEvent(Base):
+class AdvancedSecurityEvent(Base):
     """Security events and alerts"""
     __tablename__ = "security_events"
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
-    
+
     # Event details
     event_type = Column(String(100), nullable=False, index=True)
     severity = Column(Enum(RiskLevel), default=RiskLevel.LOW, index=True)
     title = Column(String(200))
     description = Column(Text)
-    
+
     # Context
     user_id = Column(Integer, ForeignKey("users.id"))
     session_id = Column(String(36), ForeignKey("user_sessions.id"))
@@ -616,7 +616,7 @@ class SecurityEvent(Base):
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
-    session = relationship("UserSession", foreign_keys=[session_id])
+    session = relationship("AdvancedUserSession", foreign_keys=[session_id])
     resolver = relationship("User", foreign_keys=[resolved_by])
 
 # === PASSLESS AUTHENTICATION ===

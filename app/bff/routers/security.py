@@ -23,7 +23,7 @@ from app.dependencies.auth import get_current_user
 from app.dependencies.rbac import RoleChecker
 from app.models.user import User
 from app.models.security import UserSession as LegacySession, SecurityEvent as LegacySecurityEvent
-from app.models.advanced_security import UserSession, SecurityEvent, AuditLog, SessionStatus, RiskLevel
+from app.models.advanced_security import AdvancedUserSession as UserSession, AdvancedSecurityEvent as SecurityEvent, AdvancedAuditLog as AuditLog, SessionStatus, RiskLevel
 
 router = APIRouter(prefix="/security", tags=["Security BFF"])
 
