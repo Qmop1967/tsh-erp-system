@@ -54,8 +54,9 @@ RUN groupadd -r neurolink && \
 # Copy Python packages from builder
 COPY --from=builder /root/.local /home/neurolink/.local
 
-# Make sure scripts in .local are usable
-ENV PATH=/home/neurolink/.local/bin:$PATH
+# Make sure scripts in .local are usable and Python can find packages
+ENV PATH=/home/neurolink/.local/bin:$PATH \
+    PYTHONPATH=/home/neurolink/.local/lib/python3.11/site-packages:$PYTHONPATH
 
 # Copy application code
 COPY --chown=neurolink:neurolink ./app ./app
