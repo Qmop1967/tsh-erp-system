@@ -12,16 +12,27 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool, QueuePool
 from app.config import settings
 
-# Create async engine
-engine = create_async_engine(
-    settings.database_url,
-    poolclass=QueuePool if settings.environment == "production" else NullPool,
-    pool_size=settings.db_pool_size,
-    max_overflow=settings.db_max_overflow,
-    pool_timeout=settings.db_pool_timeout,
-    pool_pre_ping=True,  # Verify connections before using
-    echo=settings.enable_query_logging,  # SQL logging for debugging
-)
+# Create async engine with environment-specific pooling
+if settings.environment == "production":
+    # Production: Use QueuePool with connection pooling
+    engine = create_async_engine(
+        settings.database_url,
+        poolclass=QueuePool,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+        pool_timeout=settings.db_pool_timeout,
+        pool_pre_ping=True,  # Verify connections before using
+        echo=settings.enable_query_logging,  # SQL logging for debugging
+    )
+else:
+    # Staging/Development: Use NullPool (no pooling, each request gets new connection)
+    # NullPool doesn't support pool_size, max_overflow, pool_timeout
+    engine = create_async_engine(
+        settings.database_url,
+        poolclass=NullPool,
+        pool_pre_ping=True,  # Verify connections before using
+        echo=settings.enable_query_logging,  # SQL logging for debugging
+    )
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(
