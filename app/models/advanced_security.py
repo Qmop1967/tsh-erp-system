@@ -602,6 +602,7 @@ class AdvancedSecurityEvent(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     session_id = Column(String(36), ForeignKey("user_sessions.id"))
     ip_address = Column(String(45))
+    user_agent = Column(String(500))  # Added for security tracking
     location = Column(JSON)
     
     # Event data
