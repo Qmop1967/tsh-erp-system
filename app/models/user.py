@@ -16,11 +16,11 @@ class User(Base):
 
     # Multi-tenancy support (not used in unified database)
     # tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
-    
-    # Enhanced security fields
-    password_hash = Column(String(255), nullable=True)  # New hashed password field
-    password_salt = Column(String(64), nullable=True)   # Salt for password hashing
-    
+
+    # Enhanced security fields (not yet migrated to database)
+    # password_hash = Column(String(255), nullable=True)  # New hashed password field
+    # password_salt = Column(String(64), nullable=True)   # Salt for password hashing
+
     # Enhanced user information
     employee_code = Column(String(20), unique=True, nullable=True, index=True)
     phone = Column(String(20))
