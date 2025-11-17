@@ -249,7 +249,8 @@ class TestQRJWT:
 class TestApprovalResponse:
     """Test response formatting"""
 
-    def test_approval_to_response_pending(self):
+    @patch.object(OwnerApproval, 'requester', create=True)
+    def test_approval_to_response_pending(self, mock_requester_property):
         """Should correctly format pending approval"""
         mock_user = Mock()
         mock_user.id = 1
@@ -279,7 +280,9 @@ class TestApprovalResponse:
             expires_at=datetime.utcnow() + timedelta(minutes=5),
             created_at=datetime.utcnow()
         )
-        approval.requester = mock_user
+        # Use __dict__ to bypass SQLAlchemy relationship handling
+        object.__setattr__(approval, '_sa_instance_state', Mock())
+        approval.__dict__['requester'] = mock_user
 
         response = approval_to_response(approval)
 
@@ -292,7 +295,8 @@ class TestApprovalResponse:
         assert response.time_remaining_seconds is not None
         assert response.time_remaining_seconds > 0
 
-    def test_approval_to_response_expired(self):
+    @patch.object(OwnerApproval, 'requester', create=True)
+    def test_approval_to_response_expired(self, mock_requester_property):
         """Should correctly format expired approval"""
         mock_user = Mock()
         mock_user.id = 1
@@ -322,7 +326,9 @@ class TestApprovalResponse:
             expires_at=datetime.utcnow() - timedelta(minutes=1),  # Expired
             created_at=datetime.utcnow() - timedelta(minutes=11)
         )
-        approval.requester = mock_user
+        # Use __dict__ to bypass SQLAlchemy relationship handling
+        object.__setattr__(approval, '_sa_instance_state', Mock())
+        approval.__dict__['requester'] = mock_user
 
         response = approval_to_response(approval)
 
