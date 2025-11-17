@@ -52,7 +52,11 @@ def add_role_checker_decorator(content: str, endpoint_name: str, roles: list) ->
         description = match.group(3)
         # Add security note to description if not present
         if "**Security:**" not in description:
-            updated_desc = description.rstrip('"""') + f'\n\n    **Security:** Admin only\n    """'
+            # Remove trailing triple quotes properly (not using strip with multi-char string)
+            desc_content = description
+            if desc_content.endswith('"""'):
+                desc_content = desc_content[:-3]
+            updated_desc = desc_content + f'\n\n    **Security:** Admin only\n    """'
         else:
             updated_desc = description
         return f'{decorator_start}{updated_desc}{dependency_str}\n)'
