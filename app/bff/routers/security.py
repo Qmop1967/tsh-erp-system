@@ -11,14 +11,19 @@ Security:
 - RLS context automatically set for database queries
 """
 from typing import Optional, List
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
+from sqlalchemy import func, and_, or_
 
 from app.db.database import get_db
 from app.db.rls_dependency import get_db_with_rls
 from app.dependencies.auth import get_current_user
 from app.dependencies.rbac import RoleChecker
 from app.models.user import User
+from app.models.security import UserSession as LegacySession, SecurityEvent as LegacySecurityEvent
+from app.models.advanced_security import UserSession, SecurityEvent, AuditLog, SessionStatus, RiskLevel
 
 router = APIRouter(prefix="/security", tags=["Security BFF"])
 
@@ -53,7 +58,7 @@ router = APIRouter(prefix="/security", tags=["Security BFF"])
 )
 async def get_dashboard(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_with_rls)
+    db: Session = Depends(get_db)
 ):
     """
     Get security dashboard
@@ -63,42 +68,171 @@ async def get_dashboard(
     - ABAC: Valid JWT token required
     - RLS: Database queries scoped to admin context
     """
-    # TODO: Implement security dashboard
+    import time
+    start_time = time.time()
+
+    # Time boundaries
+    now = datetime.utcnow()
+    one_hour_ago = now - timedelta(hours=1)
+    twenty_four_hours_ago = now - timedelta(hours=24)
+
+    # Get active sessions count
+    try:
+        active_sessions_total = db.query(UserSession).filter(
+            UserSession.status == SessionStatus.ACTIVE
+        ).count()
+    except Exception:
+        # Fallback to legacy model if advanced model not available
+        active_sessions_total = db.query(LegacySession).filter(
+            LegacySession.is_active == True
+        ).count()
+
+    # Count sessions by device type
+    mobile_sessions = 0
+    desktop_sessions = 0
+    tablet_sessions = 0
+    try:
+        sessions = db.query(UserSession).filter(
+            UserSession.status == SessionStatus.ACTIVE
+        ).all()
+        for session in sessions:
+            if session.is_mobile:
+                mobile_sessions += 1
+            else:
+                desktop_sessions += 1
+    except Exception:
+        pass
+
+    # Get failed login attempts
+    failed_logins_hour = 0
+    failed_logins_24h = 0
+    blocked_ips = []
+    try:
+        from app.models.security import LoginAttempt
+        failed_logins_hour = db.query(LoginAttempt).filter(
+            LoginAttempt.success == False,
+            LoginAttempt.created_at >= one_hour_ago
+        ).count()
+        failed_logins_24h = db.query(LoginAttempt).filter(
+            LoginAttempt.success == False,
+            LoginAttempt.created_at >= twenty_four_hours_ago
+        ).count()
+
+        # Get IPs with multiple failures
+        ip_failures = db.query(
+            LoginAttempt.ip_address,
+            func.count(LoginAttempt.id).label('failures')
+        ).filter(
+            LoginAttempt.success == False,
+            LoginAttempt.created_at >= twenty_four_hours_ago
+        ).group_by(LoginAttempt.ip_address).having(
+            func.count(LoginAttempt.id) >= 5
+        ).all()
+        blocked_ips = [ip for ip, count in ip_failures]
+    except Exception:
+        pass
+
+    # Get security events
+    recent_events = []
+    suspicious_activities = []
+    critical_events = 0
+    high_events = 0
+    medium_events = 0
+    low_events = 0
+
+    try:
+        events = db.query(SecurityEvent).filter(
+            SecurityEvent.created_at >= twenty_four_hours_ago
+        ).order_by(SecurityEvent.created_at.desc()).limit(10).all()
+
+        for event in events:
+            event_data = {
+                "id": event.id,
+                "type": event.event_type,
+                "severity": event.severity.value if hasattr(event.severity, 'value') else event.severity,
+                "title": event.title,
+                "timestamp": event.created_at.isoformat()
+            }
+            recent_events.append(event_data)
+
+            severity = event.severity.value if hasattr(event.severity, 'value') else event.severity
+            if severity == "critical":
+                critical_events += 1
+            elif severity == "high":
+                high_events += 1
+            elif severity == "medium":
+                medium_events += 1
+            else:
+                low_events += 1
+
+            if not event.is_resolved:
+                suspicious_activities.append(event_data)
+    except Exception:
+        pass
+
+    # Calculate security score
+    security_score = 100
+    security_score -= min(20, failed_logins_hour * 2)  # -2 per failed login
+    security_score -= min(20, len(blocked_ips) * 5)     # -5 per blocked IP
+    security_score -= critical_events * 10               # -10 per critical event
+    security_score -= high_events * 5                    # -5 per high event
+    security_score = max(0, security_score)
+
+    # Determine threat level
+    threat_level = "low"
+    if critical_events > 0 or failed_logins_hour > 10:
+        threat_level = "critical"
+    elif high_events > 0 or failed_logins_hour > 5:
+        threat_level = "high"
+    elif medium_events > 0 or failed_logins_hour > 3:
+        threat_level = "medium"
+
+    # Determine overall status
+    overall_status = "healthy"
+    if security_score < 50:
+        overall_status = "critical"
+    elif security_score < 70:
+        overall_status = "warning"
+    elif security_score < 85:
+        overall_status = "monitoring"
+
+    response_time = round((time.time() - start_time) * 1000, 2)
+
     return {
         "success": True,
         "data": {
             "security_status": {
-                "overall": "healthy",
-                "threat_level": "low",
-                "active_threats": 0,
-                "security_score": 85
+                "overall": overall_status,
+                "threat_level": threat_level,
+                "active_threats": critical_events + high_events,
+                "security_score": security_score
             },
             "alerts": {
-                "critical": 0,
-                "high": 0,
-                "medium": 0,
-                "low": 0
+                "critical": critical_events,
+                "high": high_events,
+                "medium": medium_events,
+                "low": low_events
             },
             "failed_logins": {
-                "last_hour": 0,
-                "last_24h": 0,
-                "blocked_ips": []
+                "last_hour": failed_logins_hour,
+                "last_24h": failed_logins_24h,
+                "blocked_ips": blocked_ips[:10]  # Top 10
             },
             "active_sessions": {
-                "total": 0,
+                "total": active_sessions_total,
                 "by_device": {
-                    "mobile": 0,
-                    "desktop": 0,
-                    "tablet": 0
+                    "mobile": mobile_sessions,
+                    "desktop": desktop_sessions,
+                    "tablet": tablet_sessions
                 }
             },
-            "recent_events": [],
-            "suspicious_activities": [],
+            "recent_events": recent_events[:5],
+            "suspicious_activities": suspicious_activities[:5],
             "access_violations": []
         },
         "metadata": {
             "cached": False,
-            "response_time_ms": 0
+            "response_time_ms": response_time
         }
     }
 
@@ -292,17 +426,77 @@ async def get_active_sessions(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_with_rls)
+    db: Session = Depends(get_db)
 ):
-    """Get active sessions"""
-    # TODO: Implement sessions listing
+    """Get active sessions with risk scoring"""
+
+    # Build query
+    query = db.query(UserSession).filter(
+        UserSession.status == SessionStatus.ACTIVE
+    )
+
+    # Apply filters
+    if user_id:
+        query = query.filter(UserSession.user_id == user_id)
+
+    if device_type:
+        if device_type == "mobile":
+            query = query.filter(UserSession.is_mobile == True)
+        elif device_type == "desktop":
+            query = query.filter(UserSession.is_mobile == False)
+
+    # Get total count
+    total = query.count()
+
+    # Apply pagination
+    sessions = query.order_by(
+        UserSession.risk_score.desc(),
+        UserSession.last_activity.desc()
+    ).offset((page - 1) * page_size).limit(page_size).all()
+
+    # Format response
+    session_list = []
+    by_device = {"mobile": 0, "desktop": 0, "tablet": 0}
+    by_location = {}
+
+    for session in sessions:
+        # Determine device type
+        dev_type = "mobile" if session.is_mobile else "desktop"
+        by_device[dev_type] = by_device.get(dev_type, 0) + 1
+
+        # Track locations
+        if session.location:
+            loc_key = session.location.get("city", "Unknown")
+            by_location[loc_key] = by_location.get(loc_key, 0) + 1
+
+        # Get user info
+        user_name = session.user.name if session.user else "Unknown"
+        user_email = session.user.email if session.user else "Unknown"
+
+        session_data = {
+            "id": session.id,
+            "user_id": session.user_id,
+            "user_name": user_name,
+            "user_email": user_email,
+            "device_type": dev_type,
+            "ip_address": session.ip_address,
+            "location": session.location or {},
+            "risk_score": session.risk_score,
+            "risk_level": session.risk_level.value if session.risk_level else "low",
+            "created_at": session.created_at.isoformat() if session.created_at else None,
+            "last_activity": session.last_activity.isoformat() if session.last_activity else None,
+            "expires_at": session.expires_at.isoformat() if session.expires_at else None,
+            "can_terminate": session.can_be_terminated
+        }
+        session_list.append(session_data)
+
     return {
         "success": True,
         "data": {
-            "sessions": [],
-            "total": 0,
-            "by_device": {},
-            "by_location": {},
+            "sessions": session_list,
+            "total": total,
+            "by_device": by_device,
+            "by_location": by_location,
             "page": page,
             "page_size": page_size
         }
@@ -319,16 +513,56 @@ async def terminate_session(
     session_id: str,
     reason: str = Query(...),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_with_rls)
+    db: Session = Depends(get_db)
 ):
-    """Terminate session"""
-    # TODO: Implement session termination
+    """Terminate session with audit logging"""
+
+    # Find the session
+    session = db.query(UserSession).filter(
+        UserSession.id == session_id
+    ).first()
+
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found"
+        )
+
+    if not session.can_be_terminated:
+        raise HTTPException(
+            status_code=403,
+            detail="This session cannot be terminated"
+        )
+
+    # Terminate the session
+    session.status = SessionStatus.TERMINATED
+    session.terminated_at = datetime.utcnow()
+
+    # Log the action
+    try:
+        audit_log = AuditLog(
+            user_id=current_user.id,
+            session_id=session_id,
+            action="session_terminated",
+            resource_type="session",
+            resource_id=session_id,
+            description=f"Session terminated by admin. Reason: {reason}",
+            ip_address=None,
+            method="POST",
+            endpoint=f"/sessions/{session_id}/terminate"
+        )
+        db.add(audit_log)
+    except Exception:
+        pass
+
+    db.commit()
+
     return {
         "success": True,
         "message": "Session terminated successfully",
         "data": {
             "session_id": session_id,
-            "terminated_at": None
+            "terminated_at": session.terminated_at.isoformat()
         }
     }
 

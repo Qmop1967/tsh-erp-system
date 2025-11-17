@@ -210,6 +210,8 @@ from app.routers.hr import router as hr_router
 from app.routers.gps_tracking import router as gps_router
 from app.routers.partner_salesmen_refactored import router as partner_salesmen_router  # ✅ Phase 5 P3 Batch 3: Refactored
 from app.routers.auth_enhanced import router as auth_router  # Enhanced auth router with MFA, rate limiting, sessions
+from app.routers.magic_link_auth import router as magic_link_router  # Magic link passwordless authentication
+from app.routers.owner_approvals import router as owner_approvals_router  # Owner approval workflow for sensitive operations
 
 # ============================================================================
 # 🧹 REFACTORING 2025-01-07: Code Duplication Eliminated
@@ -261,6 +263,7 @@ from app.routers.notifications import router as notifications_router  # Unified 
 # ============================================================================
 # TDS API Routers - Consolidated Zoho Integration Layer
 from app.tds.api import webhooks_router as tds_webhooks_router  # TDS webhook receiver (NEW - Consolidated)
+from app.tds.api.user_sync import router as user_sync_router  # User and customer-salesperson sync
 # from app.routers.zoho_bulk_sync import router as zoho_bulk_sync_router  # TDS bulk sync (missing sync_with_caching dependency)
 from app.routers.data_investigation import router as data_investigation_router  # Daily data investigation reports
 # DEPRECATED: from app.routers.zoho_webhooks import router as zoho_webhooks_router  # Old router - replaced by TDS API
@@ -371,6 +374,8 @@ from app.routers.v2.inventory import router as inventory_v2_router  # Clean arch
 
 # إضافة الـ routers
 app.include_router(auth_router, prefix="/api", tags=["Authentication"])  # Enhanced authentication with MFA, rate limiting, session management
+app.include_router(magic_link_router, prefix="/api", tags=["Magic Link Authentication"])  # Passwordless authentication via email magic links
+app.include_router(owner_approvals_router, prefix="/api", tags=["Owner Approvals - Security Console"])  # Owner approval workflow for sensitive operations
 app.include_router(dashboard_router, tags=["dashboard"])  # Dashboard statistics
 app.include_router(branches_router, prefix="/api/branches", tags=["branches"])
 app.include_router(products_router, prefix="/api/products", tags=["products"])
@@ -426,6 +431,7 @@ app.include_router(consumer_api_router, prefix="/api/consumer", tags=["Consumer 
 # ============================================================================
 # ✅ TDS Webhooks - Consolidated in TDS module per architecture
 app.include_router(tds_webhooks_router, prefix="/api/tds/webhooks", tags=["TDS Core - Webhooks"])
+app.include_router(user_sync_router, tags=["TDS Core - User & Customer Sync"])  # User and customer-salesperson sync
 # app.include_router(zoho_bulk_sync_router, prefix="/api/zoho/bulk-sync", tags=["TDS Core - Bulk Sync"])  # Missing dependency
 app.include_router(data_investigation_router, tags=["Data Investigation - Daily Monitoring"])
 

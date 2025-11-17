@@ -1,0 +1,93 @@
+/* English Localization for TSH Security Console */
+
+/* App Name */
+"app_name" = "TSH Security Console";
+"app_subtitle" = "Owner/Director Access Only";
+
+/* Authentication */
+"login" = "Login";
+"logout" = "Logout";
+"email" = "Email";
+"password" = "Password";
+"remember_me" = "Remember Me";
+"login_with" = "Login with";
+"logout_confirmation" = "Are you sure you want to logout?";
+"access_denied" = "Access denied. Only Owner/Admin can use this app.";
+
+/* Dashboard */
+"dashboard" = "Dashboard";
+"security_score" = "Security Score";
+"threat_level" = "Threat Level";
+"alerts" = "Alerts";
+"critical" = "Critical";
+"high" = "High";
+"medium" = "Medium";
+"low" = "Low";
+"active_sessions" = "Active Sessions";
+"mobile" = "Mobile";
+"desktop" = "Desktop";
+"tablet" = "Tablet";
+"failed_logins" = "Failed Login Attempts";
+"last_hour" = "Last Hour";
+"last_24h" = "Last 24h";
+"blocked_ips" = "Blocked IPs";
+"pending_approvals" = "Pending Approvals";
+"approved_today" = "Approved Today";
+"denied_today" = "Denied Today";
+"recent_events" = "Recent Events";
+"no_recent_events" = "No recent events";
+
+/* Approvals */
+"approvals" = "Approvals";
+"pending" = "Pending";
+"approved" = "Approved";
+"denied" = "Denied";
+"expired" = "Expired";
+"cancelled" = "Cancelled";
+"approve" = "Approve";
+"deny" = "Deny";
+"approval_code" = "Approval Code";
+"request_details" = "Request Details";
+"approve_request" = "Approve Request";
+"deny_request" = "Deny Request";
+"reason_for_denial" = "Reason for denial";
+"no_pending_approvals" = "No Pending Approvals";
+"all_requests_processed" = "All requests have been processed";
+"scan_qr" = "Scan QR Code";
+"point_camera" = "Point camera at QR code";
+
+/* Sessions */
+"sessions" = "Sessions";
+"terminate" = "Terminate";
+"terminate_session" = "Terminate Session";
+"terminate_confirmation" = "Are you sure you want to terminate the session for";
+"last_activity" = "Last activity";
+"no_active_sessions" = "No Active Sessions";
+
+/* Users */
+"users" = "Users";
+"search" = "Search...";
+"no_users" = "No Users Found";
+
+/* Settings */
+"settings" = "Settings";
+"app_settings" = "App Settings";
+"language" = "Language";
+"security" = "Security";
+"security_settings" = "Security Settings";
+"notifications" = "Notifications";
+"audit_log" = "Audit Log";
+"system" = "System";
+"version" = "Version";
+"server" = "Server";
+"status" = "Status";
+"online" = "Online";
+"offline" = "Offline";
+
+/* Common */
+"cancel" = "Cancel";
+"ok" = "OK";
+"error" = "Error";
+"success" = "Success";
+"refresh" = "Refresh";
+"unknown" = "Unknown";

@@ -1,0 +1,93 @@
+/* Arabic Localization for TSH Security Console */
+
+/* App Name */
+"app_name" = "وحدة أمان TSH";
+"app_subtitle" = "الوصول للمدير/المالك فقط";
+
+/* Authentication */
+"login" = "تسجيل الدخول";
+"logout" = "تسجيل الخروج";
+"email" = "البريد الإلكتروني";
+"password" = "كلمة المرور";
+"remember_me" = "تذكرني";
+"login_with" = "تسجيل الدخول بـ";
+"logout_confirmation" = "هل أنت متأكد من تسجيل الخروج؟";
+"access_denied" = "الوصول مرفوض. فقط المالك/المدير يمكنه استخدام هذا التطبيق.";
+
+/* Dashboard */
+"dashboard" = "لوحة المراقبة";
+"security_score" = "درجة الأمان";
+"threat_level" = "مستوى التهديد";
+"alerts" = "التنبيهات";
+"critical" = "حرج";
+"high" = "عالي";
+"medium" = "متوسط";
+"low" = "منخفض";
+"active_sessions" = "الجلسات النشطة";
+"mobile" = "جوال";
+"desktop" = "سطح المكتب";
+"tablet" = "تابلت";
+"failed_logins" = "محاولات تسجيل الدخول الفاشلة";
+"last_hour" = "آخر ساعة";
+"last_24h" = "آخر 24 ساعة";
+"blocked_ips" = "عناوين محظورة";
+"pending_approvals" = "الموافقات المعلقة";
+"approved_today" = "تمت الموافقة اليوم";
+"denied_today" = "مرفوض اليوم";
+"recent_events" = "الأحداث الأخيرة";
+"no_recent_events" = "لا توجد أحداث";
+
+/* Approvals */
+"approvals" = "الموافقات";
+"pending" = "معلق";
+"approved" = "تمت الموافقة";
+"denied" = "مرفوض";
+"expired" = "منتهي الصلاحية";
+"cancelled" = "ملغى";
+"approve" = "موافقة";
+"deny" = "رفض";
+"approval_code" = "رمز الموافقة";
+"request_details" = "تفاصيل الطلب";
+"approve_request" = "الموافقة على الطلب";
+"deny_request" = "رفض الطلب";
+"reason_for_denial" = "سبب الرفض";
+"no_pending_approvals" = "لا توجد موافقات معلقة";
+"all_requests_processed" = "جميع الطلبات تمت معالجتها";
+"scan_qr" = "مسح رمز QR";
+"point_camera" = "وجّه الكاميرا نحو رمز QR";
+
+/* Sessions */
+"sessions" = "الجلسات";
+"terminate" = "إنهاء";
+"terminate_session" = "إنهاء الجلسة";
+"terminate_confirmation" = "هل أنت متأكد من إنهاء جلسة";
+"last_activity" = "آخر نشاط";
+"no_active_sessions" = "لا توجد جلسات نشطة";
+
+/* Users */
+"users" = "المستخدمون";
+"search" = "بحث...";
+"no_users" = "لا يوجد مستخدمون";
+
+/* Settings */
+"settings" = "الإعدادات";
+"app_settings" = "إعدادات التطبيق";
+"language" = "اللغة";
+"security" = "الأمان";
+"security_settings" = "إعدادات الأمان";
+"notifications" = "الإشعارات";
+"audit_log" = "سجل التدقيق";
+"system" = "النظام";
+"version" = "الإصدار";
+"server" = "الخادم";
+"status" = "الحالة";
+"online" = "متصل";
+"offline" = "غير متصل";
+
+/* Common */
+"cancel" = "إلغاء";
+"ok" = "حسناً";
+"error" = "خطأ";
+"success" = "تم بنجاح";
+"refresh" = "تحديث";
+"unknown" = "غير معروف";
