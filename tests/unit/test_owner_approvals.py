@@ -267,6 +267,15 @@ class TestApprovalResponse:
             status=ApprovalStatus.PENDING,
             method=ApprovalMethod.PUSH,
             request_description="Test request",
+            request_description_ar=None,  # Add optional field
+            app_id=None,  # Add optional field
+            device_info=None,  # Add optional field
+            ip_address=None,  # Add optional field
+            geolocation=None,  # Add optional field
+            resolved_at=None,  # Add optional field
+            resolved_by=None,  # Add optional field
+            resolution_reason=None,  # Add optional field
+            resolution_reason_ar=None,  # Add optional field
             expires_at=datetime.utcnow() + timedelta(minutes=5),
             created_at=datetime.utcnow()
         )
@@ -277,8 +286,8 @@ class TestApprovalResponse:
         assert response.id == "test-uuid-123"
         assert response.requester.id == 1
         assert response.requester.name == "Test User"
-        assert response.risk_level == RiskLevel.HIGH
-        assert response.status == ApprovalStatus.PENDING
+        assert response.risk_level == RiskLevel.HIGH.value  # Compare to .value since response uses string
+        assert response.status == ApprovalStatus.PENDING.value  # Compare to .value since response uses string
         assert response.is_expired is False
         assert response.time_remaining_seconds is not None
         assert response.time_remaining_seconds > 0
@@ -301,6 +310,15 @@ class TestApprovalResponse:
             status=ApprovalStatus.PENDING,
             method=ApprovalMethod.PUSH,
             request_description="Test request",
+            request_description_ar=None,  # Add optional field
+            app_id=None,  # Add optional field
+            device_info=None,  # Add optional field
+            ip_address=None,  # Add optional field
+            geolocation=None,  # Add optional field
+            resolved_at=None,  # Add optional field
+            resolved_by=None,  # Add optional field
+            resolution_reason=None,  # Add optional field
+            resolution_reason_ar=None,  # Add optional field
             expires_at=datetime.utcnow() - timedelta(minutes=1),  # Expired
             created_at=datetime.utcnow() - timedelta(minutes=11)
         )
