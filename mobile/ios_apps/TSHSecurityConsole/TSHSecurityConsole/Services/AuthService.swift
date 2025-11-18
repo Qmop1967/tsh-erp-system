@@ -171,8 +171,8 @@ actor AuthService {
             role: response.role,
             branch: response.branch,
             permissions: response.permissions,
-            mfa_enabled: nil,
-            mobile_app: nil,
+            mfaEnabled: nil,
+            mobileApp: nil,
             platform: nil
         )
     }

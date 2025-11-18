@@ -1,0 +1,34 @@
+
+DevTools listening on ws://127.0.0.1:9222/devtools/browser/1d4a5727-7385-4535-94a1-97761571797c
+[21651:133606:1005/231752.225505:ERROR:net/disk_cache/simple/simple_file_enumerator.cc:58] Could not get file info for /private/tmp/chrome-mcp-debug/Default/Service Worker/ScriptCache/f1cdccba37924bda_1
+Trying to load the allocator multiple times. This is *not* supported.
+[21651:133598:1005/231753.686302:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[21855:134507:1005/231810.672477:VERBOSE1:chrome/updater/updater.cc:411] Version: 142.0.7416.0, opt, ARM_64, command line: /Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake-all --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[21855:134507:1005/231810.672684:VERBOSE1:chrome/updater/updater.cc:414] OS version: 15.5.0, System uptime (seconds): 6457, parent pid: 21651
+[21857:134511:1005/231810.680311:VERBOSE1:chrome/updater/updater.cc:411] Version: 142.0.7416.0, opt, ARM_64, command line: /Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --crash-handler --database=/Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/Crashpad --url=https://clients2.google.com/cr/report --annotation=prod=Update4 --annotation=ver=142.0.7416.0 --handshake-fd=5 --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[21857:134511:1005/231810.680472:VERBOSE1:chrome/updater/updater.cc:414] OS version: 15.5.0, System uptime (seconds): 6457, parent pid: 1
+[21855:134507:1005/231810.682371:VERBOSE1:chrome/updater/crash_reporter.cc:120] Crash handler launched and ready.
+[21855:134507:1005/231810.683008:VERBOSE1:chrome/updater/crash_client.cc:106] Found 0 completed crash reports
+[21855:134507:1005/231810.683062:VERBOSE1:chrome/updater/crash_client.cc:124] Found 0 pending crash reports
+[21855:134507:1005/231810.683175:VERBOSE1:chrome/updater/updater.cc:97] Crash reporting initialized.
+[21855:134519:1005/231810.683393:VERBOSE1:chrome/updater/app/app_wakeall.cc:57] Launching `/Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake`
+[21858:134523:1005/231810.688585:VERBOSE1:chrome/updater/updater.cc:411] Version: 142.0.7416.0, opt, ARM_64, command line: /Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[21858:134523:1005/231810.688709:VERBOSE1:chrome/updater/updater.cc:414] OS version: 15.5.0, System uptime (seconds): 6457, parent pid: 21855
+[21860:134527:1005/231810.695348:VERBOSE1:chrome/updater/updater.cc:411] Version: 142.0.7416.0, opt, ARM_64, command line: /Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --crash-handler --database=/Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/Crashpad --url=https://clients2.google.com/cr/report --annotation=prod=Update4 --annotation=ver=142.0.7416.0 --handshake-fd=5 --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[21860:134527:1005/231810.695478:VERBOSE1:chrome/updater/updater.cc:414] OS version: 15.5.0, System uptime (seconds): 6457, parent pid: 1
+[21858:134523:1005/231810.697088:VERBOSE1:chrome/updater/crash_reporter.cc:120] Crash handler launched and ready.
+[21858:134523:1005/231810.697518:VERBOSE1:chrome/updater/crash_client.cc:106] Found 0 completed crash reports
+[21858:134523:1005/231810.697572:VERBOSE1:chrome/updater/crash_client.cc:124] Found 0 pending crash reports
+[21858:134523:1005/231810.697674:VERBOSE1:chrome/updater/updater.cc:97] Crash reporting initialized.
+[21858:134523:1005/231810.697798:VERBOSE1:chrome/updater/ipc/update_service_internal_proxy_posix.cc:100] Run
+[21858:134523:1005/231825.849959:VERBOSE1:chrome/updater/updater.cc:423] UpdaterMain (--wake) returned 0.
+[21855:134519:1005/231825.885947:VERBOSE1:chrome/updater/app/app_wakeall.cc:67] `/Users/khaleelal-mulla/Library/Application Support/Google/GoogleUpdater/142.0.7416.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake` exited 0
+[21855:134507:1005/231825.887273:VERBOSE1:chrome/updater/updater.cc:423] UpdaterMain (--wake-all) returned 0.
+[21860:134527:1005/231835.864730:VERBOSE1:chrome/updater/updater.cc:423] UpdaterMain (--crash-handler) returned 0.
+[21857:134511:1005/231835.866054:VERBOSE1:chrome/updater/updater.cc:423] UpdaterMain (--crash-handler) returned 0.
+[21651:133497:1005/232025.012322:ERROR:chrome/browser/ui/views/user_education/impl/browser_user_education_interface_impl.cc:154] Attempting to show IPH IPH_ExtensionsZeroStatePromo before browser initialization complete; IPH will not be shown.
+[21651:133598:1005/232025.307277:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[21651:133612:1005/232031.736967:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[21651:133612:1005/232031.737037:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+[21651:133612:1005/232031.737070:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[21651:133612:1005/232031.737103:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../services/user_service.dart';
+import '../../config/api_config.dart';
 import 'user_detail_screen.dart';
 import 'user_management_screen.dart';
 
@@ -15,8 +16,11 @@ class _UsersScreenState extends State<UsersScreen> {
   final UserService _userService = UserService();
   List<User> _users = [];
   bool _isLoading = true;
+  bool _isLoadingAll = false;
   String _searchQuery = '';
   bool? _activeFilter;
+  int _totalUsers = 0;
+  bool _showAllUsers = false; // Toggle between paginated and all users
 
   @override
   void initState() {
@@ -24,19 +28,45 @@ class _UsersScreenState extends State<UsersScreen> {
     _loadUsers();
   }
 
-  Future<void> _loadUsers() async {
-    setState(() => _isLoading = true);
+  /// Load users (paginated by default)
+  Future<void> _loadUsers({bool loadAll = false}) async {
+    setState(() {
+      _isLoading = !loadAll;
+      _isLoadingAll = loadAll;
+      _showAllUsers = loadAll;
+    });
+    
     try {
-      final users = await _userService.getUsers(
-        search: _searchQuery.isNotEmpty ? _searchQuery : null,
-        isActive: _activeFilter,
-      );
-      setState(() {
-        _users = users;
-        _isLoading = false;
-      });
+      if (loadAll) {
+        // Load ALL users from database
+        final users = await _userService.getAllUsers(
+          search: _searchQuery.isNotEmpty ? _searchQuery : null,
+          isActive: _activeFilter,
+        );
+        setState(() {
+          _users = users;
+          _totalUsers = users.length;
+          _isLoadingAll = false;
+        });
+      } else {
+        // Load paginated users
+        final response = await _userService.getUsersPaginated(
+          page: 1,
+          pageSize: 20,
+          search: _searchQuery.isNotEmpty ? _searchQuery : null,
+          isActive: _activeFilter,
+        );
+        setState(() {
+          _users = response.users;
+          _totalUsers = response.total;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isLoadingAll = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -93,6 +123,45 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
+  /// Toggle user active/inactive status
+  Future<void> _toggleUserStatus(User user, {required bool activate}) async {
+    try {
+      final updatedUser = activate
+          ? await _userService.activateUser(user.id)
+          : await _userService.deactivateUser(user.id);
+      
+      // Update local state
+      setState(() {
+        final index = _users.indexWhere((u) => u.id == user.id);
+        if (index != -1) {
+          _users[index] = updatedUser;
+        }
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              activate
+                  ? 'User activated successfully'
+                  : 'User deactivated successfully',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showFilterDialog() {
     showDialog(
       context: context,
@@ -109,7 +178,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 onChanged: (value) {
                   setState(() => _activeFilter = value);
                   Navigator.pop(context);
-                  _loadUsers();
+                  _loadUsers(loadAll: _showAllUsers);
                 },
               ),
             ),
@@ -121,7 +190,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 onChanged: (value) {
                   setState(() => _activeFilter = value);
                   Navigator.pop(context);
-                  _loadUsers();
+                  _loadUsers(loadAll: _showAllUsers);
                 },
               ),
             ),
@@ -133,7 +202,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 onChanged: (value) {
                   setState(() => _activeFilter = value);
                   Navigator.pop(context);
-                  _loadUsers();
+                  _loadUsers(loadAll: _showAllUsers);
                 },
               ),
             ),
@@ -151,9 +220,22 @@ class _UsersScreenState extends State<UsersScreen> {
         elevation: 0,
         backgroundColor: const Color(0xff2563eb),
         foregroundColor: Colors.white,
-        title: const Text(
-          'User Management',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'User Management',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            Text(
+              'Environment: ${ApiConfig.environmentName}',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.white.withOpacity(0.8),
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -161,10 +243,50 @@ class _UsersScreenState extends State<UsersScreen> {
             onPressed: _showFilterDialog,
             tooltip: 'Filter',
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadUsers,
-            tooltip: 'Refresh',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'load_all') {
+                _loadUsers(loadAll: true);
+              } else if (value == 'load_paginated') {
+                _loadUsers(loadAll: false);
+              } else if (value == 'refresh') {
+                _loadUsers(loadAll: _showAllUsers);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'load_all',
+                child: Row(
+                  children: [
+                    const Icon(Icons.cloud_download, size: 20),
+                    const SizedBox(width: 8),
+                    Text(_showAllUsers ? '✓ Load All Users' : 'Load All Users'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'load_paginated',
+                child: Row(
+                  children: [
+                    const Icon(Icons.list, size: 20),
+                    const SizedBox(width: 8),
+                    Text(_showAllUsers ? 'Load Paginated' : '✓ Load Paginated'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, size: 20),
+                    SizedBox(width: 8),
+                    Text('Refresh'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -177,7 +299,7 @@ class _UsersScreenState extends State<UsersScreen> {
             child: TextField(
               onChanged: (value) {
                 setState(() => _searchQuery = value);
-                _loadUsers();
+                _loadUsers(loadAll: _showAllUsers);
               },
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
@@ -194,10 +316,83 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
           ),
 
+          // Users Count & Status
+          if (!_isLoading && !_isLoadingAll)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _showAllUsers
+                        ? 'Showing ALL $_totalUsers users'
+                        : 'Showing ${_users.length} of $_totalUsers users',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (_showAllUsers)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff10b981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.cloud_done, size: 14, color: Color(0xff10b981)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'All Loaded',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: const Color(0xff10b981),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
           // Users List
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+            child: (_isLoading || _isLoadingAll)
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          _isLoadingAll
+                              ? 'Loading all users from database...'
+                              : 'Loading users...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        if (_isLoadingAll && _users.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Loaded ${_users.length} users so far...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
                 : _users.isEmpty
                     ? Center(
                         child: Column(
@@ -217,7 +412,7 @@ class _UsersScreenState extends State<UsersScreen> {
                         ),
                       )
                     : RefreshIndicator(
-                        onRefresh: _loadUsers,
+                        onRefresh: () => _loadUsers(loadAll: _showAllUsers),
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: _users.length,
@@ -302,9 +497,11 @@ class _UsersScreenState extends State<UsersScreen> {
                                     ),
                                   );
                                   if (result == true) {
-                                    _loadUsers();
+                                    _loadUsers(loadAll: _showAllUsers);
                                   }
                                 },
+                                onActivate: () => _toggleUserStatus(user, activate: true),
+                                onDeactivate: () => _toggleUserStatus(user, activate: false),
                               ),
                             );
                           },
@@ -322,7 +519,7 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
           );
           if (result == true) {
-            _loadUsers();
+            _loadUsers(loadAll: _showAllUsers);
           }
         },
         backgroundColor: const Color(0xff2563eb),
@@ -336,10 +533,14 @@ class _UsersScreenState extends State<UsersScreen> {
 class _UserCard extends StatelessWidget {
   final User user;
   final VoidCallback onTap;
+  final VoidCallback? onActivate;
+  final VoidCallback? onDeactivate;
 
   const _UserCard({
     required this.user,
     required this.onTap,
+    this.onActivate,
+    this.onDeactivate,
   });
 
   @override
@@ -408,10 +609,12 @@ class _UserCard extends StatelessWidget {
                           color: Colors.grey[600],
                         ),
                       ),
-                      if (user.roleName != null) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (user.roleName != null)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -421,60 +624,166 @@ class _UserCard extends StatelessWidget {
                                 color: const Color(0xff7c3aed).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text(
-                                user.roleName!,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xff7c3aed),
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.badge,
+                                    size: 12,
+                                    color: Color(0xff7c3aed),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    user.roleName!,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xff7c3aed),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          // Zoho sync status badge
+                          if (user.isSyncedWithZoho)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xff10b981).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.cloud_done,
+                                    size: 12,
+                                    color: Color(0xff10b981),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    user.syncStatusMessage,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xff10b981),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.cloud_off,
+                                    size: 12,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Not synced',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
 
-                // Status Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                // Status Badge with Quick Actions
+                PopupMenuButton<String>(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: user.isActive
+                          ? const Color(0xff10b981).withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: user.isActive
+                                ? const Color(0xff10b981)
+                                : Colors.grey,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          user.isActive ? 'Active' : 'Inactive',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: user.isActive
+                                ? const Color(0xff10b981)
+                                : Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_drop_down, size: 16),
+                      ],
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: user.isActive
-                        ? const Color(0xff10b981).withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: user.isActive
-                              ? const Color(0xff10b981)
-                              : Colors.grey,
-                          shape: BoxShape.circle,
+                  onSelected: (value) {
+                    if (value == 'activate' && onActivate != null) {
+                      onActivate!();
+                    } else if (value == 'deactivate' && onDeactivate != null) {
+                      onDeactivate!();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (!user.isActive)
+                      const PopupMenuItem(
+                        value: 'activate',
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, size: 18, color: Color(0xff10b981)),
+                            SizedBox(width: 8),
+                            Text('Activate User'),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        user.isActive ? 'Active' : 'Inactive',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: user.isActive
-                              ? const Color(0xff10b981)
-                              : Colors.grey,
+                    if (user.isActive)
+                      const PopupMenuItem(
+                        value: 'deactivate',
+                        child: Row(
+                          children: [
+                            Icon(Icons.cancel, size: 18, color: Colors.orange),
+                            SizedBox(width: 8),
+                            Text('Deactivate User'),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ],
             ),

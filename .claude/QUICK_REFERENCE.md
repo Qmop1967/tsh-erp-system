@@ -2,7 +2,28 @@
 
 **Purpose:** Ultra-fast information lookup for session start and rapid orientation.
 
-**Last Updated:** 2025-11-12
+**Last Updated:** 2025-11-17
+
+---
+
+## TEMPORARY DEVELOPMENT MODE - ACTIVE
+
+**CRITICAL NOTICE: Direct Docker Deployment - GitHub CI/CD DISABLED**
+
+```yaml
+Status: TEMPORARY DEVELOPMENT MODE
+Activated: 2025-11-17
+Deployment: Direct Docker commands (NO GitHub Actions)
+Database: READ-ONLY production database
+Staging: DISABLED
+Full Details: TEMPORARY_DEVELOPMENT_MODE.md
+
+Quick Deploy:
+  ssh root@167.71.39.50
+  cd /var/www/tsh-erp && docker-compose up -d --build
+
+Re-enablement: Only on explicit instruction from Khaleel
+```
 
 ---
 
@@ -11,7 +32,7 @@
 ```yaml
 Project: TSH ERP Ecosystem
 Purpose: Import-distribution-retail ERP for Iraq market
-Mode: Development (deploy anytime to staging/production)
+Mode: TEMPORARY DEVELOPMENT MODE (Direct Docker Deployment)
 Phase: Zoho Migration Phase 1 (read-only from Books + Inventory)
 
 Current Scale:
@@ -22,18 +43,21 @@ Tech Stack:
   Backend: FastAPI + Python 3.9+ + PostgreSQL 12+
   Frontend: React 18 (ERP Admin) + Flutter Web (Consumer)
   Mobile: Flutter 3.0+ (8 apps)
-  Deployment: GitHub Actions → TWO SERVERS (see below)
+  Deployment: DIRECT DOCKER (GitHub Actions DISABLED)
   Backup: AWS S3 (tsh-erp-backups, eu-north-1)
   Sync: TDS Core orchestrates ALL Zoho operations
 
-🚨 CRITICAL SERVERS (DON'T MIX THEM UP!):
-  Staging:    167.71.58.65 (user: khaleel, develop branch)
-  Production: 167.71.39.50 (user: root, main branch)
-  📖 Full Details: SERVER_INFRASTRUCTURE.md
+🚨 CURRENT DEPLOYMENT MODE:
+  Development Server: 167.71.39.50 (Direct Docker Deployment)
+  Staging: DISABLED (Temporary Mode)
+  GitHub Actions: DISABLED (Temporary Mode)
+  Database: READ-ONLY production database
 
 Critical Rules:
-  ❌ NEVER: Bypass TDS Core, forget Arabic, deploy partial, skip staging
-  ✅ ALWAYS: Paginate > 100, authenticate ops, use Pydantic, test first
+  ❌ NEVER: Use GitHub Actions, deploy to staging, trigger CI/CD pipelines
+  ❌ NEVER: Bypass TDS Core, forget Arabic, deploy partial
+  ✅ ALWAYS: Deploy via Docker commands, use read-only database
+  ✅ ALWAYS: Paginate > 100, authenticate ops, use Pydantic
 ```
 
 ---
@@ -41,11 +65,17 @@ Critical Rules:
 ## 🚫 NEVER Do This
 
 ```yaml
+TEMPORARY MODE VIOLATIONS (CRITICAL):
+❌ Enable or trigger GitHub Actions workflows
+❌ Deploy to staging environment (DISABLED)
+❌ Create PRs expecting automated deployment
+❌ Use gh run or GitHub CI/CD commands
+❌ Write to the database (READ-ONLY ENFORCED)
+
 Architecture Violations:
 ❌ Access Zoho Books/Inventory APIs directly (MUST use TDS Core)
 ❌ Write to Zoho in Phase 1 (read-only)
 ❌ Deploy backend without frontend (deploy ALL components)
-❌ Push directly to main (push to develop first)
 ❌ Suggest changing tech stack (FastAPI/Flutter/PostgreSQL fixed)
 
 Data Integrity Violations:
@@ -59,7 +89,6 @@ Performance Violations:
 ❌ Return > 100 records without pagination
 ❌ Query without indexes on large tables
 ❌ Create N+1 query patterns (use joinedload)
-❌ Skip staging verification
 ```
 
 ---
@@ -81,16 +110,17 @@ Architecture:
 ✅ Authenticate sensitive endpoints (Depends(get_current_user))
 ✅ Authorize admin ops (require_role(["admin"]))
 ✅ Validate input (Pydantic schemas)
-✅ Deploy ALL components together
-✅ Test on staging before production
+✅ Deploy ALL components together via Docker
+✅ Use read-only database connection
 
-Deployment:
-✅ Push to develop branch (staging)
-✅ Monitor GitHub Actions
-✅ Verify staging URLs work
-✅ Get Khaleel approval
-✅ Create PR (develop → main)
-✅ Monitor production deployment
+Deployment (TEMPORARY MODE):
+✅ SSH to development server (ssh root@167.71.39.50)
+✅ Pull latest code (git pull origin develop)
+✅ Build Docker containers (docker-compose build)
+✅ Restart services (docker-compose up -d)
+✅ Verify health (curl http://localhost:8000/health)
+✅ Check logs (docker-compose logs -f)
+❌ DO NOT use GitHub Actions or staging
 ```
 
 ---
@@ -149,7 +179,7 @@ Start
 
 ---
 
-## 📋 10 Most Common Commands
+## 📋 10 Most Common Commands (TEMPORARY MODE)
 
 ### Git Operations
 ```bash
@@ -162,32 +192,37 @@ git branch
 # 3. Recent commits
 git log --oneline -5
 
-# 4. Push to staging
+# 4. Push to develop (version control only, NO CI/CD)
 git push origin develop
-
-# 5. Create PR for production
-gh pr create --base main --head develop
 ```
 
-### Deployment
+### Docker Deployment (TEMPORARY MODE)
 ```bash
-# 6. Monitor GitHub Actions
-gh run list --limit 3
-gh run watch <run-id>
+# 5. SSH to development server
+ssh root@167.71.39.50
 
-# 7. Verify staging
-curl https://staging.erp.tsh.sale/health
+# 6. Deploy all services
+cd /var/www/tsh-erp && docker-compose up -d --build
 
-# 8. Verify production
-curl https://erp.tsh.sale/health
+# 7. Restart specific service
+docker-compose restart backend
+
+# 8. Check container status
+docker ps
+```
+
+### Verification (TEMPORARY MODE)
+```bash
+# 9. Check health (on server)
+curl http://localhost:8000/health
+
+# 10. View logs
+docker-compose logs -f backend
 ```
 
 ### Debugging
 ```bash
-# 9. Check backend logs (VPS)
-ssh root@167.71.39.50 "tail -100 /var/www/tsh-erp/logs/backend.log"
-
-# 10. Check database connectivity
+# Database connectivity
 PGPASSWORD='TSH@2025Secure!Production' psql -h localhost -U tsh_app_user -d tsh_erp_production -c "SELECT COUNT(*) FROM products WHERE is_active = true;"
 ```
 
@@ -225,29 +260,31 @@ TSH_ERP_Ecosystem/
 
 ---
 
-## 🔗 Key URLs
+## 🔗 Key URLs (TEMPORARY MODE)
 
 ```yaml
-Production:
-  ERP Admin: https://erp.tsh.sale
-  Consumer: https://consumer.tsh.sale
-  Shop: https://shop.tsh.sale
-  TDS Dashboard: https://tds.tsh.sale
+Development Server (Direct Docker):
+  Server: 167.71.39.50
+  User: root
+  Deployment: Direct Docker commands
+  Database: READ-ONLY production database
 
-Staging:
-  ERP Admin: https://staging.erp.tsh.sale
-  Consumer: https://staging.consumer.tsh.sale
-  TDS Dashboard: https://staging.tds.tsh.sale
+Local URLs (on server):
+  Backend: http://localhost:8000
+  TDS Core: http://localhost:8001
+  BFF: http://localhost:8002
+
+Staging (DISABLED):
+  Status: SUSPENDED - Temporary Mode
+  Server: 167.71.58.65 (NOT IN USE)
 
 External:
   GitHub: https://github.com/Qmop1967/tsh-erp-system
   Zoho Books: https://books.zoho.com/app#/home/dashboard/748369814
   Zoho Inventory: https://inventory.zoho.com/app#/home/748369814
 
-VPS:
-  IP: 167.71.39.50
-  User: root
-  Access: SSH key
+GitHub Actions: DISABLED (Temporary Mode)
+CI/CD Pipelines: DISABLED (Temporary Mode)
 ```
 
 ---
@@ -302,40 +339,40 @@ Response Time:
 9. Deploy to production
 ```
 
-### Deploy to Production
+### Deploy (TEMPORARY MODE)
 ```yaml
-1. Verify ALL components ready
-2. Push to develop (staging)
-3. Test thoroughly on staging
-4. Get Khaleel approval
-5. Create PR (develop → main)
-6. Monitor GitHub Actions
-7. Verify production URLs
-8. Monitor for issues
+1. SSH to server: ssh root@167.71.39.50
+2. Pull latest: cd /var/www/tsh-erp && git pull origin develop
+3. Build containers: docker-compose build --no-cache
+4. Restart services: docker-compose up -d
+5. Verify health: curl http://localhost:8000/health
+6. Check logs: docker-compose logs -f --tail=100
+7. Monitor for issues
+Note: NO GitHub Actions, NO staging (DISABLED)
 ```
 
 ---
 
 ## 🚨 Emergency Contacts & Quick Actions
 
-### Production Down
+### Service Down (TEMPORARY MODE)
 ```yaml
-1. Check VPS health: curl https://erp.tsh.sale/health
-2. Check GitHub Actions: gh run list --limit 3
-3. SSH to VPS: ssh root@167.71.39.50
-4. Check service status: systemctl status tsh-erp
-5. Check logs: journalctl -u tsh-erp -n 100
-6. Alert Khaleel immediately
+1. SSH to server: ssh root@167.71.39.50
+2. Check containers: docker ps
+3. Check logs: docker-compose logs --tail=100
+4. Restart services: docker-compose restart
+5. Rebuild if needed: docker-compose up -d --build
+6. Verify health: curl http://localhost:8000/health
 7. Follow FAILSAFE_PROTOCOL.md
 ```
 
-### Zoho Sync Stopped
+### Zoho Sync Stopped (TEMPORARY MODE)
 ```yaml
-1. Check TDS Dashboard: https://tds.tsh.sale
-2. Check TDS Core logs: tail -100 /var/www/tds-core/logs/tds_core.log
+1. Check TDS Core logs: docker-compose logs tds-core
+2. Restart TDS Core: docker-compose restart tds-core
 3. Check token expiration (refresh if needed)
-4. Restart TDS Core: systemctl restart tds-core
-5. Monitor sync status
+4. Monitor sync status in logs
+5. Verify database connectivity
 ```
 
 ### Database Issues

@@ -1,7 +1,39 @@
 # TSH ERP Deployment Guide
 
 **Master Reference for All Deployment Operations**
-Last Updated: November 13, 2025
+Last Updated: November 17, 2025
+
+---
+
+## TEMPORARY DEVELOPMENT MODE - ACTIVE
+
+**CRITICAL NOTICE: Standard deployment rules are SUSPENDED**
+
+```yaml
+Status: TEMPORARY DEVELOPMENT MODE
+Activated: 2025-11-17
+
+CURRENTLY DISABLED:
+  - GitHub CI/CD pipelines
+  - Staging environment (167.71.58.65)
+  - Automated deployments
+  - PR-triggered workflows
+
+CURRENT DEPLOYMENT METHOD:
+  - Direct Docker commands on 167.71.39.50
+  - Database: READ-ONLY
+  - Command: docker-compose up -d --build
+
+Re-enablement: Only on explicit instruction from Khaleel
+
+Quick Deploy:
+  ssh root@167.71.39.50
+  cd /var/www/tsh-erp && docker-compose up -d --build
+
+Full Details: TEMPORARY_DEVELOPMENT_MODE.md
+```
+
+**The rules below apply to STANDARD MODE (currently suspended)**
 
 ---
 
@@ -19,11 +51,13 @@ Last Updated: November 13, 2025
 
 ## Critical Deployment Rules
 
-### Rule #1: NO DIRECT DEPLOYMENT TO PRODUCTION
-**All production deployments MUST go through GitHub CI/CD pipeline ONLY.**
+**NOTE: These rules apply to STANDARD MODE. Currently in TEMPORARY DEVELOPMENT MODE.**
 
-### Rule #2: STAGING-FIRST DEPLOYMENT WORKFLOW
-**All changes MUST be deployed to staging (develop branch) first, verified, then promoted to production (main branch).**
+### Rule #1: ~~NO DIRECT DEPLOYMENT TO PRODUCTION~~ (SUSPENDED)
+**TEMPORARY MODE: Direct Docker deployment is currently the ONLY method.**
+
+### Rule #2: ~~STAGING-FIRST DEPLOYMENT WORKFLOW~~ (SUSPENDED)
+**TEMPORARY MODE: Staging is DISABLED. Deploy directly via Docker.**
 
 ### Rule #3: DEPLOY ALL PROJECT COMPONENTS TOGETHER
 **⚠️ CRITICAL: When deploying, ALL project components MUST be deployed together - Backend, Frontend, Consumer App, TDS Core, etc. NEVER deploy only the backend!**

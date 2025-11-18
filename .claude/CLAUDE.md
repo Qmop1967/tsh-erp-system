@@ -28,7 +28,46 @@ v2.0.0 (2025-11-12):
 
 v1.0.0 (2025-11-01):
   - Initial comprehensive context file
+
+v3.1.0 (2025-11-17):
+  - ACTIVATED TEMPORARY DEVELOPMENT MODE
+  - Disabled GitHub CI/CD pipelines
+  - Disabled Staging environment
+  - Enabled direct Docker deployment
+  - Real database connection (read-only)
 ```
+
+---
+
+## TEMPORARY DEVELOPMENT MODE - ACTIVE
+
+**CRITICAL: The following changes are in effect until explicitly disabled by Khaleel:**
+
+```yaml
+Status: TEMPORARY DEVELOPMENT MODE ACTIVE
+Activated: 2025-11-17
+Full Details: @.claude/TEMPORARY_DEVELOPMENT_MODE.md
+
+What's DISABLED:
+  - GitHub Actions workflows (ALL)
+  - Staging environment (167.71.58.65)
+  - Automated CI/CD pipelines
+  - PR-triggered deployments
+
+What's ENABLED:
+  - Direct Docker deployment on 167.71.39.50
+  - Real database connection (READ-ONLY)
+  - Fast local development
+  - Direct container builds
+
+Deployment Command:
+  ssh root@167.71.39.50
+  cd /var/www/tsh-erp && docker-compose up -d --build
+
+Database: READ-ONLY (safe - all writes happen in Zoho only)
+```
+
+**This mode will remain active until Khaleel sends explicit re-enablement instruction.**
 
 ---
 
@@ -44,12 +83,14 @@ Tech Stack (IMMUTABLE):
   Backend: FastAPI + Python 3.9+ + PostgreSQL 12+ + SQLAlchemy
   Frontend: React 18 (ERP Admin) + Flutter Web (Consumer)
   Mobile: Flutter 3.0+ (8 specialized apps)
-  Infrastructure: Docker + Nginx + GitHub Actions
+  Infrastructure: Docker + Nginx (GitHub Actions DISABLED - Temporary Mode)
   Backup: AWS S3 (tsh-erp-backups, eu-north-1)
 
-Servers (DON'T MIX THEM):
-  Production: 167.71.39.50 (user: root, branch: main)
-  Staging: 167.71.58.65 (user: khaleel, branch: develop)
+Servers:
+  Development: 167.71.39.50 (user: root, Direct Docker Deployment)
+  Staging: 167.71.58.65 (DISABLED - Temporary Mode)
+
+Deployment Mode: DIRECT DOCKER (GitHub CI/CD Disabled)
 
 Current Phase: Zoho Migration Phase 1
   Status: Read-only sync from Zoho Books + Zoho Inventory
@@ -153,13 +194,14 @@ Architecture:
 ✅ Test on staging (develop branch) before production (main branch)
 ✅ Use TSH NeuroLink for ALL notifications and communications
 
-Deployment:
-✅ Push to develop branch first (triggers staging deployment)
-✅ Monitor GitHub Actions (gh run watch)
-✅ Verify ALL staging URLs work
-✅ Get explicit approval before production
-✅ Create PR (develop → main) for production deployment
-✅ Monitor production after deployment
+Deployment (TEMPORARY DEVELOPMENT MODE):
+✅ SSH to development server (ssh root@167.71.39.50)
+✅ Pull latest code (git pull origin develop)
+✅ Build and restart Docker containers (docker-compose up -d --build)
+✅ Verify health endpoints (curl http://localhost:8000/health)
+✅ Check container logs (docker-compose logs -f)
+❌ GitHub Actions DISABLED - Do not use gh run commands
+❌ Staging environment DISABLED - Do not use 167.71.58.65
 ```
 
 ---
@@ -194,7 +236,7 @@ Start → Is it slow? (>2 seconds)
 
 ---
 
-## 📋 Most Common Commands
+## 📋 Most Common Commands (TEMPORARY DEVELOPMENT MODE)
 
 ### Git Operations
 ```bash
@@ -204,22 +246,35 @@ git status && git branch
 # Recent commits
 git log --oneline -10
 
-# Push to staging
+# Push to develop (version control only, NO CI/CD)
 git push origin develop
-
-# Create production PR
-gh pr create --base main --head develop
-
-# Monitor deployment
-gh run list --limit 5
-gh run watch <run-id>
 ```
 
-### Verification
+### Docker Deployment (TEMPORARY MODE)
 ```bash
-# Health checks
-curl https://staging.erp.tsh.sale/health
-curl https://erp.tsh.sale/health
+# SSH to development server
+ssh root@167.71.39.50
+
+# Deploy all services
+cd /var/www/tsh-erp && docker-compose up -d --build
+
+# Restart specific service
+docker-compose restart backend
+
+# Check container status
+docker ps
+
+# View logs
+docker-compose logs -f backend
+docker-compose logs -f tds-core
+```
+
+### Verification (TEMPORARY MODE)
+```bash
+# Health checks (on server)
+curl http://localhost:8000/health
+curl http://localhost:8001/api/health  # TDS Core
+curl http://localhost:8002/health      # BFF
 
 # Database check
 PGPASSWORD='TSH@2025Secure!Production' psql -h localhost -U tsh_app_user \
@@ -367,14 +422,15 @@ curl https://tds.tsh.sale/api/health
 
 ## 🚨 Emergency Protocols (Quick Actions)
 
-### Production Down
+### Production Down (TEMPORARY MODE)
 ```bash
-1. Check health: curl https://erp.tsh.sale/health
-2. Check GitHub Actions: gh run list --limit 3
-3. SSH to VPS: ssh root@167.71.39.50
-4. Check service: systemctl status tsh-erp
-5. Check logs: journalctl -u tsh-erp -n 100
-6. Follow: @docs/FAILSAFE_PROTOCOL.md
+1. SSH to server: ssh root@167.71.39.50
+2. Check Docker containers: docker ps
+3. Check container logs: docker-compose logs --tail=100
+4. Restart containers: docker-compose restart
+5. Rebuild if needed: docker-compose up -d --build
+6. Check health: curl http://localhost:8000/health
+7. Follow: @docs/FAILSAFE_PROTOCOL.md
 ```
 
 ### Zoho Sync Failure
@@ -420,12 +476,16 @@ Response Time:
 Quick Reference (from state file v2.0.0):
   Phase: Zoho Migration Phase 1 (v1.2.0) - 65% complete
   Can Write to Zoho: NO (Phase 1 restriction)
-  Last Updated: 2025-11-14T13:30:00Z
-  Environment Mode: Development (deploy anytime)
+  Last Updated: 2025-11-17T00:00:00Z
+
+  🚨 DEPLOYMENT MODE: TEMPORARY DEVELOPMENT MODE
+  Environment Mode: Direct Docker (GitHub CI/CD DISABLED)
 
   Environments:
-    Production: 167.71.39.50 (main branch) → https://erp.tsh.sale
-    Staging: 167.71.58.65 (develop branch) → https://staging.erp.tsh.sale
+    Development: 167.71.39.50 (Direct Docker) - ACTIVE
+    Staging: 167.71.58.65 (DISABLED - Temporary Mode)
+    GitHub Actions: DISABLED
+    CI/CD Pipelines: DISABLED
 
   Integration Health:
     ✅ Zoho Books: healthy (last sync: 12:45)

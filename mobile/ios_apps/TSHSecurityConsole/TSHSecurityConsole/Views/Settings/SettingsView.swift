@@ -38,6 +38,15 @@ struct SettingsView: View {
                         }
                     }
                     .padding(.vertical, 8)
+
+                    // Token Status Debug
+                    HStack {
+                        Image(systemName: KeychainService.shared.getAccessToken() != nil ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundColor(KeychainService.shared.getAccessToken() != nil ? .green : .red)
+                        Text(KeychainService.shared.getAccessToken() != nil ? "Token Valid" : "NO TOKEN - Please logout and login again")
+                            .font(.caption)
+                            .foregroundColor(KeychainService.shared.getAccessToken() != nil ? .green : .red)
+                    }
                 }
             }
 

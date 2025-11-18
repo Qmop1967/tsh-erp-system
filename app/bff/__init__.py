@@ -25,7 +25,7 @@ Each app gets:
 from fastapi import APIRouter
 
 # Import all app-specific routers
-from app.bff.mobile.router import router as mobile_base_router
+from app.bff.mobile import router as mobile_base_router
 from app.bff.routers.tds import router as tds_bff_router
 
 # Import salesperson app routers (App 06)

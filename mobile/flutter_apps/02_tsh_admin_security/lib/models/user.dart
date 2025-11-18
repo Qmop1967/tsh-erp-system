@@ -16,6 +16,10 @@ class User {
   final DateTime? lastLogin;
   final List<String> permissions;
 
+  // Zoho sync fields
+  final String? zohoUserId;
+  final DateTime? zohoLastSync;
+
   User({
     required this.id,
     required this.email,
@@ -32,6 +36,8 @@ class User {
     this.updatedAt,
     this.lastLogin,
     this.permissions = const [],
+    this.zohoUserId,
+    this.zohoLastSync,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -59,6 +65,10 @@ class User {
       permissions: json['permissions'] != null
           ? List<String>.from(json['permissions'] as List)
           : [],
+      zohoUserId: json['zoho_user_id'] as String?,
+      zohoLastSync: json['zoho_last_sync'] != null
+          ? DateTime.parse(json['zoho_last_sync'] as String)
+          : null,
     );
   }
 
@@ -79,6 +89,8 @@ class User {
       'updated_at': updatedAt?.toIso8601String(),
       'last_login': lastLogin?.toIso8601String(),
       'permissions': permissions,
+      'zoho_user_id': zohoUserId,
+      'zoho_last_sync': zohoLastSync?.toIso8601String(),
     };
   }
 
@@ -100,6 +112,8 @@ class User {
     DateTime? updatedAt,
     DateTime? lastLogin,
     List<String>? permissions,
+    String? zohoUserId,
+    DateTime? zohoLastSync,
   }) {
     return User(
       id: id ?? this.id,
@@ -117,7 +131,29 @@ class User {
       updatedAt: updatedAt ?? this.updatedAt,
       lastLogin: lastLogin ?? this.lastLogin,
       permissions: permissions ?? this.permissions,
+      zohoUserId: zohoUserId ?? this.zohoUserId,
+      zohoLastSync: zohoLastSync ?? this.zohoLastSync,
     );
+  }
+
+  /// Check if user is synced with Zoho
+  bool get isSyncedWithZoho => zohoUserId != null && zohoUserId!.isNotEmpty;
+
+  /// Get sync status message
+  String get syncStatusMessage {
+    if (!isSyncedWithZoho) return 'Not synced with Zoho';
+    if (zohoLastSync == null) return 'Synced (no timestamp)';
+
+    final now = DateTime.now();
+    final difference = now.difference(zohoLastSync!);
+
+    if (difference.inMinutes < 60) {
+      return 'Synced ${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return 'Synced ${difference.inHours}h ago';
+    } else {
+      return 'Synced ${difference.inDays}d ago';
+    }
   }
 }
 

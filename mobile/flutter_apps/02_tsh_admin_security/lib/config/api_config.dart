@@ -1,12 +1,30 @@
 /// API Configuration for TSH Access Management
 /// Connects to TSH ERP Backend (FastAPI - Port 8000)
 class ApiConfig {
-  // Base URL - Change for production
-  // Use localhost for web, local network IP for mobile devices
-  // Current Mac IP: 192.168.68.51
-  // For Android Emulator: use 10.0.2.2 (special alias for host machine)
-  // For iOS physical device: use Mac's local IP address
-  static const String baseUrl = 'http://192.168.68.51:8000';
+  // Environment Configuration
+  static const String environment = String.fromEnvironment(
+    'ENVIRONMENT',
+    defaultValue: 'development',
+  );
+
+  // Base URLs for different environments
+  static const String productionUrl = 'https://erp.tsh.sale';
+  static const String stagingUrl = 'https://staging.erp.tsh.sale';
+  static const String developmentUrl = 'http://192.168.68.51:8000'; // Local development
+
+  // Select base URL based on environment
+  static String get baseUrl {
+    switch (environment) {
+      case 'production':
+        return productionUrl;
+      case 'staging':
+        return stagingUrl;
+      case 'development':
+      default:
+        return developmentUrl;
+    }
+  }
+
   static const String apiPrefix = '/api';
 
   // Full base API URL
@@ -82,6 +100,25 @@ class ApiConfig {
   static const Duration cacheExpiration = Duration(minutes: 5);
 
   // Environment Check
-  static bool get isDevelopment => baseUrl.contains('localhost');
-  static bool get isProduction => !isDevelopment;
+  static bool get isDevelopment => environment == 'development';
+  static bool get isStaging => environment == 'staging';
+  static bool get isProduction => environment == 'production';
+
+  // Environment display name
+  static String get environmentName {
+    switch (environment) {
+      case 'production':
+        return 'Production';
+      case 'staging':
+        return 'Staging';
+      case 'development':
+      default:
+        return 'Development';
+    }
+  }
+
+  // Zoho TDS Endpoints (via TDS Core)
+  static String get tdsZohoUserMapping => '$apiPrefix/tds/sync/user-mapping';
+  static String get tdsZohoSyncStatus => '$apiPrefix/tds/sync/status';
+  static String get tdsZohoSyncTrigger => '$apiPrefix/tds/sync/trigger';
 }

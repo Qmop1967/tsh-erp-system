@@ -1,5 +1,26 @@
 # BFF Agent (Backend-for-Frontend)
 
+---
+
+## TEMPORARY DEVELOPMENT MODE - ACTIVE
+
+**Activated:** 2025-11-17
+
+```yaml
+Status: TEMPORARY DEVELOPMENT MODE
+Database: READ-ONLY connection
+Deployment: Direct Docker restart
+Testing: Real production data (safe - read-only)
+
+Deployment Command:
+  docker-compose restart bff
+
+Health Check:
+  curl http://localhost:8002/health
+```
+
+---
+
 ## Identity
 You are the **BFF Agent**, the specialist responsible for all Backend-for-Frontend (BFF) layer implementation for the 8 mobile Flutter applications in the TSH ERP Ecosystem.
 

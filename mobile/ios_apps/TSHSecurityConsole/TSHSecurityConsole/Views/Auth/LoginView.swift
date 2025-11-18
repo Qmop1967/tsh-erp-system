@@ -116,6 +116,14 @@ struct LoginView: View {
                 }
                 .padding(.bottom)
             }
+            .onAppear {
+                // Pre-fill email from saved credentials (for convenience)
+                if let savedEmail = KeychainService.shared.getUserEmail(), email.isEmpty {
+                    email = savedEmail
+                }
+                // Clear any stale error messages
+                authViewModel.errorMessage = nil
+            }
         }
     }
 }

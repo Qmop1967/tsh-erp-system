@@ -1,7 +1,18 @@
 {
-  "schema_version": "2.0.0",
-  "last_updated": "2025-11-14T13:30:00Z",
+  "schema_version": "2.1.0",
+  "last_updated": "2025-11-17T00:00:00Z",
   "updated_by": "claude-code",
+
+  "temporary_development_mode": {
+    "status": "ACTIVE",
+    "activated": "2025-11-17",
+    "description": "Direct Docker deployment with read-only real database",
+    "github_actions_disabled": true,
+    "staging_disabled": true,
+    "direct_docker_deployment": true,
+    "real_database_readonly": true,
+    "reactivation_trigger": "Explicit instruction from Khaleel"
+  },
 
   "project_phase": {
     "name": "Zoho Migration Phase 1",
@@ -10,7 +21,7 @@
     "phase_description": "One-directional sync: Zoho Books + Zoho Inventory → TSH ERP (READ ONLY)",
     "can_write_to_zoho": false,
     "phase_started": "2025-10-01",
-    "last_phase_review": "2025-11-14",
+    "last_phase_review": "2025-11-17",
     "next_phase_estimate": "2025-12-01",
     "phase_completion_percentage": 65
   },
@@ -111,26 +122,35 @@
   },
 
   "deployment_status": {
-    "current_mode": "development",
+    "current_mode": "TEMPORARY_DEVELOPMENT_MODE",
     "can_deploy_anytime": true,
     "business_hours_restriction": false,
-    "reason": "Business primarily runs on Zoho Books + Zoho Inventory",
+    "reason": "Direct Docker deployment - GitHub CI/CD and Staging DISABLED",
     "environments": {
-      "production": {
+      "development": {
         "server": "167.71.39.50",
         "user": "root",
-        "branch": "main",
-        "status": "active",
-        "url": "https://erp.tsh.sale",
-        "last_deployed": "2025-11-13"
+        "branch": "develop",
+        "status": "ACTIVE - Direct Docker Deployment",
+        "deployment_method": "Direct Docker commands",
+        "database": "READ-ONLY production database",
+        "last_deployed": "2025-11-17"
       },
       "staging": {
         "server": "167.71.58.65",
         "user": "khaleel",
         "branch": "develop",
-        "status": "active",
+        "status": "DISABLED - Temporary Development Mode",
         "url": "https://staging.erp.tsh.sale",
-        "last_deployed": "2025-11-14"
+        "last_deployed": "SUSPENDED"
+      },
+      "github_actions": {
+        "status": "DISABLED",
+        "reason": "Temporary Development Mode active"
+      },
+      "ci_cd_pipelines": {
+        "status": "DISABLED",
+        "reason": "Direct Docker deployment active"
       }
     }
   },
@@ -177,8 +197,9 @@
     "infrastructure": {
       "containerization": "Docker",
       "web_server": "Nginx",
-      "ci_cd": "GitHub Actions",
-      "backup": "AWS S3 (eu-north-1)"
+      "ci_cd": "DISABLED - Direct Docker Deployment (Temporary Mode)",
+      "backup": "AWS S3 (eu-north-1)",
+      "deployment_method": "Direct Docker commands on development server"
     }
   },
 
@@ -207,6 +228,19 @@
   ],
 
   "change_log": [
+    {
+      "version": "2.1.0",
+      "date": "2025-11-17",
+      "changes": [
+        "ACTIVATED TEMPORARY DEVELOPMENT MODE",
+        "Disabled GitHub Actions workflows",
+        "Disabled Staging environment (167.71.58.65)",
+        "Enabled direct Docker deployment on development server",
+        "Connected to real database in READ-ONLY mode",
+        "Added temporary_development_mode configuration block",
+        "Updated deployment_status to reflect temporary mode"
+      ]
+    },
     {
       "version": "2.0.0",
       "date": "2025-11-14",

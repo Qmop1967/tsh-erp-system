@@ -30,7 +30,7 @@ struct ApprovalsListView: View {
 
                                 Button {
                                     selectedApprovalForAction = approval
-                                    approvalCode = approval.approval_code
+                                    approvalCode = approval.id
                                     showingApproveSheet = true
                                 } label: {
                                     Label(appState.isArabic ? "موافقة" : "Approve", systemImage: "checkmark.circle")

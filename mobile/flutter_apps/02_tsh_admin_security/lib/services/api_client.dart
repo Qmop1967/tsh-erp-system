@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 /// API Client with JWT Authentication and Interceptors
 class ApiClient {
   late final Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  // Use FlutterSecureStorage for mobile, SharedPreferences for web
+  final FlutterSecureStorage? _storage = kIsWeb ? null : const FlutterSecureStorage();
+  SharedPreferences? _prefs;
 
   // Singleton pattern
   static final ApiClient _instance = ApiClient._internal();
@@ -25,8 +29,15 @@ class ApiClient {
       ),
     );
 
+    // Initialize SharedPreferences for web
+    if (kIsWeb) {
+      SharedPreferences.getInstance().then((prefs) {
+        _prefs = prefs;
+      });
+    }
+
     // Add interceptors
-    _dio.interceptors.add(_AuthInterceptor(_storage));
+    _dio.interceptors.add(_AuthInterceptor(_storage, _prefs));
     _dio.interceptors.add(_LoggingInterceptor());
     _dio.interceptors.add(_ErrorInterceptor());
   }
@@ -35,17 +46,35 @@ class ApiClient {
 
   // Save auth token
   Future<void> saveToken(String token) async {
-    await _storage.write(key: 'access_token', value: token);
+    if (kIsWeb) {
+      final prefs = _prefs ?? await SharedPreferences.getInstance();
+      await prefs.setString('access_token', token);
+      _prefs = prefs;
+    } else {
+      await _storage!.write(key: 'access_token', value: token);
+    }
   }
 
   // Get auth token
   Future<String?> getToken() async {
-    return await _storage.read(key: 'access_token');
+    if (kIsWeb) {
+      final prefs = _prefs ?? await SharedPreferences.getInstance();
+      _prefs = prefs;
+      return prefs.getString('access_token');
+    } else {
+      return await _storage!.read(key: 'access_token');
+    }
   }
 
   // Remove auth token
   Future<void> removeToken() async {
-    await _storage.delete(key: 'access_token');
+    if (kIsWeb) {
+      final prefs = _prefs ?? await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      _prefs = prefs;
+    } else {
+      await _storage!.delete(key: 'access_token');
+    }
   }
 
   // Check if user is authenticated
@@ -57,9 +86,10 @@ class ApiClient {
 
 /// Authentication Interceptor - Adds JWT token to requests
 class _AuthInterceptor extends Interceptor {
-  final FlutterSecureStorage _storage;
+  final FlutterSecureStorage? _storage;
+  final SharedPreferences? _prefs;
 
-  _AuthInterceptor(this._storage);
+  _AuthInterceptor(this._storage, this._prefs);
 
   @override
   void onRequest(
@@ -72,7 +102,13 @@ class _AuthInterceptor extends Interceptor {
     }
 
     // Add JWT token to headers
-    final token = await _storage.read(key: 'access_token');
+    String? token;
+    if (kIsWeb) {
+      token = _prefs?.getString('access_token');
+    } else {
+      token = await _storage?.read(key: 'access_token');
+    }
+    
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }

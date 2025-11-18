@@ -83,7 +83,7 @@ class BiometricAuth {
         var error: NSError?
 
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            if let err = error {
+            if let err = error as? LAError {
                 throw mapLAError(err)
             }
             throw BiometricError.notAvailable
@@ -100,12 +100,8 @@ class BiometricAuth {
         }
     }
 
-    private func mapLAError(_ error: NSError) -> BiometricError {
-        guard let laError = error as? LAError else {
-            return .authFailed
-        }
-
-        switch laError.code {
+    private func mapLAError(_ error: LAError) -> BiometricError {
+        switch error.code {
         case .biometryNotAvailable:
             return .notAvailable
         case .biometryNotEnrolled:

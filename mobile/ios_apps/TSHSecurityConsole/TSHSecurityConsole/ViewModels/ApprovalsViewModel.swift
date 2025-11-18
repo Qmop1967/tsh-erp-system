@@ -91,7 +91,7 @@ class ApprovalsViewModel: ObservableObject {
             successMessage = response.message
 
             // Remove from pending list
-            pendingApprovals.removeAll { $0.approval_code == code }
+            pendingApprovals.removeAll { $0.id == code }
 
             isLoading = false
             return true

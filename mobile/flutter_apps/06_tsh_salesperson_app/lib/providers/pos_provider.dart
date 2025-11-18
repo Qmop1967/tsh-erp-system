@@ -22,18 +22,22 @@ class POSProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('https://erp.tsh.sale/api/products?limit=1000'),
+        Uri.parse('https://erp.tsh.sale/api/consumer/products?limit=1000'),
         headers: {
           'Content-Type': 'application/json',
         },
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _products = data.map((json) => POSProduct.fromJson(json)).toList();
+        final responseData = json.decode(response.body);
+        // Consumer API returns {status, items, count, total}
+        final List<dynamic> items = responseData['items'] ?? [];
+        _products = items.map((json) => POSProduct.fromJson(json)).toList();
         _productsError = null;
+        print('Successfully loaded ${_products.length} products');
       } else {
         _productsError = 'Failed to load products: ${response.statusCode}';
+        print('Failed to load products: ${response.statusCode}');
       }
     } catch (e) {
       _productsError = 'Error loading products: $e';
@@ -61,20 +65,30 @@ class POSProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse('https://erp.tsh.sale/api/customers?limit=1000'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _customers = data.map((json) => POSCustomer.fromJson(json)).toList();
-        _customersError = null;
-      } else {
-        _customersError = 'Failed to load customers: ${response.statusCode}';
-      }
+      // TODO: Implement BFF customer endpoint for salesperson
+      // For now, use sample customers for testing
+      _customers = [
+        POSCustomer(
+          id: '1',
+          name: 'عميل نقدي',
+          phone: '07XX XXX XXXX',
+          email: 'cash@tsh.sale',
+        ),
+        POSCustomer(
+          id: '2',
+          name: 'شركة السلام للتجارة',
+          phone: '07701234567',
+          email: 'alsalam@example.com',
+        ),
+        POSCustomer(
+          id: '3',
+          name: 'متجر النور',
+          phone: '07707654321',
+          email: 'alnoor@example.com',
+        ),
+      ];
+      _customersError = null;
+      print('Loaded ${_customers.length} sample customers (endpoint pending)');
     } catch (e) {
       _customersError = 'Error loading customers: $e';
       print('Error fetching customers: $e');
