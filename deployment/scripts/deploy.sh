@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-REPO="https://github.com/YOUR_GITHUB_USERNAME/TSH_ERP_Ecosystem.git"
+REPO="https://github.com/Qmop1967/tsh-erp-system.git"
 APP_DIR="/opt/tsh_erp"
 RELEASES_DIR="$APP_DIR/releases"
 VENVS_DIR="$APP_DIR/venvs"
