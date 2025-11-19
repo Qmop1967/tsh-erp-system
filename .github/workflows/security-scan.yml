@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Trivy
         run: |
@@ -170,7 +170,7 @@ jobs:
 
       - name: Build Docker image for scanning
         if: inputs.scan_type == 'docker' || inputs.scan_type == 'all' || inputs.scan_type == null
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
@@ -290,7 +290,7 @@ jobs:
           EOF
 
       - name: Upload Trivy scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: trivy-scan-results
@@ -307,14 +307,14 @@ jobs:
           retention-days: 90
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: filesystem-scan.sarif
           category: trivy-filesystem
 
       - name: Upload Docker SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && (inputs.scan_type == 'docker' || inputs.scan_type == 'all' || inputs.scan_type == null)
         with:
           sarif_file: docker-scan.sarif

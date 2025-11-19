@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Get Dependabot metadata
         id: dependabot-metadata
@@ -79,7 +79,7 @@ jobs:
 
       - name: Wait for CI checks
         if: steps.eligibility.outputs.auto_merge == 'true'
-        uses: lewagon/wait-on-check-action@v1.3.1
+        uses: lewagon/wait-on-check-action@v1.4.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           running-workflow-name: 'Auto-merge Dependabot PRs'
@@ -103,7 +103,7 @@ jobs:
 
       - name: Add auto-merge label
         if: steps.eligibility.outputs.auto_merge == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -116,7 +116,7 @@ jobs:
 
       - name: Add comment for manual review
         if: steps.eligibility.outputs.auto_merge == 'false'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
